@@ -87,6 +87,7 @@ export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
   layoutSections: {
     showHero: true,
     showQuickStats: true,
+    showAccreditation: true,
     showPrincipalSpeech: true,
     showNews: true,
     showAgenda: true,
@@ -104,7 +105,7 @@ export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
     fullSpeech: `Assalamu’alaikum Warahmatullahi Wabarakatuh, Salam Sejahtera untuk kita semua.\n\nSelamat datang di portal resmi SMP Negeri 1 Bengkalis. Kami mengucapkan terima kasih atas kepercayaan masyarakat Kabupaten Bengkalis yang telah mempercayakan pendidikan putra-putrinya di sekolah kami.\n\nSMP Negeri 1 Bengkalis yang beralamat di Jl. Pertanian, Bengkalis Kota, senantiasa berkomitmen menghadirkan lingkungan belajar yang kondusif, religius, berbudaya, serta berorientasi pada peningkatan mutu akademik dan non-akademik. Melalui implementasi Kurikulum Merdeka dan penguatan Profil Pelajar Pancasila, kami mendidik setiap siswa agar siap menjadi generasi penerus bangsa yang unggul, berintegritas, dan berwawasan lingkungan.\n\nMari bersama-sama bersinergi mewujudkan masa depan anak-anak kita yang gemilang.\n\nWassalamu’alaikum Warahmatullahi Wabarakatuh.`,
   },
   ppdb: {
-    enabled: true,
+    enabled: false,
     buttonLabel: 'Info PPDB 2026',
     buttonLink: '#berita',
     openInNewTab: false,

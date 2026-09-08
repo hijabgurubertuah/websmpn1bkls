@@ -135,18 +135,17 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
         setIsDriveConnected(true);
         setToastNotice({
           type: 'success',
-          message: `Google Drive terhubung (${res.user.email})`,
+          message: 'Drive terhubung',
         });
       }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
       setToastNotice({
         type: 'error',
-        message: 'Gagal menghubungkan Google Drive: ' + errorMsg,
+        message: 'Gagal hubung Drive',
       });
     } finally {
       setConnectingDrive(false);
-      setTimeout(() => setToastNotice(null), 3000);
+      setTimeout(() => setToastNotice(null), 1000);
     }
   };
 
@@ -156,9 +155,9 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
     setIsDriveConnected(false);
     setToastNotice({
       type: 'success',
-      message: 'Akun Google Drive diputuskan.',
+      message: 'Drive terputus',
     });
-    setTimeout(() => setToastNotice(null), 3000);
+    setTimeout(() => setToastNotice(null), 1000);
   };
 
   const handleSavePassword = () => {
@@ -172,14 +171,14 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
         adminPassword: newPassword.trim(),
       });
       setSavedPwdNotice(true);
-      setTimeout(() => setSavedPwdNotice(false), 3000);
+      setTimeout(() => setSavedPwdNotice(false), 1000);
     }
   };
 
   const handleSaveCurrentAsDefault = async () => {
     const currentPass = config.adminPassword || 'smpn1bks';
     if (defaultPasswordInput !== currentPass && defaultPasswordInput !== 'smpn1bks') {
-      setDefaultPasswordError('Password admin salah.');
+      setDefaultPasswordError('Password salah.');
       return;
     }
 
@@ -192,16 +191,16 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
       setDefaultPasswordInput('');
       setToastNotice({
         type: 'success',
-        message: 'Pengaturan saat ini berhasil disimpan sebagai default baru.',
+        message: 'Default disimpan',
       });
     } catch (err) {
       setToastNotice({
         type: 'error',
-        message: 'Gagal menyimpan default: ' + String(err),
+        message: 'Gagal simpan',
       });
     } finally {
       setSavingDefault(false);
-      setTimeout(() => setToastNotice(null), 3000);
+      setTimeout(() => setToastNotice(null), 1000);
     }
   };
 
@@ -219,7 +218,7 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
       onDataRestored(res.config, res.articles);
       setToastNotice({
         type: 'success',
-        message: 'Semua data berhasil di-reset.',
+        message: 'Data di-reset',
       });
       setShowResetModal(false);
       setResetPasswordInput('');
@@ -227,11 +226,11 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
     } catch (err) {
       setToastNotice({
         type: 'error',
-        message: 'Gagal mereset: ' + String(err),
+        message: 'Gagal reset',
       });
     } finally {
       setResetting(false);
-      setTimeout(() => setToastNotice(null), 3000);
+      setTimeout(() => setToastNotice(null), 1000);
     }
   };
 
@@ -255,22 +254,22 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
         await loadDefaultMetadata();
         setToastNotice({
           type: 'success',
-          message: 'Penyimpanan lokal berhasil dibersihkan dan data terbaru dari Firebase telah diunduh!',
+          message: 'Data disinkronkan',
         });
       } else {
         setToastNotice({
           type: 'error',
-          message: res.message,
+          message: res.message || 'Gagal sinkron',
         });
       }
     } catch (err) {
       setToastNotice({
         type: 'error',
-        message: 'Gagal mengunduh data Firebase: ' + String(err),
+        message: 'Gagal sinkron',
       });
     } finally {
       setSyncingCloud(false);
-      setTimeout(() => setToastNotice(null), 4000);
+      setTimeout(() => setToastNotice(null), 1000);
     }
   };
 

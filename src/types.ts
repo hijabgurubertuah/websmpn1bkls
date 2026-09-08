@@ -48,6 +48,7 @@ export interface HeaderConfig {
 export interface LayoutSections {
   showHero: boolean;
   showQuickStats: boolean;
+  showAccreditation?: boolean;
   showPrincipalSpeech: boolean;
   showNews: boolean;
   showAgenda: boolean;

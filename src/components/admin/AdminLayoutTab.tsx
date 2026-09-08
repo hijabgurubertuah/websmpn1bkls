@@ -31,6 +31,11 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
       description: 'Seksi gambar besar pembuka dengan judul, deskripsi, dan tombol aksi utama.',
     },
     {
+      key: 'showAccreditation',
+      title: 'Pita Status Akreditasi & NPSN',
+      description: 'Baris ringkas informasi status akreditasi BAN-S/M dan nomor NPSN di bawah banner.',
+    },
+    {
       key: 'showQuickStats',
       title: 'Kartu Statistik Cepat',
       description: 'Baris 4 angka statistik penting (akreditasi, siswa, rasio, guru) di bawah banner.',

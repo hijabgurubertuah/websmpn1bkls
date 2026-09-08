@@ -244,9 +244,9 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     resetForm();
     setFeedbackToast({
       type: 'success',
-      message: editingArticleId ? 'Perubahan berita berhasil disimpan dan diunggah ke Cloud Firestore.' : 'Berita baru berhasil diterbitkan dan diunggah ke Cloud Firestore.',
+      message: 'Berita disimpan',
     });
-    setTimeout(() => setFeedbackToast(null), 4000);
+    setTimeout(() => setFeedbackToast(null), 1000);
   };
 
   // Quick 1-click upload from table for any local draft
@@ -259,13 +259,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       });
       setFeedbackToast({
         type: 'success',
-        message: `Draf "${art.title}" berhasil diunggah dan disinkronkan ke Cloud Firebase!`,
+        message: 'Draf diunggah',
       });
-      setTimeout(() => setFeedbackToast(null), 4000);
+      setTimeout(() => setFeedbackToast(null), 1000);
     } catch (err) {
       setFeedbackToast({
         type: 'error',
-        message: 'Gagal mengunggah ke Cloud: ' + String(err),
+        message: 'Gagal unggah',
       });
     } finally {
       setSaving(false);
@@ -282,13 +282,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       }
       setFeedbackToast({
         type: 'success',
-        message: `Berita "${articleToDelete.title}" berhasil dihapus.`,
+        message: 'Berita dihapus',
       });
-      setTimeout(() => setFeedbackToast(null), 4000);
+      setTimeout(() => setFeedbackToast(null), 1000);
     } catch (err) {
       setFeedbackToast({
         type: 'error',
-        message: 'Gagal menghapus berita: ' + String(err),
+        message: 'Gagal hapus',
       });
     } finally {
       setDeleting(false);

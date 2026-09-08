@@ -989,19 +989,16 @@ export async function fetchAndSyncLatestData(forceScope?: 'public' | 'admin'): P
       isDifferent,
       config: cloudConfig,
       articles: cloudArticles,
-      message: isDifferent
-        ? 'Data terbaru dari Firebase berhasil disinkronkan.'
-        : 'Data sudah versi terbaru.',
+      message: isDifferent ? 'Data diperbarui' : 'Versi terbaru',
       source: 'cloud',
     };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
       isDifferent: false,
       config: cachedConfig,
       articles: cachedArticles,
-      message: `Gagal memperbarui dari Firebase: ${msg}`,
+      message: 'Gagal sinkron',
       source: 'cache',
     };
   }
@@ -1033,7 +1030,7 @@ export async function syncAdminWithFirebaseIfDifferent(
       checked: false,
       isDifferent: false,
       synced: false,
-      message: 'Tidak dapat menghubungkan ke Firebase untuk sinkronisasi antar perangkat. Menggunakan data lokal.',
+      message: 'Mode offline',
     };
   }
 
@@ -1048,7 +1045,7 @@ export async function syncAdminWithFirebaseIfDifferent(
       checked: true,
       isDifferent: false,
       synced: true,
-      message: 'Data lokal perangkat ini sudah sinkron dengan versi terbaru di Firebase.',
+      message: 'Versi terbaru',
     };
   }
 
@@ -1076,16 +1073,14 @@ export async function syncAdminWithFirebaseIfDifferent(
       synced: true,
       config: cloudConfig,
       articles: cloudArticles,
-      message:
-        'Data lokal dibersihkan & diperbarui dari Firebase: Terdeteksi perubahan terbaru dari perangkat/browser lain. Versi cloud terbaru telah dimuat agar tidak terjadi bentrok.',
+      message: 'Data diperbarui',
     };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
     return {
       checked: true,
       isDifferent: true,
       synced: false,
-      message: `Gagal memperbarui cache lokal: ${msg}`,
+      message: 'Gagal sinkron',
     };
   }
 }

@@ -229,24 +229,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Right Action Buttons */}
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2.5">
             {/* PWA In-App Install Button */}
             <PWAInstallButton />
-
-            {/* Quick Refresh Cloud Data Button */}
-            {onRefresh && (
-              <button
-                id="btn-navbar-refresh"
-                type="button"
-                onClick={onRefresh}
-                disabled={isRefreshing}
-                className="p-2.5 border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-slate-600 hover:text-blue-600 rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                title="Segarkan data terbaru dari Firebase"
-                aria-label="Segarkan Data"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-600'}`} />
-              </button>
-            )}
 
             <a
               href="#berita"
@@ -261,7 +246,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </a>
 
             {/* Dynamic PPDB Button if enabled */}
-            {config.ppdb?.enabled !== false && (
+            {config.ppdb?.enabled === true && (
               <a
                 href={config.ppdb?.buttonLink || '#berita'}
                 target={config.ppdb?.openInNewTab ? '_blank' : undefined}
@@ -278,6 +263,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <GraduationCap className="w-4 h-4" />
                 <span>{config.ppdb?.buttonLabel || 'Info PPDB 2026'}</span>
               </a>
+            )}
+
+            {/* Quick Refresh Cloud Data Button (Right beside Settings) */}
+            {onRefresh && (
+              <button
+                id="btn-navbar-refresh"
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="p-2.5 border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-slate-600 hover:text-blue-600 rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                title="Segarkan data terbaru dari Firebase"
+                aria-label="Segarkan Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-600'}`} />
+              </button>
             )}
 
             {/* The single, unified admin panel button with gear icon */}
@@ -392,7 +392,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             );
           })}
 
-          {config.ppdb?.enabled !== false && (
+          {config.ppdb?.enabled === true && (
             <div className="pt-3 space-y-2">
               <a
                 href={config.ppdb?.buttonLink || '#berita'}

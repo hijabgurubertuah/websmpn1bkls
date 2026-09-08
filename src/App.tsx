@@ -73,12 +73,12 @@ export default function App() {
 
           if (syncRes.isDifferent) {
             setSyncToast({
-              message: 'Data terbaru dari Firebase telah dimuat.',
+              message: 'Data diperbarui',
               type: 'success',
             });
             setTimeout(() => {
               if (isMounted) setSyncToast(null);
-            }, 3500);
+            }, 1000);
           }
         }
       } catch (err) {
@@ -107,25 +107,23 @@ export default function App() {
         setConfig(res.config);
         setArticles(res.articles);
         setSyncToast({
-          message: res.isDifferent
-            ? 'Pembaruan terbaru dari Firebase telah diterapkan.'
-            : 'Data sudah versi terbaru.',
+          message: res.isDifferent ? 'Data diperbarui' : 'Versi terbaru',
           type: 'success',
         });
       } else {
         setSyncToast({
-          message: res.message,
+          message: res.message || 'Mode offline',
           type: 'info',
         });
       }
     } catch (err) {
       setSyncToast({
-        message: 'Gagal menyegarkan: ' + String(err),
+        message: 'Gagal refresh',
         type: 'info',
       });
     } finally {
       setIsRefreshing(false);
-      setTimeout(() => setSyncToast(null), 3500);
+      setTimeout(() => setSyncToast(null), 1000);
     }
   };
 
@@ -249,8 +247,8 @@ export default function App() {
         schoolName={config.identity.name}
       />
 
-      {/* Top Bar with Announcement Ticker & Quick Contacts & Refresh Button */}
-      <TopBar config={config} onRefresh={handleManualRefresh} isRefreshing={isRefreshing} />
+      {/* Top Bar with Announcement Ticker & Quick Contacts */}
+      <TopBar config={config} />
 
       {/* Main Navigation Bar with Dynamic Dropdown Menus and Single Gear Admin Button */}
       <Navbar
@@ -264,7 +262,9 @@ export default function App() {
       {layoutSections.showHero && <HeroSection config={config} />}
 
       {/* Akreditasi A Unggul Bar (Placed Directly Below Header) */}
-      <AccreditationRibbon config={config} />
+      {layoutSections.showAccreditation !== false && (
+        <AccreditationRibbon config={config} />
+      )}
 
       {/* Sambutan Kepala Sekolah */}
       {layoutSections.showPrincipalSpeech && (

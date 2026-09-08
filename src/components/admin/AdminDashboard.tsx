@@ -120,10 +120,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setUnsavedTabs({});
           setCrossDeviceNotice({
             type: 'updated',
-            text: res.message,
+            text: res.message || 'Data diperbarui',
           });
-          setToastMessage('Data lokal dibersihkan & disinkronkan dari Firebase!');
+          setToastMessage('Data disinkronkan');
           setShowToast(true);
+          setTimeout(() => setShowToast(false), 1000);
         }
       } catch (err) {
         console.info('Pemeriksaan sinkronisasi antar perangkat ditunda:', err);
@@ -153,21 +154,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setUnsavedTabs({});
         setCrossDeviceNotice({
           type: 'updated',
-          text: res.message,
+          text: res.message || 'Data diperbarui',
         });
-        setToastMessage('Data lokal dibersihkan & diperbarui dari Firebase!');
+        setToastMessage('Data diperbarui');
       } else {
         setCrossDeviceNotice({
           type: 'info',
-          text: res.message,
+          text: res.message || 'Versi terbaru',
         });
-        setToastMessage('Data lokal sudah sama persis dengan Firebase.');
+        setToastMessage('Versi terbaru');
       }
       setShowToast(true);
+      setTimeout(() => setShowToast(false), 1000);
     } catch (err) {
       setCrossDeviceNotice({
         type: 'error',
-        text: 'Gagal sinkronisasi: ' + String(err),
+        text: 'Gagal sinkron',
       });
     } finally {
       setIsCrossDeviceSyncing(false);
@@ -203,20 +205,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const success = await saveSchoolTabConfig(tabToSave, config);
       if (success) {
         setUnsavedTabs((prev) => ({ ...prev, [tabToSave]: false }));
-        const tabName = tabs.find((t) => t.id === tabToSave)?.label || tabToSave;
-        setToastMessage(`Pengaturan "${tabName}" berhasil disinkronkan ke Firebase!`);
+        setToastMessage('Tersimpan');
       } else {
-        setToastMessage(`Pengaturan "${tabToSave}" tersimpan di lokal (koneksi ditunda).`);
+        setToastMessage('Tersimpan lokal');
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setToastMessage(`Gagal ke Firebase: ${msg}`);
+      setToastMessage('Gagal simpan');
     } finally {
       setSavingTab(false);
       setShowToast(true);
       setTimeout(() => {
         setShowToast(false);
-      }, 4000);
+      }, 1000);
     }
   };
 
@@ -228,12 +228,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       
       {/* Toast Notification */}
       {showToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5 duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <div>
-            <div className="font-bold text-sm">{toastMessage}</div>
-            <div className="text-xs text-slate-400">Tersinkron ke penyimpanan offline &amp; database Firebase Firestore.</div>
-          </div>
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 border border-slate-700 animate-in slide-in-from-bottom-5 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="font-bold text-xs">{toastMessage}</div>
         </div>
       )}
 

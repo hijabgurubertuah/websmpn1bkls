@@ -34,21 +34,35 @@ export function syncPWAManifest(identity: SchoolIdentity) {
   }
 
   // 3. Update Favicon & Apple Touch Icon
-  let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
-  if (!faviconLink) {
-    faviconLink = document.createElement('link');
-    faviconLink.rel = 'icon';
-    document.head.appendChild(faviconLink);
-  }
-  faviconLink.href = faviconUrl;
+  try {
+    // Remove all existing icon links to force browser refresh
+    const existingIcons = document.querySelectorAll("link[rel*='icon']");
+    existingIcons.forEach((el) => {
+      if (el.getAttribute('rel') !== 'apple-touch-icon') {
+        el.remove();
+      }
+    });
 
-  let appleTouchLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement | null;
-  if (!appleTouchLink) {
-    appleTouchLink = document.createElement('link');
-    appleTouchLink.rel = 'apple-touch-icon';
-    document.head.appendChild(appleTouchLink);
+    const newFavicon = document.createElement('link');
+    newFavicon.rel = 'icon';
+    newFavicon.href = faviconUrl;
+    document.head.appendChild(newFavicon);
+
+    const newShortcut = document.createElement('link');
+    newShortcut.rel = 'shortcut icon';
+    newShortcut.href = faviconUrl;
+    document.head.appendChild(newShortcut);
+
+    let appleTouchLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement | null;
+    if (!appleTouchLink) {
+      appleTouchLink = document.createElement('link');
+      appleTouchLink.rel = 'apple-touch-icon';
+      document.head.appendChild(appleTouchLink);
+    }
+    appleTouchLink.href = logoUrl;
+  } catch (err) {
+    console.debug('Favicon update error:', err);
   }
-  appleTouchLink.href = logoUrl;
 
   // 4. Create Dynamic Web Manifest (Blob URL) so PWA install prompt displays the user's school name & logo!
   try {

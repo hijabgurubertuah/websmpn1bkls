@@ -24,7 +24,7 @@ interface AdminPPDBTabProps {
 export const AdminPPDBTab: React.FC<AdminPPDBTabProps> = ({ config, onChange }) => {
   // Default values fallback
   const ppdb: PPDBConfig = config.ppdb || {
-    enabled: true,
+    enabled: false,
     buttonLabel: 'Info PPDB 2026',
     buttonLink: '#berita',
     openInNewTab: false,
