@@ -37,6 +37,19 @@ export interface SchoolIdentity {
   primaryColor: string;
 }
 
+export interface ImportantAnnouncement {
+  enabled: boolean;
+  badge: string;
+  title?: string;
+  text: string;
+  theme: 'warning' | 'danger' | 'info' | 'emerald';
+  buttonEnabled: boolean;
+  buttonText: string;
+  buttonUrl: string;
+  isMarquee?: boolean;
+  dismissible?: boolean;
+}
+
 export interface HeaderConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -148,6 +161,7 @@ export interface GoogleAppsScriptConfig {
 export interface SchoolConfig {
   adminPassword?: string;
   identity: SchoolIdentity;
+  importantAnnouncement?: ImportantAnnouncement;
   header: HeaderConfig;
   navMenus: NavMenu[];
   layoutSections: LayoutSections;

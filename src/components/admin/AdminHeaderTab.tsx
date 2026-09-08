@@ -1,6 +1,19 @@
 import React from 'react';
 import { SchoolConfig } from '../../types';
-import { Image, Sparkles, Sliders, Volume2, FastForward, RotateCcw, HelpCircle } from 'lucide-react';
+import {
+  Image,
+  Sparkles,
+  Sliders,
+  Volume2,
+  FastForward,
+  RotateCcw,
+  HelpCircle,
+  AlertTriangle,
+  Megaphone,
+  Link as LinkIcon,
+  Palette,
+  Check,
+} from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
 
 interface AdminHeaderTabProps {
@@ -10,6 +23,28 @@ interface AdminHeaderTabProps {
 
 export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange }) => {
   const { identity, header } = config;
+
+  const ann = config.importantAnnouncement || {
+    enabled: true,
+    badge: 'INFO PENTING',
+    title: 'Pemberitahuan Penyesuaian KBM & Surat Edaran Resmi',
+    text: 'Menindaklanjuti Surat Edaran terkait kondisi cuaca dan kabut asap, seluruh kegiatan belajar tatap muka sementara dialihkan secara daring (PJJ) dari rumah.',
+    theme: 'warning',
+    buttonEnabled: true,
+    buttonText: 'Baca Surat Edaran Lengkap',
+    buttonUrl: '#berita',
+    dismissible: true,
+  };
+
+  const updateImportantAnnouncement = (field: string, value: any) => {
+    onChange({
+      ...config,
+      importantAnnouncement: {
+        ...ann,
+        [field]: value,
+      },
+    });
+  };
 
   const updateIdentity = (key: keyof typeof identity, value: any) => {
     onChange({
@@ -248,40 +283,164 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
           )}
         </div>
 
-        {/* Section B: Pengumuman Berjalan Paling Atas (Top Bar Ticker) */}
-        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+        {/* Section B: Banner Info Penting & Peringatan Darurat (Diletakkan di Bawah Menu Header) */}
+        <div className="p-5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-5">
           <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-bold text-slate-800 text-sm">
-                2. Pengumuman Berjalan Paling Atas (Top Bar Ticker)
-              </h4>
-              <p className="text-xs text-slate-500">
-                Pita tipis di atas menu navigasi utama untuk pengumuman singkat, alamat, atau info mendesak.
-              </p>
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-amber-100 rounded-xl text-amber-700">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <span>Banner Info Penting &amp; Edaran Darurat (Di Bawah Menu Header)</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-200 text-amber-900">
+                    Sangat Menonjol
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Tampilkan pengumuman mendesak (seperti libur kabut asap, edaran darurat, PPDB, dll.) tepat di bawah menu navigasi header.
+                </p>
+              </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
               <input
                 type="checkbox"
-                checked={identity.tickerEnabled}
-                onChange={(e) => updateIdentity('tickerEnabled', e.target.checked)}
+                checked={ann.enabled}
+                onChange={(e) => updateImportantAnnouncement('enabled', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
             </label>
           </div>
 
-          {identity.tickerEnabled && (
-            <div className="pt-2 border-t border-slate-200/80">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Isi Pengumuman Top Bar
-              </label>
-              <textarea
-                rows={2}
-                value={identity.tickerText}
-                onChange={(e) => updateIdentity('tickerText', e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                placeholder="Tuliskan pengumuman berjalan di sini..."
-              />
+          {ann.enabled && (
+            <div className="space-y-4 pt-3 border-t border-amber-200/80">
+              
+              {/* Row 1: Badge & Title */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Teks Lencana (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    value={ann.badge || 'INFO PENTING'}
+                    onChange={(e) => updateImportantAnnouncement('badge', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
+                    placeholder="Contoh: INFO PENTING, KABUT ASAP, PPDB"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Judul Pengumuman (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    value={ann.title || ''}
+                    onChange={(e) => updateImportantAnnouncement('title', e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
+                    placeholder="Contoh: Pemberitahuan Penyesuaian KBM (Kabut Asap)"
+                  />
+                </div>
+              </div>
+
+              {/* Message Textarea */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Isi Pesan Pengumuman
+                </label>
+                <textarea
+                  rows={3}
+                  value={ann.text || ''}
+                  onChange={(e) => updateImportantAnnouncement('text', e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white leading-relaxed font-medium"
+                  placeholder="Contoh: Menindaklanjuti Surat Edaran Bupati, seluruh kegiatan belajar tatap muka sementara dialihkan secara daring (PJJ)..."
+                />
+              </div>
+
+              {/* Theme Picker */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Warna Tema &amp; Tingkat Urgensi Banner</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { id: 'warning', label: 'Peringatan (Kuning/Amber)', bg: 'bg-amber-500 text-slate-950', border: 'border-amber-400' },
+                    { id: 'danger', label: 'Darurat (Merah)', bg: 'bg-rose-600 text-white', border: 'border-rose-500' },
+                    { id: 'info', label: 'Informasi (Biru)', bg: 'bg-blue-600 text-white', border: 'border-blue-500' },
+                    { id: 'emerald', label: 'Pengumuman (Hijau)', bg: 'bg-emerald-600 text-white', border: 'border-emerald-500' },
+                  ].map((t) => {
+                    const isSelected = (ann.theme || 'warning') === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => updateImportantAnnouncement('theme', t.id)}
+                        className={`p-2.5 rounded-xl text-xs font-bold border flex items-center justify-between transition-all cursor-pointer ${
+                          isSelected
+                            ? `${t.bg} ${t.border} shadow-md ring-2 ring-offset-1 ring-slate-900`
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{t.label}</span>
+                        {isSelected && <Check className="w-4 h-4 shrink-0 ml-1" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Button Settings */}
+              <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Tombol Tautan Berita / Edaran Terkait</span>
+                  </label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={ann.buttonEnabled !== false}
+                      onChange={(e) => updateImportantAnnouncement('buttonEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                {ann.buttonEnabled !== false && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                        Teks Tombol
+                      </label>
+                      <input
+                        type="text"
+                        value={ann.buttonText || 'Baca Surat Edaran Lengkap'}
+                        onChange={(e) => updateImportantAnnouncement('buttonText', e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                        placeholder="Contoh: Baca Surat Edaran Lengkap"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                        Tautan Tujuan (Link URL / Seksi Berita)
+                      </label>
+                      <input
+                        type="text"
+                        value={ann.buttonUrl || '#berita'}
+                        onChange={(e) => updateImportantAnnouncement('buttonUrl', e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                        placeholder="Gunakan #berita untuk scroll ke seksi berita atau https://... untuk PDF/Drive"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
         </div>

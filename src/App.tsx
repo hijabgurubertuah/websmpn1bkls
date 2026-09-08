@@ -18,6 +18,7 @@ import {
 } from './lib/firebase';
 import { TopBar } from './components/public/TopBar';
 import { Navbar } from './components/public/Navbar';
+import { ImportantNoticeBanner } from './components/public/ImportantNoticeBanner';
 import { HeroSection } from './components/public/HeroSection';
 import { PrincipalSection } from './components/public/PrincipalSection';
 import { NewsSection } from './components/public/NewsSection';
@@ -277,9 +278,6 @@ export default function App() {
         schoolName={config.identity.name}
       />
 
-      {/* Top Bar with Announcement Ticker & Quick Contacts */}
-      <TopBar config={config} />
-
       {/* Main Navigation Bar with Dynamic Dropdown Menus and Single Gear Admin Button */}
       <Navbar
         config={config}
@@ -287,6 +285,9 @@ export default function App() {
         onRefresh={handleManualRefresh}
         isRefreshing={isRefreshing}
       />
+
+      {/* Important Announcement / Info Penting Banner (Placed directly BELOW Navbar menu) */}
+      <ImportantNoticeBanner config={config} articles={articles} />
 
       {/* Hero Banner Section */}
       {layoutSections.showHero && <HeroSection config={config} />}
