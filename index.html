@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SMP Negeri 1 Bengkalis - Portal Resmi &amp; CMS Sekolah</title>
+    <meta name="description" content="Website resmi SMP Negeri 1 Bengkalis (NPSN: 10495146), Jl. Pertanian, Bengkalis Kota. Portal informasi profil, berita, prestasi, dan PPDB online." />
+    <meta property="og:title" content="SMP Negeri 1 Bengkalis - Portal Resmi &amp; CMS Sekolah" />
+    <meta property="og:description" content="Website resmi SMP Negeri 1 Bengkalis (NPSN: 10495146), Jl. Pertanian, Bengkalis Kota. Portal informasi profil, berita, prestasi, dan PPDB online." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SMPN1Bengkalis" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      // Suppress benign [vite] websocket connection logs in sandboxed preview iframe
+      (function() {
+        const origError = console.error;
+        console.error = function(...args) {
+          if (args.length > 0 && typeof args[0] === 'string' && args[0].includes('[vite]')) {
+            console.debug(...args);
+            return;
+          }
+          origError.apply(console, args);
+        };
+      })();
+    </script>
+  </head>
+  <body class="font-sans antialiased bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
