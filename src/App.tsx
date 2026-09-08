@@ -14,6 +14,7 @@ import {
   saveNewsArticle,
   saveNewsArticleLocally,
   deleteNewsArticle,
+  fetchAndSyncLatestData,
 } from './lib/firebase';
 import { TopBar } from './components/public/TopBar';
 import { Navbar } from './components/public/Navbar';
@@ -28,7 +29,7 @@ import { AccreditationRibbon } from './components/public/AccreditationRibbon';
 import { OfflineIndicator } from './components/public/OfflineIndicator';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
 import { syncPWAManifest } from './lib/usePWAInstall';
 
 export default function App() {
@@ -37,30 +38,96 @@ export default function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
-  // Initialize data from Firebase / localStorage
+  // Initialize data: Fast render from offline partition, followed immediately by live Firebase sync on refresh
   useEffect(() => {
-    async function initData() {
+    let isMounted = true;
+
+    async function initAndSyncData() {
+      // 1. Instant local hydration from local cache
       try {
-        const [cloudConfig, cloudArticles] = await Promise.all([
+        const [localConfig, localArticles] = await Promise.all([
           loadSchoolConfig(),
           loadNewsArticles(),
         ]);
-        setConfig(cloudConfig);
-        setArticles(cloudArticles);
+        if (isMounted) {
+          setConfig(localConfig);
+          setArticles(localArticles);
+          setIsLoading(false);
+        }
       } catch (err) {
-        console.warn('Init error, using defaults:', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('Init cache error, using defaults:', err);
+        if (isMounted) setIsLoading(false);
+      }
+
+      // 2. Fetch fresh updates from Firebase on every page reload/refresh
+      try {
+        const syncRes = await fetchAndSyncLatestData();
+        if (!isMounted) return;
+
+        if (syncRes.success) {
+          setConfig(syncRes.config);
+          setArticles(syncRes.articles);
+
+          if (syncRes.isDifferent) {
+            setSyncToast({
+              message: 'Data terbaru dari Firebase telah dimuat.',
+              type: 'success',
+            });
+            setTimeout(() => {
+              if (isMounted) setSyncToast(null);
+            }, 3500);
+          }
+        }
+      } catch (err) {
+        console.info('Live sync on reload skipped:', err);
       }
     }
-    initData();
+
+    initAndSyncData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Synchronize document title, favicon, and PWA Manifest
   useEffect(() => {
     syncPWAManifest(config.identity);
   }, [config.identity]);
+
+  // Manual refresh trigger for public and admin views
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetchAndSyncLatestData(isAdminMode ? 'admin' : 'public');
+      if (res.success) {
+        setConfig(res.config);
+        setArticles(res.articles);
+        setSyncToast({
+          message: res.isDifferent
+            ? 'Pembaruan terbaru dari Firebase telah diterapkan.'
+            : 'Data sudah versi terbaru.',
+          type: 'success',
+        });
+      } else {
+        setSyncToast({
+          message: res.message,
+          type: 'info',
+        });
+      }
+    } catch (err) {
+      setSyncToast({
+        message: 'Gagal menyegarkan: ' + String(err),
+        type: 'info',
+      });
+    } finally {
+      setIsRefreshing(false);
+      setTimeout(() => setSyncToast(null), 3500);
+    }
+  };
 
   // Request open admin mode with password protection
   const handleOpenAdmin = () => {
@@ -82,8 +149,6 @@ export default function App() {
   };
 
   // Handle configuration update from Admin
-  // Strictly saves to local state & browser storage (IndexedDB/localStorage).
-  // ZERO writes to Firebase Firestore occur during typing/toggling to preserve write quota!
   const handleConfigChange = (newConfig: SchoolConfig) => {
     setConfig(newConfig);
     saveLocalDraftConfig(newConfig);
@@ -105,7 +170,6 @@ export default function App() {
 
   // Handle article delete from Admin
   const handleDeleteArticle = async (articleId: string) => {
-    // Immediate state update
     setArticles((prev) => prev.filter((a) => a.id !== articleId));
     await deleteNewsArticle(articleId);
   };
@@ -136,18 +200,26 @@ export default function App() {
   // Admin CMS Mode View
   if (isAdminMode) {
     return (
-      <AdminDashboard
-        config={config}
-        articles={articles}
-        onChangeConfig={handleConfigChange}
-        onSaveArticle={handleSaveArticle}
-        onSaveArticleLocally={handleSaveArticleLocally}
-        onDeleteArticle={handleDeleteArticle}
-        onCloseAdmin={() => setIsAdminMode(false)}
-        onLogout={handleLogoutAdmin}
-        onDataRestored={handleDataRestored}
-        onSyncFromCloud={handleSyncFromCloud}
-      />
+      <>
+        {syncToast && (
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 bg-slate-900 text-white px-4 py-2.5 rounded-xl border border-slate-700 shadow-2xl animate-in slide-in-from-top-2 duration-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-xs font-semibold">{syncToast.message}</span>
+          </div>
+        )}
+        <AdminDashboard
+          config={config}
+          articles={articles}
+          onChangeConfig={handleConfigChange}
+          onSaveArticle={handleSaveArticle}
+          onSaveArticleLocally={handleSaveArticleLocally}
+          onDeleteArticle={handleDeleteArticle}
+          onCloseAdmin={() => setIsAdminMode(false)}
+          onLogout={handleLogoutAdmin}
+          onDataRestored={handleDataRestored}
+          onSyncFromCloud={handleSyncFromCloud}
+        />
+      </>
     );
   }
 
@@ -155,8 +227,16 @@ export default function App() {
   const { layoutSections } = config;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 relative">
       
+      {/* Sync Notification Toast */}
+      {syncToast && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 bg-slate-900/95 text-white px-4 py-2.5 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold">{syncToast.message}</span>
+        </div>
+      )}
+
       {/* Admin Password Login Modal */}
       <AdminLoginModal
         isOpen={isLoginModalOpen}
@@ -169,11 +249,16 @@ export default function App() {
         schoolName={config.identity.name}
       />
 
-      {/* Top Bar with Announcement Ticker & Quick Contacts */}
-      <TopBar config={config} />
+      {/* Top Bar with Announcement Ticker & Quick Contacts & Refresh Button */}
+      <TopBar config={config} onRefresh={handleManualRefresh} isRefreshing={isRefreshing} />
 
       {/* Main Navigation Bar with Dynamic Dropdown Menus and Single Gear Admin Button */}
-      <Navbar config={config} onOpenAdmin={handleOpenAdmin} />
+      <Navbar
+        config={config}
+        onOpenAdmin={handleOpenAdmin}
+        onRefresh={handleManualRefresh}
+        isRefreshing={isRefreshing}
+      />
 
       {/* Hero Banner Section */}
       {layoutSections.showHero && <HeroSection config={config} />}

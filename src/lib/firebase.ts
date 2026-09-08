@@ -32,8 +32,16 @@ const FIREBASE_CONFIG = {
   messagingSenderId: '319360539506',
 };
 
-const LOCAL_STORAGE_CONFIG_KEY = 'smpn1_bengkalis_config_v3';
-const LOCAL_STORAGE_NEWS_KEY = 'smpn1_bengkalis_news_v3';
+// Dual Cache Keys: Separate storage for Public visitors vs Admin authenticated editors
+export const PUBLIC_CONFIG_KEY = 'smpn1_public_config_v4';
+export const PUBLIC_NEWS_KEY = 'smpn1_public_news_v4';
+export const ADMIN_CONFIG_KEY = 'smpn1_admin_config_v4';
+export const ADMIN_NEWS_KEY = 'smpn1_admin_news_v4';
+
+// Backward compatibility legacy keys
+const LEGACY_CONFIG_KEY = 'smpn1_bengkalis_config_v3';
+const LEGACY_NEWS_KEY = 'smpn1_bengkalis_news_v3';
+
 const CUSTOM_DEFAULT_CONFIG_KEY = 'smpn1_bengkalis_custom_default_config_v1';
 const CUSTOM_DEFAULT_NEWS_KEY = 'smpn1_bengkalis_custom_default_news_v1';
 const CUSTOM_DEFAULT_META_KEY = 'smpn1_bengkalis_custom_default_meta_v1';
@@ -49,6 +57,128 @@ export async function withTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Pro
       setTimeout(() => reject(new Error('Firestore connection timeout')), timeoutMs)
     ),
   ]);
+}
+
+/**
+ * Check if the browser currently has an authenticated admin session history
+ */
+export function isAdminAuthenticated(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return (
+      localStorage.getItem('admin_authenticated') === 'true' ||
+      sessionStorage.getItem('admin_authenticated') === 'true'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Retrieve cached SchoolConfig from IndexedDB or localStorage based on user role (Public vs Admin)
+ */
+export async function getCachedSchoolConfig(forceScope?: 'public' | 'admin'): Promise<SchoolConfig | null> {
+  const scope = forceScope || (isAdminAuthenticated() ? 'admin' : 'public');
+  const idbKey = scope === 'admin' ? 'admin_school_config' : 'public_school_config';
+  const lsKey = scope === 'admin' ? ADMIN_CONFIG_KEY : PUBLIC_CONFIG_KEY;
+
+  try {
+    const idbData = await getOfflineItem<SchoolConfig>(idbKey);
+    if (idbData) return idbData;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const lsData = localStorage.getItem(lsKey);
+    if (lsData) return JSON.parse(lsData) as SchoolConfig;
+  } catch {
+    // ignore
+  }
+
+  // Fallback to legacy key or global key if newly partitioned cache is not yet seeded
+  try {
+    const legacy = localStorage.getItem(LEGACY_CONFIG_KEY);
+    if (legacy) return JSON.parse(legacy) as SchoolConfig;
+    const globalIdb = await getOfflineItem<SchoolConfig>('school_config');
+    if (globalIdb) return globalIdb;
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+/**
+ * Retrieve cached NewsArticles from IndexedDB or localStorage based on user role (Public vs Admin)
+ */
+export async function getCachedNewsArticles(forceScope?: 'public' | 'admin'): Promise<NewsArticle[] | null> {
+  const scope = forceScope || (isAdminAuthenticated() ? 'admin' : 'public');
+  const idbKey = scope === 'admin' ? 'admin_news_articles' : 'public_news_articles';
+  const lsKey = scope === 'admin' ? ADMIN_NEWS_KEY : PUBLIC_NEWS_KEY;
+
+  try {
+    const idbData = await getOfflineItem<NewsArticle[]>(idbKey);
+    if (idbData && Array.isArray(idbData)) return idbData;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const lsData = localStorage.getItem(lsKey);
+    if (lsData) {
+      const parsed = JSON.parse(lsData);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+
+  // Fallback to legacy key
+  try {
+    const legacy = localStorage.getItem(LEGACY_NEWS_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      if (Array.isArray(parsed)) return parsed;
+    }
+    const globalIdb = await getOfflineItem<NewsArticle[]>('news_articles');
+    if (globalIdb && Array.isArray(globalIdb)) return globalIdb;
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+/**
+ * Persist data to Public Cache (IndexedDB & localStorage)
+ */
+export async function saveToPublicCache(config: SchoolConfig, articles: NewsArticle[]): Promise<void> {
+  try {
+    localStorage.setItem(PUBLIC_CONFIG_KEY, JSON.stringify(config));
+    localStorage.setItem(PUBLIC_NEWS_KEY, JSON.stringify(articles));
+    await setOfflineItem('public_school_config', config);
+    await setOfflineItem('public_news_articles', articles);
+    // Also keep base key for service worker offline manifest
+    await setOfflineItem('school_config', config);
+    await setOfflineItem('news_articles', articles);
+  } catch (e) {
+    console.warn('Error saving to public cache:', e);
+  }
+}
+
+/**
+ * Persist data to Admin Cache (IndexedDB & localStorage)
+ */
+export async function saveToAdminCache(config: SchoolConfig, articles: NewsArticle[]): Promise<void> {
+  try {
+    localStorage.setItem(ADMIN_CONFIG_KEY, JSON.stringify(config));
+    localStorage.setItem(ADMIN_NEWS_KEY, JSON.stringify(articles));
+    await setOfflineItem('admin_school_config', config);
+    await setOfflineItem('admin_news_articles', articles);
+  } catch (e) {
+    console.warn('Error saving to admin cache:', e);
+  }
 }
 
 try {
@@ -144,11 +274,12 @@ export function sanitizeNoBase64<T>(data: T): T {
 /**
  * Save configuration purely to local browser storage (IndexedDB & localStorage).
  * STRICTLY ZERO writes to Firebase Firestore to prevent consuming database write quotas during typing/editing.
+ * Stored in the Admin partition so that public visitors only see published changes.
  */
 export async function saveLocalDraftConfig(config: SchoolConfig): Promise<void> {
   try {
-    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(config));
-    await setOfflineItem('school_config', config);
+    const articles = (await getCachedNewsArticles('admin')) || DEFAULT_NEWS_ARTICLES;
+    await saveToAdminCache(config, articles);
   } catch (e) {
     console.error('Error saving school config locally', e);
   }
@@ -160,7 +291,7 @@ export async function saveLocalDraftConfig(config: SchoolConfig): Promise<void> 
  * preventing database limit exhaustion, and strictly ensuring only image URL links are sent.
  */
 export async function saveSchoolTabConfig(tab: string, config: SchoolConfig): Promise<boolean> {
-  // Always update local cache first so drafts are preserved instantly
+  // Always update admin cache first so drafts are preserved instantly
   await saveLocalDraftConfig(config);
 
   if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
@@ -228,6 +359,9 @@ export async function saveSchoolTabConfig(tab: string, config: SchoolConfig): Pr
   try {
     const configDocRef = doc(db, 'school_portal', 'main_config');
     await withTimeout(setDoc(configDocRef, cleanedPayload, { merge: true }), 4000);
+    // When saved to Firestore, also update public cache so public view is in sync
+    const currentArticles = (await getCachedNewsArticles('public')) || DEFAULT_NEWS_ARTICLES;
+    await saveToPublicCache(config, currentArticles);
     return true;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -245,10 +379,10 @@ export async function saveSchoolTabConfig(tab: string, config: SchoolConfig): Pr
  * Triggered ONLY when the user explicitly clicks a save/sync button.
  */
 export async function saveSchoolConfig(config: SchoolConfig): Promise<boolean> {
-  // Always persist locally first for instant offline loading & zero data loss
+  // Persist to Admin cache
   await saveLocalDraftConfig(config);
 
-  // Sync to Firebase Firestore (single document to save write quota and prevent rate limits)
+  // Sync to Firebase Firestore
   if (db && (typeof navigator === 'undefined' || navigator.onLine)) {
     try {
       const cleanedConfig = sanitizeNoBase64(config);
@@ -258,12 +392,16 @@ export async function saveSchoolConfig(config: SchoolConfig): Promise<boolean> {
       }
       const configDocRef = doc(db, 'school_portal', 'main_config');
       await withTimeout(setDoc(configDocRef, cleanedConfig, { merge: true }), 4000);
+      
+      // Update public cache as well
+      const currentArticles = (await getCachedNewsArticles('public')) || DEFAULT_NEWS_ARTICLES;
+      await saveToPublicCache(config, currentArticles);
       return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('resource-exhausted') || msg.includes('Quota')) {
         console.warn('Kuota harian Firestore tercapai (Free Tier). Data tersimpan aman di penyimpanan lokal browser Anda.');
-        return true; // Return true so user experience is smooth and local save succeeds
+        return true;
       }
       console.info('Config tersimpan secara lokal (sinkronisasi cloud ditunda):', msg);
     }
@@ -272,71 +410,17 @@ export async function saveSchoolConfig(config: SchoolConfig): Promise<boolean> {
 }
 
 /**
- * Load school general configuration.
- * Read-only from cache/cloud without automatic background write seeds.
+ * Load school general configuration from local partition (Public or Admin)
  */
 export async function loadSchoolConfig(): Promise<SchoolConfig> {
-  // 1. First check IndexedDB for super-fast offline startup
-  try {
-    const cached = await getOfflineItem<SchoolConfig>('school_config');
-    if (cached) {
-      // Background revalidate from Firestore if online (read-only)
-      if (db && typeof navigator !== 'undefined' && navigator.onLine) {
-        const configDocRef = doc(db, 'school_portal', 'main_config');
-        withTimeout(getDoc(configDocRef), 3000)
-          .then((snap) => {
-            if (snap.exists()) {
-              const cloudData = snap.data() as SchoolConfig;
-              setOfflineItem('school_config', cloudData);
-              localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(cloudData));
-            }
-          })
-          .catch(() => {});
-      }
-      return cached;
-    }
-  } catch {
-    // fallback
-  }
-
-  // 2. Check localStorage fallback
-  try {
-    const local = localStorage.getItem(LOCAL_STORAGE_CONFIG_KEY);
-    if (local) {
-      const parsed = JSON.parse(local) as SchoolConfig;
-      setOfflineItem('school_config', parsed);
-      return parsed;
-    }
-  } catch (e) {
-    console.error('Error reading local config', e);
-  }
-
-  // 3. Try Firebase Firestore if local cache is completely empty (read-only, no auto-seed writes)
-  if (db && (typeof navigator === 'undefined' || navigator.onLine)) {
-    try {
-      const configDocRef = doc(db, 'school_portal', 'main_config');
-      const snap = await withTimeout(getDoc(configDocRef), 3500);
-      if (snap.exists()) {
-        const cloudData = snap.data() as SchoolConfig;
-        localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(cloudData));
-        await setOfflineItem('school_config', cloudData);
-        return cloudData;
-      } else {
-        // Cloud is empty, use default config locally. NO automatic Firestore write on load.
-        localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(DEFAULT_SCHOOL_CONFIG));
-        await setOfflineItem('school_config', DEFAULT_SCHOOL_CONFIG);
-        return DEFAULT_SCHOOL_CONFIG;
-      }
-    } catch (err) {
-      console.info('Firestore fetch skipped, falling back to default seed:', err);
-    }
-  }
-
+  const cached = await getCachedSchoolConfig();
+  if (cached) return cached;
   return DEFAULT_SCHOOL_CONFIG;
 }
 
 /**
  * Save an article ONLY locally on this device as a draft (0 Firebase operations, 0 quota used)
+ * Stored strictly in the Admin cache.
  */
 export async function saveNewsArticleLocally(article: NewsArticle): Promise<boolean> {
   const localArticle: NewsArticle = {
@@ -344,7 +428,7 @@ export async function saveNewsArticleLocally(article: NewsArticle): Promise<bool
     isLocalDraft: true,
   };
   try {
-    const articles = await loadNewsArticles();
+    const articles = (await getCachedNewsArticles('admin')) || DEFAULT_NEWS_ARTICLES;
     const existingIndex = articles.findIndex((a) => a.id === localArticle.id);
     let updated: NewsArticle[];
     if (existingIndex >= 0) {
@@ -353,8 +437,8 @@ export async function saveNewsArticleLocally(article: NewsArticle): Promise<bool
     } else {
       updated = [localArticle, ...articles];
     }
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(updated));
-    await setOfflineItem('news_articles', updated);
+    const currentConfig = (await getCachedSchoolConfig('admin')) || DEFAULT_SCHOOL_CONFIG;
+    await saveToAdminCache(currentConfig, updated);
     return true;
   } catch (e) {
     console.error('Error saving article locally', e);
@@ -363,18 +447,17 @@ export async function saveNewsArticleLocally(article: NewsArticle): Promise<bool
 }
 
 /**
- * Save or update a single news article to Cloud Firestore (and update local cache)
+ * Save or update a single news article to Cloud Firestore (and update local caches)
  */
 export async function saveNewsArticle(article: NewsArticle): Promise<boolean> {
-  // Mark as no longer a local draft since it's uploaded to Cloud
   const cloudArticle: NewsArticle = {
     ...article,
     isLocalDraft: false,
   };
 
-  // Update local cache first
+  // Update admin cache first
   try {
-    const articles = await loadNewsArticles();
+    const articles = (await getCachedNewsArticles('admin')) || DEFAULT_NEWS_ARTICLES;
     const existingIndex = articles.findIndex((a) => a.id === cloudArticle.id);
     let updated: NewsArticle[];
     if (existingIndex >= 0) {
@@ -383,8 +466,23 @@ export async function saveNewsArticle(article: NewsArticle): Promise<boolean> {
     } else {
       updated = [cloudArticle, ...articles];
     }
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(updated));
-    await setOfflineItem('news_articles', updated);
+    const currentConfig = (await getCachedSchoolConfig('admin')) || DEFAULT_SCHOOL_CONFIG;
+    await saveToAdminCache(currentConfig, updated);
+
+    // If published, also update public cache
+    if (cloudArticle.status === 'published') {
+      const pubConfig = (await getCachedSchoolConfig('public')) || DEFAULT_SCHOOL_CONFIG;
+      const pubArticles = (await getCachedNewsArticles('public')) || DEFAULT_NEWS_ARTICLES;
+      const pubIdx = pubArticles.findIndex((a) => a.id === cloudArticle.id);
+      let pubUpdated: NewsArticle[];
+      if (pubIdx >= 0) {
+        pubUpdated = [...pubArticles];
+        pubUpdated[pubIdx] = cloudArticle;
+      } else {
+        pubUpdated = [cloudArticle, ...pubArticles];
+      }
+      await saveToPublicCache(pubConfig, pubUpdated);
+    }
   } catch (e) {
     console.error('Error saving article locally', e);
   }
@@ -405,14 +503,19 @@ export async function saveNewsArticle(article: NewsArticle): Promise<boolean> {
 }
 
 /**
- * Delete a news article
+ * Delete a news article from Firestore, Admin cache, and Public cache
  */
 export async function deleteNewsArticle(articleId: string): Promise<boolean> {
   try {
-    const articles = await loadNewsArticles();
-    const filtered = articles.filter((a) => a.id !== articleId);
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(filtered));
-    await setOfflineItem('news_articles', filtered);
+    const adminArticles = (await getCachedNewsArticles('admin')) || DEFAULT_NEWS_ARTICLES;
+    const adminFiltered = adminArticles.filter((a) => a.id !== articleId);
+    const adminConfig = (await getCachedSchoolConfig('admin')) || DEFAULT_SCHOOL_CONFIG;
+    await saveToAdminCache(adminConfig, adminFiltered);
+
+    const pubArticles = (await getCachedNewsArticles('public')) || DEFAULT_NEWS_ARTICLES;
+    const pubFiltered = pubArticles.filter((a) => a.id !== articleId);
+    const pubConfig = (await getCachedSchoolConfig('public')) || DEFAULT_SCHOOL_CONFIG;
+    await saveToPublicCache(pubConfig, pubFiltered);
   } catch (e) {
     console.error('Error deleting article locally', e);
   }
@@ -430,82 +533,11 @@ export async function deleteNewsArticle(articleId: string): Promise<boolean> {
 }
 
 /**
- * Load all news articles
+ * Load all news articles from the active partition (Public or Admin)
  */
 export async function loadNewsArticles(): Promise<NewsArticle[]> {
-  // 1. First check IndexedDB for offline access
-  try {
-    const cached = await getOfflineItem<NewsArticle[]>('news_articles');
-    if (cached !== null && Array.isArray(cached)) {
-      // Background revalidate from Firestore if online, preserving any local drafts
-      if (db && typeof navigator !== 'undefined' && navigator.onLine) {
-        const colRef = collection(db, 'news_articles');
-        withTimeout(getDocs(colRef), 3000)
-          .then((snap) => {
-            const cloudArticles: NewsArticle[] = [];
-            snap.forEach((d) => {
-              cloudArticles.push(d.data() as NewsArticle);
-            });
-            if (cloudArticles.length > 0) {
-              // Preserve any articles that are marked as local drafts on this device
-              const localDrafts = cached.filter((a) => a.isLocalDraft);
-              const cloudIds = new Set(cloudArticles.map((c) => c.id));
-              const merged = [
-                ...localDrafts.filter((ld) => !cloudIds.has(ld.id)),
-                ...cloudArticles,
-              ];
-              merged.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
-              setOfflineItem('news_articles', merged);
-              localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(merged));
-            }
-          })
-          .catch(() => {});
-      }
-      return cached;
-    }
-  } catch {
-    // fallback
-  }
-
-  // 2. Check localStorage fallback
-  try {
-    const local = localStorage.getItem(LOCAL_STORAGE_NEWS_KEY);
-    if (local !== null) {
-      const parsed = JSON.parse(local) as NewsArticle[];
-      if (Array.isArray(parsed)) {
-        setOfflineItem('news_articles', parsed);
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.error('Error loading local news', e);
-  }
-
-  // 3. Try Firebase Firestore if local cache is empty
-  if (db && (typeof navigator === 'undefined' || navigator.onLine)) {
-    try {
-      const colRef = collection(db, 'news_articles');
-      const snap = await withTimeout(getDocs(colRef), 3500);
-      if (!snap.empty) {
-        const cloudArticles: NewsArticle[] = [];
-        snap.forEach((d) => {
-          cloudArticles.push(d.data() as NewsArticle);
-        });
-        cloudArticles.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
-        localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(cloudArticles));
-        await setOfflineItem('news_articles', cloudArticles);
-        return cloudArticles;
-      } else {
-        // Cloud collection is empty, use default articles locally without automatic Firestore writes
-        localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(DEFAULT_NEWS_ARTICLES));
-        await setOfflineItem('news_articles', DEFAULT_NEWS_ARTICLES);
-        return DEFAULT_NEWS_ARTICLES;
-      }
-    } catch (err) {
-      console.info('Firestore news load skipped, using local storage:', err);
-    }
-  }
-
+  const cached = await getCachedNewsArticles();
+  if (cached && Array.isArray(cached)) return cached;
   return DEFAULT_NEWS_ARTICLES;
 }
 
@@ -580,8 +612,8 @@ export async function saveCurrentAsNewDefault(
     localStorage.setItem(CUSTOM_DEFAULT_META_KEY, JSON.stringify(meta));
 
     // Also ensure current active storage is in sync
-    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(config));
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(articles));
+    await saveToPublicCache(config, articles);
+    await saveToAdminCache(config, articles);
   } catch (e) {
     console.error('Error saving custom default to localStorage', e);
   }
@@ -709,12 +741,10 @@ export async function resetAllDataToDefault(): Promise<{
     }
   }
 
-  // Apply to active localStorage
+  // Apply to both Public and Admin caches
   try {
-    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(targetConfig));
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(targetArticles));
-    await setOfflineItem('school_config', targetConfig);
-    await setOfflineItem('news_articles', targetArticles);
+    await saveToPublicCache(targetConfig, targetArticles);
+    await saveToAdminCache(targetConfig, targetArticles);
   } catch (e) {
     console.error('Error overwriting local state on reset', e);
   }
@@ -881,6 +911,102 @@ export async function fetchLatestFromFirebase(): Promise<{
   }
 }
 
+export interface CloudSyncResult {
+  success: boolean;
+  isDifferent: boolean;
+  config: SchoolConfig;
+  articles: NewsArticle[];
+  message: string;
+  source: 'cloud' | 'cache' | 'default';
+}
+
+/**
+ * Direct fetch from Firebase Firestore, automatically updating appropriate cache (Public / Admin).
+ * Used when page reloads / refreshes, or when user clicks the refresh button.
+ */
+export async function fetchAndSyncLatestData(forceScope?: 'public' | 'admin'): Promise<CloudSyncResult> {
+  const scope = forceScope || (isAdminAuthenticated() ? 'admin' : 'public');
+  const cachedConfig = (await getCachedSchoolConfig(scope)) || DEFAULT_SCHOOL_CONFIG;
+  const cachedArticles = (await getCachedNewsArticles(scope)) || DEFAULT_NEWS_ARTICLES;
+
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return {
+      success: false,
+      isDifferent: false,
+      config: cachedConfig,
+      articles: cachedArticles,
+      message: 'Sedang dalam mode offline (menggunakan data lokal tersimpan).',
+      source: 'cache',
+    };
+  }
+
+  try {
+    const latest = await fetchLatestFromFirebase();
+    if (!latest.success || !latest.config || !latest.articles) {
+      return {
+        success: false,
+        isDifferent: false,
+        config: cachedConfig,
+        articles: cachedArticles,
+        message: latest.error || 'Gagal memuat data dari Firebase.',
+        source: 'cache',
+      };
+    }
+
+    const cloudConfig = latest.config;
+    const cloudArticles = latest.articles;
+
+    const configDiff = !areConfigsEqual(cachedConfig, cloudConfig);
+    const articlesDiff = !areArticlesEqual(cachedArticles, cloudArticles);
+    const isDifferent = configDiff || articlesDiff;
+
+    if (scope === 'public') {
+      // Update public cache with published cloud data
+      await saveToPublicCache(cloudConfig, cloudArticles);
+    } else {
+      // Update admin cache with cloud data
+      await saveToAdminCache(cloudConfig, cloudArticles);
+    }
+
+    // If custom defaults exist, ensure they're saved
+    if (latest.customDefaultConfig && latest.customDefaultArticles) {
+      try {
+        localStorage.setItem(CUSTOM_DEFAULT_CONFIG_KEY, JSON.stringify(latest.customDefaultConfig));
+        localStorage.setItem(CUSTOM_DEFAULT_NEWS_KEY, JSON.stringify(latest.customDefaultArticles));
+        if (latest.customDefaultMeta) {
+          localStorage.setItem(CUSTOM_DEFAULT_META_KEY, JSON.stringify(latest.customDefaultMeta));
+          await setOfflineItem('custom_default_meta', latest.customDefaultMeta);
+        }
+        await setOfflineItem('custom_default_config', latest.customDefaultConfig);
+        await setOfflineItem('custom_default_articles', latest.customDefaultArticles);
+      } catch {
+        // ignore
+      }
+    }
+
+    return {
+      success: true,
+      isDifferent,
+      config: cloudConfig,
+      articles: cloudArticles,
+      message: isDifferent
+        ? 'Data terbaru dari Firebase berhasil disinkronkan.'
+        : 'Data sudah versi terbaru.',
+      source: 'cloud',
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      isDifferent: false,
+      config: cachedConfig,
+      articles: cachedArticles,
+      message: `Gagal memperbarui dari Firebase: ${msg}`,
+      source: 'cache',
+    };
+  }
+}
+
 export interface DeviceSyncResult {
   checked: boolean;
   isDifferent: boolean;
@@ -928,21 +1054,11 @@ export async function syncAdminWithFirebaseIfDifferent(
 
   // Data is different! Clean local cache and download latest from Firebase
   try {
-    // 1. Clean old local keys
-    localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_NEWS_KEY);
-    localStorage.removeItem('offline_school_config');
-    localStorage.removeItem('offline_news_articles');
+    // Save to admin cache and public cache
+    await saveToAdminCache(cloudConfig, cloudArticles);
+    await saveToPublicCache(cloudConfig, cloudArticles);
 
-    // 2. Set new fresh data from Firebase into local storage
-    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(cloudConfig));
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(cloudArticles));
-
-    // 3. Set into IndexedDB
-    await setOfflineItem('school_config', cloudConfig);
-    await setOfflineItem('news_articles', cloudArticles);
-
-    // 4. Also sync custom defaults if available
+    // Also sync custom defaults if available
     if (latest.customDefaultConfig && latest.customDefaultArticles) {
       localStorage.setItem(CUSTOM_DEFAULT_CONFIG_KEY, JSON.stringify(latest.customDefaultConfig));
       localStorage.setItem(CUSTOM_DEFAULT_NEWS_KEY, JSON.stringify(latest.customDefaultArticles));
@@ -993,15 +1109,17 @@ export async function forceRefreshFromFirebase(): Promise<{
 
   try {
     await clearOfflineStorage();
-    localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_NEWS_KEY);
+    localStorage.removeItem(LEGACY_CONFIG_KEY);
+    localStorage.removeItem(LEGACY_NEWS_KEY);
     localStorage.removeItem('offline_school_config');
     localStorage.removeItem('offline_news_articles');
+    localStorage.removeItem(PUBLIC_CONFIG_KEY);
+    localStorage.removeItem(PUBLIC_NEWS_KEY);
+    localStorage.removeItem(ADMIN_CONFIG_KEY);
+    localStorage.removeItem(ADMIN_NEWS_KEY);
 
-    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(latest.config));
-    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(latest.articles));
-    await setOfflineItem('school_config', latest.config);
-    await setOfflineItem('news_articles', latest.articles);
+    await saveToAdminCache(latest.config, latest.articles);
+    await saveToPublicCache(latest.config, latest.articles);
 
     if (latest.customDefaultConfig && latest.customDefaultArticles) {
       localStorage.setItem(CUSTOM_DEFAULT_CONFIG_KEY, JSON.stringify(latest.customDefaultConfig));

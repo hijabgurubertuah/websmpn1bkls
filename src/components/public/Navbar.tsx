@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SchoolConfig, NavMenu } from '../../types';
-import { Menu, X, ChevronDown, School, ShieldCheck, Settings, Search, GraduationCap } from 'lucide-react';
+import { Menu, X, ChevronDown, School, ShieldCheck, Settings, Search, GraduationCap, RefreshCw } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 
 interface NavbarProps {
   config: SchoolConfig;
   onOpenAdmin: () => void;
   onSearchClick?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ config, onOpenAdmin, onSearchClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  config,
+  onOpenAdmin,
+  onSearchClick,
+  onRefresh,
+  isRefreshing,
+}) => {
   const { identity, navMenus } = config;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -181,6 +189,21 @@ export const Navbar: React.FC<NavbarProps> = ({ config, onOpenAdmin, onSearchCli
             {/* PWA In-App Install Button */}
             <PWAInstallButton />
 
+            {/* Quick Refresh Cloud Data Button */}
+            {onRefresh && (
+              <button
+                id="btn-navbar-refresh"
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="p-2.5 border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-slate-600 hover:text-blue-600 rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                title="Segarkan data terbaru dari Firebase"
+                aria-label="Segarkan Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-600'}`} />
+              </button>
+            )}
+
             <a
               href="#berita"
               onClick={(e) => {
@@ -228,6 +251,21 @@ export const Navbar: React.FC<NavbarProps> = ({ config, onOpenAdmin, onSearchCli
           {/* Mobile Right Action Area */}
           <div className="flex lg:hidden items-center gap-2">
             <PWAInstallButton />
+
+            {/* Quick Refresh Cloud Data Button on Mobile */}
+            {onRefresh && (
+              <button
+                id="btn-navbar-refresh-mobile"
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                title="Segarkan Data"
+                aria-label="Segarkan Data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-700'}`} />
+              </button>
+            )}
 
             {/* The single, unified admin panel button with gear icon for mobile */}
             <button

@@ -1,12 +1,14 @@
 import React from 'react';
 import { SchoolConfig } from '../../types';
-import { Volume2, Phone, Mail, Shield } from 'lucide-react';
+import { Volume2, Phone, Mail, Shield, RefreshCw } from 'lucide-react';
 
 interface TopBarProps {
   config: SchoolConfig;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ config }) => {
+export const TopBar: React.FC<TopBarProps> = ({ config, onRefresh, isRefreshing }) => {
   const { identity, footer } = config;
 
   return (
@@ -28,8 +30,8 @@ export const TopBar: React.FC<TopBarProps> = ({ config }) => {
             </div>
           )}
 
-          {/* Quick contact & accreditation (hidden on mobile phones to prevent clutter above header) */}
-          <div className="hidden md:flex items-center justify-end gap-3 sm:gap-4 shrink-0">
+          {/* Quick contact & accreditation & refresh button */}
+          <div className="flex items-center justify-end gap-2.5 sm:gap-3 shrink-0">
             <div className="hidden lg:flex items-center gap-4 text-slate-400">
               <span className="inline-flex items-center gap-1.5 hover:text-slate-200 transition-colors">
                 <Phone className="w-3.5 h-3.5 text-blue-400" />
@@ -46,6 +48,21 @@ export const TopBar: React.FC<TopBarProps> = ({ config }) => {
                 <Shield className="w-3 h-3" />
                 {identity.akreditasi}
               </span>
+
+              {onRefresh && (
+                <button
+                  id="btn-topbar-refresh"
+                  type="button"
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded-md transition-all cursor-pointer disabled:opacity-50"
+                  title="Segarkan data terbaru dari Firebase"
+                  aria-label="Segarkan data terbaru"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-blue-400' : 'text-slate-400'}`} />
+                  <span className="hidden sm:inline">Segarkan</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
