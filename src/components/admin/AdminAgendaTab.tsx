@@ -142,9 +142,6 @@ export const AdminAgendaTab: React.FC<AdminAgendaTabProps> = ({ config, onChange
               <Calendar className="w-5 h-5 text-indigo-600" />
               <span>Agenda Akademik &amp; Kesiswaan</span>
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              Kelola jadwal kegiatan, ujian, acara sekolah, dan kalender pendidikan yang tampil di halaman depan.
-            </p>
           </div>
 
           <button

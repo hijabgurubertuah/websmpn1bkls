@@ -260,9 +260,6 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
               <Building2 className="w-5 h-5 text-blue-600" />
               <span>Sarana Fasilitas &amp; Ekstrakurikuler</span>
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              Atur daftar foto sarana fasilitas gedung sekolah dan ragam kegiatan ekstrakurikuler siswa.
-            </p>
           </div>
 
           {/* Tab Switcher */}

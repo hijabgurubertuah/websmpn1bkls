@@ -185,51 +185,6 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       
-      {/* Panduan Pengisian Menu & Konten Profil */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 sm:p-6 space-y-3">
-        <div className="flex items-start gap-3">
-          <span className="p-2 bg-blue-600 text-white rounded-xl shrink-0 mt-0.5 shadow-xs">
-            <Info className="w-5 h-5" />
-          </span>
-          <div className="space-y-1.5">
-            <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-              Panduan Mengisi Visi &amp; Misi, Profil Sekolah, &amp; Menu Lainnya
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Menu navigasi berfungsi menghubungkan pengunjung ke berbagai informasi sekolah. Anda dapat mengatur target link tujuan sesuai kebutuhan:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-              <div className="bg-white/90 p-3 rounded-xl border border-blue-100 space-y-1">
-                <span className="text-[11px] font-bold text-blue-700 flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5" /> 1. Buat Artikel / Halaman
-                </span>
-                <p className="text-[11px] text-slate-600">
-                  Tulis isi <strong>Visi &amp; Misi</strong> atau <strong>Profil Sekolah</strong> di tab <em>Postingan Berita</em>, lalu centang <em>"Sematkan / Pin"</em> agar selalu di atas.
-                </p>
-              </div>
-
-              <div className="bg-white/90 p-3 rounded-xl border border-blue-100 space-y-1">
-                <span className="text-[11px] font-bold text-indigo-700 flex items-center gap-1">
-                  <Link2 className="w-3.5 h-3.5" /> 2. Tautkan Dokumen / Link
-                </span>
-                <p className="text-[11px] text-slate-600">
-                  Masukkan link Google Drive PDF visi misi, formulir Google Form PPDB, atau website kementerian pada kolom <strong>Link Target</strong>.
-                </p>
-              </div>
-
-              <div className="bg-white/90 p-3 rounded-xl border border-blue-100 space-y-1">
-                <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
-                  <Bookmark className="w-3.5 h-3.5" /> 3. Lompat ke Bagian Beranda
-                </span>
-                <p className="text-[11px] text-slate-600">
-                  Gunakan ID hash: <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">#sambutan</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">#berita</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">#agenda</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">#fasilitas</code>.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Tombol Khusus PPDB Quick Toggle */}
       <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
@@ -251,9 +206,6 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
                 {config.ppdb?.enabled !== false ? 'Aktif (Tampil)' : 'Disembunyikan'}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Tombol PPDB muncul khusus di sebelah tombol pencarian. Sembunyikan tombol saat periode PPDB telah usai.
-            </p>
           </div>
         </div>
 
@@ -302,9 +254,6 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
             <Layers className="w-5 h-5 text-blue-600" />
             <span>Pengaturan Menu Navigasi &amp; Dropdown</span>
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Atur susunan menu bar di bagian atas website, jadikan menu bertingkat (dropdown), dan atur link tujuan.
-          </p>
         </div>
 
         {/* Add New Menu Bar */}

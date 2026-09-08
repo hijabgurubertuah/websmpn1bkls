@@ -117,6 +117,12 @@ export default function App() {
     saveSchoolConfig(newConfig);
   };
 
+  // Synchronize state when downloaded from Firebase without re-uploading
+  const handleSyncFromCloud = (newConfig: SchoolConfig, newArticles: NewsArticle[]) => {
+    setConfig(newConfig);
+    setArticles(newArticles);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4">
@@ -140,6 +146,7 @@ export default function App() {
         onCloseAdmin={() => setIsAdminMode(false)}
         onLogout={handleLogoutAdmin}
         onDataRestored={handleDataRestored}
+        onSyncFromCloud={handleSyncFromCloud}
       />
     );
   }

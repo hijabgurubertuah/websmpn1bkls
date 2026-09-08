@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SchoolConfig, NewsArticle } from '../../types';
 import {
   Sparkles,
@@ -23,6 +23,9 @@ import {
   Building2,
   GraduationCap,
   FileSpreadsheet,
+  CloudDownload,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { AdminHeaderTab } from './AdminHeaderTab';
 import { AdminMenusTab } from './AdminMenusTab';
@@ -36,7 +39,10 @@ import { AdminEmbedsTab } from './AdminEmbedsTab';
 import { AdminFooterTab } from './AdminFooterTab';
 import { AdminSyncTab } from './AdminSyncTab';
 import { AdminGoogleAppsScriptTab } from './AdminGoogleAppsScriptTab';
-import { saveSchoolTabConfig } from '../../lib/firebase';
+import {
+  saveSchoolTabConfig,
+  syncAdminWithFirebaseIfDifferent,
+} from '../../lib/firebase';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
 
 interface AdminDashboardProps {
@@ -49,6 +55,7 @@ interface AdminDashboardProps {
   onCloseAdmin: () => void;
   onLogout: () => void;
   onDataRestored: (newConfig: SchoolConfig, newArticles: NewsArticle[]) => void;
+  onSyncFromCloud?: (newConfig: SchoolConfig, newArticles: NewsArticle[]) => void;
 }
 
 export type AdminTab =
@@ -75,6 +82,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onCloseAdmin,
   onLogout,
   onDataRestored,
+  onSyncFromCloud,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('header');
   const [savingTab, setSavingTab] = useState(false);
@@ -83,8 +91,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [toastMessage, setToastMessage] = useState('Perubahan Tersimpan!');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Cross-device synchronization state
+  const [isCrossDeviceSyncing, setIsCrossDeviceSyncing] = useState(false);
+  const [crossDeviceNotice, setCrossDeviceNotice] = useState<{
+    type: 'updated' | 'info' | 'error';
+    text: string;
+  } | null>(null);
+
   // Lock body scroll when mobile sidebar drawer is open to prevent background scrolling
   useBodyScrollLock(isMobileSidebarOpen);
+
+  // Automatic cross-device synchronization check when entering the Admin Panel.
+  // If offline local data differs from Firebase (e.g. edited from another device/browser):
+  // Clean local stale cache, download the latest from Firebase, and clear unsaved draft flags.
+  useEffect(() => {
+    let isMounted = true;
+    async function checkCrossDeviceSync() {
+      setIsCrossDeviceSyncing(true);
+      try {
+        const res = await syncAdminWithFirebaseIfDifferent(config, articles);
+        if (!isMounted) return;
+        if (res.isDifferent && res.synced && res.config && res.articles) {
+          if (onSyncFromCloud) {
+            onSyncFromCloud(res.config, res.articles);
+          } else {
+            onDataRestored(res.config, res.articles);
+          }
+          setUnsavedTabs({});
+          setCrossDeviceNotice({
+            type: 'updated',
+            text: res.message,
+          });
+          setToastMessage('Data lokal dibersihkan & disinkronkan dari Firebase!');
+          setShowToast(true);
+        }
+      } catch (err) {
+        console.info('Pemeriksaan sinkronisasi antar perangkat ditunda:', err);
+      } finally {
+        if (isMounted) {
+          setIsCrossDeviceSyncing(false);
+        }
+      }
+    }
+
+    checkCrossDeviceSync();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleManualCrossDeviceSync = async () => {
+    setIsCrossDeviceSyncing(true);
+    try {
+      const res = await syncAdminWithFirebaseIfDifferent(config, articles);
+      if (res.isDifferent && res.synced && res.config && res.articles) {
+        if (onSyncFromCloud) {
+          onSyncFromCloud(res.config, res.articles);
+        } else {
+          onDataRestored(res.config, res.articles);
+        }
+        setUnsavedTabs({});
+        setCrossDeviceNotice({
+          type: 'updated',
+          text: res.message,
+        });
+        setToastMessage('Data lokal dibersihkan & diperbarui dari Firebase!');
+      } else {
+        setCrossDeviceNotice({
+          type: 'info',
+          text: res.message,
+        });
+        setToastMessage('Data lokal sudah sama persis dengan Firebase.');
+      }
+      setShowToast(true);
+    } catch (err) {
+      setCrossDeviceNotice({
+        type: 'error',
+        text: 'Gagal sinkronisasi: ' + String(err),
+      });
+    } finally {
+      setIsCrossDeviceSyncing(false);
+    }
+  };
 
   const localDraftsCount = articles.filter((a) => Boolean(a.isLocalDraft)).length;
 
@@ -196,6 +284,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {/* Right Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={handleManualCrossDeviceSync}
+                disabled={isCrossDeviceSyncing}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+                title="Periksa apakah ada data terbaru di Firebase dari perangkat lain"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isCrossDeviceSyncing ? 'animate-spin' : ''}`} />
+                <span>{isCrossDeviceSyncing ? 'Menyelaraskan...' : 'Sinkron Cloud'}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setActiveTab('sync')}
@@ -500,6 +599,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Main Content Workspace */}
         <main className="flex-1 min-w-0 w-full">
 
+          {/* Cross-Device Synchronization Alert Banner */}
+          {crossDeviceNotice && (
+            <div
+              className={`mb-6 p-4 rounded-2xl border flex items-start justify-between gap-3 shadow-xs animate-in fade-in duration-200 ${
+                crossDeviceNotice.type === 'updated'
+                  ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                  : crossDeviceNotice.type === 'error'
+                  ? 'bg-red-50/90 border-red-300 text-red-950'
+                  : 'bg-blue-50/90 border-blue-300 text-blue-950'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                    crossDeviceNotice.type === 'updated'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : crossDeviceNotice.type === 'error'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}
+                >
+                  <CloudDownload className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold">
+                    {crossDeviceNotice.type === 'updated'
+                      ? 'Penyelarasan Antar Perangkat Selesai'
+                      : 'Status Sinkronisasi Cloud'}
+                  </h4>
+                  <p className="text-xs mt-0.5 leading-relaxed text-slate-700">
+                    {crossDeviceNotice.text}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCrossDeviceNotice(null)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-black/5 cursor-pointer shrink-0"
+                title="Tutup pemberitahuan"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Dedicated Tab Header with Status for Current Tab (Save button is placed ONLY at the bottom) */}
           {activeTab !== 'sync' && activeTab !== 'posts' && (
             <div className="mb-6 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -515,20 +659,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {unsavedTabs[activeTab] ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
-                        Draf Lokal (Belum Disinkron ke Firebase)
+                        Draf Belum Disinkron
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        Tersinkron ke Firebase
+                        Tersinkron
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {unsavedTabs[activeTab]
-                      ? 'Pengaturan telah diubah di draf lokal. Tekan tombol Simpan di bagian bawah tab untuk menyinkronkan data ini ke Firebase.'
-                      : 'Pengaturan tab ini telah tersinkron dengan cloud database. Tombol simpan tersedia di bagian bawah tab.'}
-                  </p>
                 </div>
               </div>
             </div>
@@ -590,6 +729,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               articles={articles}
               onChangeConfig={handleConfigUpdate}
               onDataRestored={onDataRestored}
+              onSyncFromCloud={onSyncFromCloud}
             />
           )}
 
@@ -615,9 +755,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Hanya mengunggah data tab ini ke Firebase Firestore (~100ms) tanpa menyentuh pengaturan tab lain. Hanya tautan/link URL gambar yang disimpan.
-                  </p>
                 </div>
               </div>
 

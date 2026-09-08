@@ -66,9 +66,6 @@ export const AdminPPDBTab: React.FC<AdminPPDBTabProps> = ({ config, onChange }) 
             <h3 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
               <span>Status Tombol &amp; Fitur PPDB di Website</span>
             </h3>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
-              Karena PPDB bersifat musiman dan tidak dibuka sepanjang tahun, Anda dapat menyembunyikan tombol PPDB di bilah menu atas dengan sekali klik tanpa perlu menghapus pengaturan menu.
-            </p>
           </div>
 
           {/* Master Toggle Button */}
@@ -152,9 +149,6 @@ export const AdminPPDBTab: React.FC<AdminPPDBTabProps> = ({ config, onChange }) 
                 placeholder="Contoh: Info PPDB 2026 atau Pendaftaran PPDB"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
               />
-              <p className="text-[11px] text-slate-500">
-                Label tombol yang akan terlihat di pojok kanan bilah navigasi website.
-              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -169,9 +163,6 @@ export const AdminPPDBTab: React.FC<AdminPPDBTabProps> = ({ config, onChange }) 
                 placeholder="Contoh: #berita atau https://siap-ppdb.com/ atau Google Form"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
               />
-              <p className="text-[11px] text-slate-500">
-                Gunakan <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px]">#berita</code> untuk mengarahkan ke postingan berita, atau masukkan link formulir eksternal.
-              </p>
             </div>
           </div>
 
@@ -182,9 +173,6 @@ export const AdminPPDBTab: React.FC<AdminPPDBTabProps> = ({ config, onChange }) 
                 <ExternalLink className="w-4 h-4 text-blue-600" />
                 <span>Buka Tautan di Tab Baru (target="_blank")</span>
               </span>
-              <p className="text-[11px] text-slate-500">
-                Aktifkan jika link tujuan adalah formulir Google Form, link Google Drive, atau website luar agar pengunjung tidak meninggalkan website sekolah.
-              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input

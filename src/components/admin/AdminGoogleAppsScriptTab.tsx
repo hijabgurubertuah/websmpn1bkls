@@ -173,13 +173,8 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            Integrasi Google Drive & Spreadsheet (Apps Script)
+            Integrasi Google Drive &amp; Spreadsheet (Apps Script)
           </h2>
-
-          <p className="text-sm text-blue-100/90 leading-relaxed">
-            Metode ini menggantikan pop-up login Google OAuth browser yang sering terblokir. 
-            Semua unggahan gambar berita, fasilitas, logo, dan dokumen akan otomatis ditampung ke Google Drive akun Anda dan dicatat ke Google Sheets tanpa perlu login berulang kali.
-          </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <span className="inline-flex items-center gap-1.5 text-xs text-emerald-300 font-medium bg-emerald-950/60 px-3 py-1 rounded-lg border border-emerald-500/30">
@@ -229,13 +224,6 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
                 ? 'URL Web App Terisi (Perlu Pengujian)'
                 : 'Belum Dikonfigurasi'}
             </h3>
-            <p className="text-xs opacity-90 mt-0.5">
-              {isConfigured && formData.testStatus === 'success'
-                ? `Semua tombol upload di website ini kini ditangani otomatis oleh Apps Script. Terakhir dites: ${formData.lastTestedAt || 'Baru saja'}.`
-                : isConfigured
-                ? 'Klik tombol "Tes Koneksi Sekarang" di bawah untuk memverifikasi respon dari Google Apps Script Anda.'
-                : 'Ikuti 4 langkah mudah di bawah untuk membuat Web App di script.google.com dan menyalin URL-nya ke sini.'}
-            </p>
           </div>
         </div>
 
@@ -495,9 +483,6 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
               <h3 className="text-base font-bold text-slate-900">
                 Panduan 4 Langkah Deploy Google Apps Script
               </h3>
-              <p className="text-xs text-slate-500">
-                Cukup lakukan sekali saja. Script akan berjalan selamanya dengan akun Google Anda.
-              </p>
             </div>
           </div>
 

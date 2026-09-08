@@ -5,6 +5,7 @@ import {
   resetAllDataToDefault,
   saveCurrentAsNewDefault,
   getCustomDefaultMeta,
+  forceRefreshFromFirebase,
 } from '../../lib/firebase';
 import { clearOfflineStorage } from '../../lib/offlineStorage';
 import {
@@ -37,6 +38,7 @@ interface AdminSyncTabProps {
   articles: NewsArticle[];
   onChangeConfig?: (newConfig: SchoolConfig) => void;
   onDataRestored: (newConfig: SchoolConfig, newArticles: NewsArticle[]) => void;
+  onSyncFromCloud?: (newConfig: SchoolConfig, newArticles: NewsArticle[]) => void;
 }
 
 export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
@@ -44,6 +46,7 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
   articles,
   onChangeConfig,
   onDataRestored,
+  onSyncFromCloud,
 }) => {
   const [firebaseStatus, setFirebaseStatus] = useState<{
     connected: boolean;
@@ -52,6 +55,7 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
   const [loadingCheck, setLoadingCheck] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [savingDefault, setSavingDefault] = useState(false);
+  const [syncingCloud, setSyncingCloud] = useState(false);
 
   // Modals
   const [showResetModal, setShowResetModal] = useState(false);
@@ -238,6 +242,38 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
     window.location.reload();
   };
 
+  const handleDownloadLatestFromFirebase = async () => {
+    setSyncingCloud(true);
+    try {
+      const res = await forceRefreshFromFirebase();
+      if (res.success && res.config && res.articles) {
+        if (onSyncFromCloud) {
+          onSyncFromCloud(res.config, res.articles);
+        } else {
+          onDataRestored(res.config, res.articles);
+        }
+        await loadDefaultMetadata();
+        setToastNotice({
+          type: 'success',
+          message: 'Penyimpanan lokal berhasil dibersihkan dan data terbaru dari Firebase telah diunduh!',
+        });
+      } else {
+        setToastNotice({
+          type: 'error',
+          message: res.message,
+        });
+      }
+    } catch (err) {
+      setToastNotice({
+        type: 'error',
+        message: 'Gagal mengunduh data Firebase: ' + String(err),
+      });
+    } finally {
+      setSyncingCloud(false);
+      setTimeout(() => setToastNotice(null), 4000);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       
@@ -309,6 +345,41 @@ export const AdminSyncTab: React.FC<AdminSyncTabProps> = ({
         <p className="text-[11px] text-slate-500">
           Sinkronisasi dilakukan secara terpisah di masing-masing tab pengaturan agar proses unggah ringan dan hemat kuota Firebase.
         </p>
+      </div>
+
+      {/* Multi-Device Synchronization & Conflict Prevention */}
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+            <RefreshCw className="w-5 h-5" />
+          </span>
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">
+              Sinkronisasi Antar Perangkat (Multi-Device)
+            </h3>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-600" />
+              <span className="text-xs sm:text-sm font-bold text-indigo-950">
+                Pembersihan Cache Lokal &amp; Unduh Data Terbaru
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDownloadLatestFromFirebase}
+            disabled={syncingCloud}
+            className="shrink-0 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncingCloud ? 'animate-spin' : ''}`} />
+            <span>{syncingCloud ? 'Mengunduh...' : 'Bersihkan & Unduh Terbaru'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Firestore Storage Diagnostics & Quota Monitor */}

@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { SchoolConfig, NewsArticle } from '../types';
 import { DEFAULT_SCHOOL_CONFIG, DEFAULT_NEWS_ARTICLES } from './defaultData';
-import { getOfflineItem, setOfflineItem } from './offlineStorage';
+import { getOfflineItem, setOfflineItem, clearOfflineStorage } from './offlineStorage';
 
 // Silence internal retry and connection warning logs from Firestore in browser/iframe environments
 try {
@@ -749,3 +749,283 @@ export async function resetAllDataToDefault(): Promise<{
     savedAt,
   };
 }
+
+/**
+ * Helper to canonicalize objects for deterministic JSON comparison
+ * ensuring key order differences do not cause false positives.
+ */
+function canonicalizeJson(obj: unknown): string {
+  if (obj === null || obj === undefined) return 'null';
+  if (typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(canonicalizeJson).join(',') + ']';
+  }
+  const keys = Object.keys(obj as Record<string, unknown>).sort();
+  const pairs = keys.map(
+    (k) => `${JSON.stringify(k)}:${canonicalizeJson((obj as Record<string, unknown>)[k])}`
+  );
+  return '{' + pairs.join(',') + '}';
+}
+
+/**
+ * Check if two SchoolConfig objects are functionally equivalent
+ */
+export function areConfigsEqual(
+  a: SchoolConfig | null | undefined,
+  b: SchoolConfig | null | undefined
+): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return canonicalizeJson(sanitizeNoBase64(a)) === canonicalizeJson(sanitizeNoBase64(b));
+}
+
+/**
+ * Check if two NewsArticle lists are functionally equivalent
+ */
+export function areArticlesEqual(
+  a: NewsArticle[] | null | undefined,
+  b: NewsArticle[] | null | undefined
+): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+
+  const simplify = (list: NewsArticle[]) =>
+    list
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        date: item.date,
+        content: item.content,
+        category: item.category,
+        isPinned: item.isPinned,
+        status: item.status,
+        isLocalDraft: Boolean(item.isLocalDraft),
+      }))
+      .sort((x, y) => x.id.localeCompare(y.id));
+
+  return canonicalizeJson(simplify(a)) === canonicalizeJson(simplify(b));
+}
+
+/**
+ * Directly fetch latest data from Cloud Firestore (bypassing local cache).
+ */
+export async function fetchLatestFromFirebase(): Promise<{
+  success: boolean;
+  config: SchoolConfig | null;
+  articles: NewsArticle[] | null;
+  customDefaultConfig?: SchoolConfig | null;
+  customDefaultArticles?: NewsArticle[] | null;
+  customDefaultMeta?: { hasCustomDefault: boolean; savedAt?: string };
+  error?: string;
+}> {
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return { success: false, config: null, articles: null, error: 'Offline atau database tidak terhubung' };
+  }
+
+  try {
+    const configDocRef = doc(db, 'school_portal', 'main_config');
+    const articlesColRef = collection(db, 'news_articles');
+    const customDefaultDocRef = doc(db, 'school_portal', 'custom_defaults');
+
+    const [configSnap, articlesSnap, customDefaultSnap] = await Promise.all([
+      withTimeout(getDoc(configDocRef), 4000).catch(() => null),
+      withTimeout(getDocs(articlesColRef), 4000).catch(() => null),
+      withTimeout(getDoc(customDefaultDocRef), 4000).catch(() => null),
+    ]);
+
+    let cloudConfig: SchoolConfig | null = null;
+    let cloudArticles: NewsArticle[] | null = null;
+    let customDefaultConfig: SchoolConfig | null = null;
+    let customDefaultArticles: NewsArticle[] | null = null;
+    let customDefaultMeta: { hasCustomDefault: boolean; savedAt?: string } = { hasCustomDefault: false };
+
+    if (customDefaultSnap && customDefaultSnap.exists()) {
+      const data = customDefaultSnap.data();
+      customDefaultMeta = {
+        hasCustomDefault: true,
+        savedAt: data.savedAt,
+      };
+      if (data.config) customDefaultConfig = data.config as SchoolConfig;
+      if (Array.isArray(data.articles)) customDefaultArticles = data.articles as NewsArticle[];
+    }
+
+    if (configSnap && configSnap.exists()) {
+      cloudConfig = configSnap.data() as SchoolConfig;
+    } else if (customDefaultConfig) {
+      cloudConfig = customDefaultConfig;
+    }
+
+    if (articlesSnap && !articlesSnap.empty) {
+      const arts: NewsArticle[] = [];
+      articlesSnap.forEach((d) => {
+        arts.push(d.data() as NewsArticle);
+      });
+      arts.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+      cloudArticles = arts;
+    } else if (customDefaultArticles) {
+      cloudArticles = customDefaultArticles;
+    }
+
+    return {
+      success: true,
+      config: cloudConfig,
+      articles: cloudArticles,
+      customDefaultConfig,
+      customDefaultArticles,
+      customDefaultMeta,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, config: null, articles: null, error: msg };
+  }
+}
+
+export interface DeviceSyncResult {
+  checked: boolean;
+  isDifferent: boolean;
+  synced: boolean;
+  message: string;
+  config?: SchoolConfig;
+  articles?: NewsArticle[];
+}
+
+/**
+ * Automatic cross-device synchronization check when entering Admin panel.
+ * If offline local data differs from Firebase:
+ * 1. Cleans local cache & stale drafts on this device
+ * 2. Downloads and applies the latest Firebase data and defaults
+ * 3. Prevents edit collision across devices/browsers
+ */
+export async function syncAdminWithFirebaseIfDifferent(
+  localConfig: SchoolConfig,
+  localArticles: NewsArticle[]
+): Promise<DeviceSyncResult> {
+  const latest = await fetchLatestFromFirebase();
+  if (!latest.success || !latest.config || !latest.articles) {
+    return {
+      checked: false,
+      isDifferent: false,
+      synced: false,
+      message: 'Tidak dapat menghubungkan ke Firebase untuk sinkronisasi antar perangkat. Menggunakan data lokal.',
+    };
+  }
+
+  const cloudConfig = latest.config;
+  const cloudArticles = latest.articles;
+
+  const configMatches = areConfigsEqual(localConfig, cloudConfig);
+  const articlesMatch = areArticlesEqual(localArticles, cloudArticles);
+
+  if (configMatches && articlesMatch) {
+    return {
+      checked: true,
+      isDifferent: false,
+      synced: true,
+      message: 'Data lokal perangkat ini sudah sinkron dengan versi terbaru di Firebase.',
+    };
+  }
+
+  // Data is different! Clean local cache and download latest from Firebase
+  try {
+    // 1. Clean old local keys
+    localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_NEWS_KEY);
+    localStorage.removeItem('offline_school_config');
+    localStorage.removeItem('offline_news_articles');
+
+    // 2. Set new fresh data from Firebase into local storage
+    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(cloudConfig));
+    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(cloudArticles));
+
+    // 3. Set into IndexedDB
+    await setOfflineItem('school_config', cloudConfig);
+    await setOfflineItem('news_articles', cloudArticles);
+
+    // 4. Also sync custom defaults if available
+    if (latest.customDefaultConfig && latest.customDefaultArticles) {
+      localStorage.setItem(CUSTOM_DEFAULT_CONFIG_KEY, JSON.stringify(latest.customDefaultConfig));
+      localStorage.setItem(CUSTOM_DEFAULT_NEWS_KEY, JSON.stringify(latest.customDefaultArticles));
+      if (latest.customDefaultMeta) {
+        localStorage.setItem(CUSTOM_DEFAULT_META_KEY, JSON.stringify(latest.customDefaultMeta));
+        await setOfflineItem('custom_default_meta', latest.customDefaultMeta);
+      }
+      await setOfflineItem('custom_default_config', latest.customDefaultConfig);
+      await setOfflineItem('custom_default_articles', latest.customDefaultArticles);
+    }
+
+    return {
+      checked: true,
+      isDifferent: true,
+      synced: true,
+      config: cloudConfig,
+      articles: cloudArticles,
+      message:
+        'Data lokal dibersihkan & diperbarui dari Firebase: Terdeteksi perubahan terbaru dari perangkat/browser lain. Versi cloud terbaru telah dimuat agar tidak terjadi bentrok.',
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      checked: true,
+      isDifferent: true,
+      synced: false,
+      message: `Gagal memperbarui cache lokal: ${msg}`,
+    };
+  }
+}
+
+/**
+ * Manually force download latest data from Firebase and clean local cache
+ */
+export async function forceRefreshFromFirebase(): Promise<{
+  success: boolean;
+  config?: SchoolConfig;
+  articles?: NewsArticle[];
+  message: string;
+}> {
+  const latest = await fetchLatestFromFirebase();
+  if (!latest.success || !latest.config || !latest.articles) {
+    return {
+      success: false,
+      message: 'Gagal mengambil data dari Firebase: ' + (latest.error || 'Koneksi terputus'),
+    };
+  }
+
+  try {
+    await clearOfflineStorage();
+    localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_NEWS_KEY);
+    localStorage.removeItem('offline_school_config');
+    localStorage.removeItem('offline_news_articles');
+
+    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(latest.config));
+    localStorage.setItem(LOCAL_STORAGE_NEWS_KEY, JSON.stringify(latest.articles));
+    await setOfflineItem('school_config', latest.config);
+    await setOfflineItem('news_articles', latest.articles);
+
+    if (latest.customDefaultConfig && latest.customDefaultArticles) {
+      localStorage.setItem(CUSTOM_DEFAULT_CONFIG_KEY, JSON.stringify(latest.customDefaultConfig));
+      localStorage.setItem(CUSTOM_DEFAULT_NEWS_KEY, JSON.stringify(latest.customDefaultArticles));
+      if (latest.customDefaultMeta) {
+        localStorage.setItem(CUSTOM_DEFAULT_META_KEY, JSON.stringify(latest.customDefaultMeta));
+        await setOfflineItem('custom_default_meta', latest.customDefaultMeta);
+      }
+      await setOfflineItem('custom_default_config', latest.customDefaultConfig);
+      await setOfflineItem('custom_default_articles', latest.customDefaultArticles);
+    }
+
+    return {
+      success: true,
+      config: latest.config,
+      articles: latest.articles,
+      message: 'Penyimpanan lokal berhasil dibersihkan dan data terbaru dari Firebase telah diunduh.',
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      message: 'Gagal menyimpan ke penyimpanan lokal: ' + msg,
+    };
+  }
+}
+

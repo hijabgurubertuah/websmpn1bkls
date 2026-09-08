@@ -41,9 +41,6 @@ export const AdminFooterTab: React.FC<AdminFooterTabProps> = ({ config, onChange
             <Share2 className="w-5 h-5 text-blue-600" />
             <span>Pengaturan Footer &amp; Informasi Kontak Resmi</span>
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Ubah deskripsi tentang sekolah di bagian bawah halaman, kontak telepon, WhatsApp, email, dan link sosial media.
-          </p>
         </div>
 
         <div className="space-y-4">

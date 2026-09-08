@@ -48,9 +48,6 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             <Sparkles className="w-5 h-5 text-blue-600" />
             <span>Identitas Sekolah &amp; Logo</span>
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Atur nama sekolah, akreditasi, logo utama, dan favicon browser.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -147,7 +144,6 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-bold text-slate-800 text-sm">Pengumuman Berjalan (Ticker Bar)</h4>
-              <p className="text-xs text-slate-500">Tampilkan teks kabar penting di baris paling atas website.</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -181,9 +177,6 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             <Image className="w-5 h-5 text-blue-600" />
             <span>Header &amp; Gambar Banner Utama (Hero)</span>
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Ubah gambar background header sekolah, judul sambutan, serta tautan tombol ajakan (CTA).
-          </p>
         </div>
 
         <div className="space-y-4">
