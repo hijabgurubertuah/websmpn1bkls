@@ -23,6 +23,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const mobileDrawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside for desktop
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -46,6 +48,35 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Auto-close mobile menu when tapping or clicking outside the mobile menu list
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const handlePointerDownOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      // If clicked outside the entire nav bar or on the backdrop
+      if (navRef.current && !navRef.current.contains(target)) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    document.addEventListener('touchstart', handlePointerDownOutside, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+      document.removeEventListener('touchstart', handlePointerDownOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   const handleNavClick = (path: string) => {
     setMobileMenuOpen(false);
@@ -61,15 +92,28 @@ export const Navbar: React.FC<NavbarProps> = ({
   const activeMenus = navMenus.filter((m) => m.enabled);
 
   return (
-    <nav
-      id="main-navbar"
-      className={`sticky top-0 z-40 transition-all duration-200 ${
-        scrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200'
-          : 'bg-white border-b border-slate-100 shadow-xs'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      {/* Mobile Drawer Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          id="mobile-menu-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          onTouchStart={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-35 lg:hidden animate-in fade-in duration-200"
+          aria-hidden="true"
+        />
+      )}
+
+      <nav
+        ref={navRef}
+        id="main-navbar"
+        className={`sticky top-0 z-40 transition-all duration-200 ${
+          scrolled
+            ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200'
+            : 'bg-white border-b border-slate-100 shadow-xs'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
           {/* Brand Logo & Name */}
@@ -371,5 +415,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       )}
     </nav>
+    </>
   );
 };

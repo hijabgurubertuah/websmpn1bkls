@@ -4,19 +4,13 @@ import {
   Plus,
   Trash2,
   ChevronDown,
-  ListPlus,
+  Pencil,
+  Check,
+  X,
+  GraduationCap,
+  GripVertical,
   MoveUp,
   MoveDown,
-  Layers,
-  Link2,
-  Edit2,
-  Check,
-  Info,
-  FileText,
-  Bookmark,
-  GraduationCap,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 
 interface AdminMenusTabProps {
@@ -26,21 +20,34 @@ interface AdminMenusTabProps {
 
 export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }) => {
   const { navMenus } = config;
-  const [newMenuLabel, setNewMenuLabel] = useState('');
-  const [newMenuPath, setNewMenuPath] = useState('');
-  const [newIsDropdown, setNewIsDropdown] = useState(false);
 
-  // Submenu input state for a specific menu
-  const [activeMenuForSubmenu, setActiveMenuForSubmenu] = useState<string | null>(null);
-  const [subLabel, setSubLabel] = useState('');
-  const [subPath, setSubPath] = useState('');
-  const [subDesc, setSubDesc] = useState('');
+  const [activeOpenMenuId, setActiveOpenMenuId] = useState<string | null>(null);
 
-  // Editing submenu state
-  const [editingSubId, setEditingSubId] = useState<string | null>(null);
-  const [editSubLabel, setEditSubLabel] = useState('');
-  const [editSubPath, setEditSubPath] = useState('');
-  const [editSubDesc, setEditSubDesc] = useState('');
+  // Drag and Drop state for Main Menus
+  const [draggedMenuIndex, setDraggedMenuIndex] = useState<number | null>(null);
+  const [dragOverMenuIndex, setDragOverMenuIndex] = useState<number | null>(null);
+
+  // Drag and Drop state for Sub Menus
+  const [draggedSubIndex, setDraggedSubIndex] = useState<number | null>(null);
+  const [dragOverSubIndex, setDragOverSubIndex] = useState<number | null>(null);
+
+  // Main menu edit modal
+  const [editingMenu, setEditingMenu] = useState<NavMenu | null>(null);
+  const [menuFormLabel, setMenuFormLabel] = useState('');
+  const [menuFormPath, setMenuFormPath] = useState('');
+  const [menuFormIsDropdown, setMenuFormIsDropdown] = useState(false);
+  const [menuFormEnabled, setMenuFormEnabled] = useState(true);
+
+  // Sub-menu edit modal
+  const [editingSubmenuParentId, setEditingSubmenuParentId] = useState<string | null>(null);
+  const [editingSubmenuItem, setEditingSubmenuItem] = useState<DropdownItem | null>(null);
+  const [subFormLabel, setSubFormLabel] = useState('');
+  const [subFormPath, setSubFormPath] = useState('');
+
+  // Add submenu inline
+  const [addingSubmenuToMenuId, setAddingSubmenuToMenuId] = useState<string | null>(null);
+  const [newSubLabel, setNewSubLabel] = useState('');
+  const [newSubPath, setNewSubPath] = useState('#');
 
   const updateMenus = (updated: NavMenu[]) => {
     onChange({
@@ -49,116 +56,141 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
     });
   };
 
-  const handleAddMenu = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMenuLabel.trim()) return;
-
-    const newMenu: NavMenu = {
-      id: `menu-${Date.now()}`,
-      label: newMenuLabel.trim(),
-      path: newMenuPath.trim() || '#',
-      isDropdown: newIsDropdown,
-      dropdownItems: newIsDropdown ? [] : undefined,
-      enabled: true,
-    };
-
-    updateMenus([...navMenus, newMenu]);
-    setNewMenuLabel('');
-    setNewMenuPath('');
-    setNewIsDropdown(false);
+  // Drag & Drop handlers for Main Menus
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedMenuIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Transparent or data set
+    e.dataTransfer.setData('text/plain', index.toString());
   };
 
-  const handleDeleteMenu = (id: string) => {
-    if (confirm('Yakin ingin menghapus menu ini?')) {
-      updateMenus(navMenus.filter((m) => m.id !== id));
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverMenuIndex !== index) {
+      setDragOverMenuIndex(index);
     }
   };
 
-  const handleToggleMenu = (id: string) => {
-    updateMenus(
-      navMenus.map((m) => (m.id === id ? { ...m, enabled: !m.enabled } : m))
-    );
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedMenuIndex === null || draggedMenuIndex === dropIndex) {
+      setDraggedMenuIndex(null);
+      setDragOverMenuIndex(null);
+      return;
+    }
+
+    const newMenus = [...navMenus];
+    const [movedItem] = newMenus.splice(draggedMenuIndex, 1);
+    newMenus.splice(dropIndex, 0, movedItem);
+
+    updateMenus(newMenus);
+    setDraggedMenuIndex(null);
+    setDragOverMenuIndex(null);
   };
 
-  const handleToggleDropdownType = (id: string) => {
+  const handleDragEnd = () => {
+    setDraggedMenuIndex(null);
+    setDragOverMenuIndex(null);
+  };
+
+  // Drag & Drop handlers for Sub Menus
+  const handleSubDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedSubIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSubDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverSubIndex !== index) {
+      setDragOverSubIndex(index);
+    }
+  };
+
+  const handleSubDrop = (e: React.DragEvent, menuId: string, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedSubIndex === null || draggedSubIndex === dropIndex) {
+      setDraggedSubIndex(null);
+      setDragOverSubIndex(null);
+      return;
+    }
+
     updateMenus(
       navMenus.map((m) => {
-        if (m.id === id) {
-          const nextIsDropdown = !m.isDropdown;
+        if (m.id === menuId && m.dropdownItems) {
+          const newSubs = [...m.dropdownItems];
+          const [movedItem] = newSubs.splice(draggedSubIndex, 1);
+          newSubs.splice(dropIndex, 0, movedItem);
+          return { ...m, dropdownItems: newSubs };
+        }
+        return m;
+      })
+    );
+
+    setDraggedSubIndex(null);
+    setDragOverSubIndex(null);
+  };
+
+  const handleSubDragEnd = () => {
+    setDraggedSubIndex(null);
+    setDragOverSubIndex(null);
+  };
+
+  const handleOpenEditMenu = (menu: NavMenu, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingMenu(menu);
+    setMenuFormLabel(menu.label);
+    setMenuFormPath(menu.path);
+    setMenuFormIsDropdown(menu.isDropdown);
+    setMenuFormEnabled(menu.enabled);
+  };
+
+  const handleSaveMenuEdit = () => {
+    if (!editingMenu || !menuFormLabel.trim()) return;
+
+    updateMenus(
+      navMenus.map((m) => {
+        if (m.id === editingMenu.id) {
+          const nextIsDropdown = menuFormIsDropdown;
           return {
             ...m,
+            label: menuFormLabel.trim(),
+            path: menuFormPath.trim() || '#',
             isDropdown: nextIsDropdown,
+            enabled: menuFormEnabled,
             dropdownItems: nextIsDropdown ? m.dropdownItems || [] : undefined,
           };
         }
         return m;
       })
     );
+
+    setEditingMenu(null);
   };
 
-  const handleAddSubmenuItem = (menuId: string) => {
-    if (!subLabel.trim()) return;
+  const handleOpenEditSubmenu = (menuId: string, sub: DropdownItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingSubmenuParentId(menuId);
+    setEditingSubmenuItem(sub);
+    setSubFormLabel(sub.label);
+    setSubFormPath(sub.path);
+  };
 
-    const newItem: DropdownItem = {
-      id: `sub-${Date.now()}`,
-      label: subLabel.trim(),
-      path: subPath.trim() || '#',
-      description: subDesc.trim() || undefined,
-    };
+  const handleSaveSubmenuEdit = () => {
+    if (!editingSubmenuParentId || !editingSubmenuItem || !subFormLabel.trim()) return;
 
     updateMenus(
       navMenus.map((m) => {
-        if (m.id === menuId) {
-          return {
-            ...m,
-            dropdownItems: [...(m.dropdownItems || []), newItem],
-          };
-        }
-        return m;
-      })
-    );
-
-    setSubLabel('');
-    setSubPath('');
-    setSubDesc('');
-  };
-
-  const handleDeleteSubmenuItem = (menuId: string, subId: string) => {
-    updateMenus(
-      navMenus.map((m) => {
-        if (m.id === menuId) {
-          return {
-            ...m,
-            dropdownItems: (m.dropdownItems || []).filter((item) => item.id !== subId),
-          };
-        }
-        return m;
-      })
-    );
-  };
-
-  const handleStartEditSubmenu = (sub: DropdownItem) => {
-    setEditingSubId(sub.id);
-    setEditSubLabel(sub.label);
-    setEditSubPath(sub.path);
-    setEditSubDesc(sub.description || '');
-  };
-
-  const handleSaveEditSubmenu = (menuId: string) => {
-    if (!editingSubId || !editSubLabel.trim()) return;
-
-    updateMenus(
-      navMenus.map((m) => {
-        if (m.id === menuId) {
+        if (m.id === editingSubmenuParentId) {
           return {
             ...m,
             dropdownItems: (m.dropdownItems || []).map((sub) =>
-              sub.id === editingSubId
+              sub.id === editingSubmenuItem.id
                 ? {
                     ...sub,
-                    label: editSubLabel.trim(),
-                    path: editSubPath.trim() || '#',
-                    description: editSubDesc.trim() || undefined,
+                    label: subFormLabel.trim(),
+                    path: subFormPath.trim() || '#',
                   }
                 : sub
             ),
@@ -168,45 +200,98 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
       })
     );
 
-    setEditingSubId(null);
+    setEditingSubmenuItem(null);
+    setEditingSubmenuParentId(null);
   };
 
-  const moveMenu = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= navMenus.length) return;
+  const handleCreateNewMenu = () => {
+    const newId = `menu-${Date.now()}`;
+    const newMenu: NavMenu = {
+      id: newId,
+      label: 'Menu Baru',
+      path: '#',
+      isDropdown: false,
+      dropdownItems: [],
+      enabled: true,
+    };
+    updateMenus([...navMenus, newMenu]);
+    handleOpenEditMenu(newMenu);
+  };
 
-    const copy = [...navMenus];
-    const temp = copy[index];
-    copy[index] = copy[targetIndex];
-    copy[targetIndex] = temp;
-    updateMenus(copy);
+  const handleDeleteMenu = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (confirm('Hapus menu ini?')) {
+      updateMenus(navMenus.filter((m) => m.id !== id));
+      if (activeOpenMenuId === id) setActiveOpenMenuId(null);
+      if (editingMenu?.id === id) setEditingMenu(null);
+    }
+  };
+
+  const handleAddSubmenu = (menuId: string) => {
+    if (!newSubLabel.trim()) return;
+
+    const newItem: DropdownItem = {
+      id: `sub-${Date.now()}`,
+      label: newSubLabel.trim(),
+      path: newSubPath.trim() || '#',
+    };
+
+    updateMenus(
+      navMenus.map((m) => {
+        if (m.id === menuId) {
+          return {
+            ...m,
+            isDropdown: true,
+            dropdownItems: [...(m.dropdownItems || []), newItem],
+          };
+        }
+        return m;
+      })
+    );
+
+    setNewSubLabel('');
+    setNewSubPath('#');
+    setAddingSubmenuToMenuId(null);
+    setActiveOpenMenuId(menuId);
+  };
+
+  const handleDeleteSubmenu = (menuId: string, subId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (confirm('Hapus sub-menu ini?')) {
+      updateMenus(
+        navMenus.map((m) => {
+          if (m.id === menuId) {
+            return {
+              ...m,
+              dropdownItems: (m.dropdownItems || []).filter((item) => item.id !== subId),
+            };
+          }
+          return m;
+        })
+      );
+    }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      
-      {/* Tombol Khusus PPDB Quick Toggle */}
-      <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 shrink-0">
-            <GraduationCap className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-bold text-sm text-slate-900">
-                Tombol Khusus PPDB di Bilah Menu
-              </h4>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  config.ppdb?.enabled !== false
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {config.ppdb?.enabled !== false ? 'Aktif (Tampil)' : 'Disembunyikan'}
-              </span>
-            </div>
-          </div>
+    <div className="space-y-4 animate-in fade-in duration-200">
+
+      {/* Header Bar */}
+      <div className="p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-2">
+          <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+            Menu &amp; Dropdown
+          </h3>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+            {navMenus.length}
+          </span>
+        </div>
+      </div>
+
+      {/* PPDB Toggle */}
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <GraduationCap className="w-4 h-4 text-blue-600" />
+          <span className="text-xs font-bold text-slate-800">Tombol PPDB</span>
         </div>
 
         <button
@@ -227,338 +312,467 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
               },
             })
           }
-          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+          className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
             config.ppdb?.enabled !== false
-              ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+              : 'bg-slate-200 text-slate-700'
           }`}
         >
-          {config.ppdb?.enabled !== false ? (
-            <>
-              <EyeOff className="w-4 h-4" />
-              <span>Sembunyikan Tombol PPDB</span>
-            </>
-          ) : (
-            <>
-              <Eye className="w-4 h-4" />
-              <span>Tampilkan Tombol PPDB</span>
-            </>
-          )}
+          {config.ppdb?.enabled !== false ? 'Aktif' : 'Nonaktif'}
         </button>
       </div>
 
-      {/* Overview & Add Form */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-600" />
-            <span>Pengaturan Menu Navigasi &amp; Dropdown</span>
-          </h3>
-        </div>
+      {/* Live Navbar Container with Drag and Drop */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 space-y-4">
+        
+        {/* Menu Items Row (Draggable) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {navMenus.map((menu, index) => {
+            const isOpen = activeOpenMenuId === menu.id;
+            const isDropdown = menu.isDropdown;
+            const isDragging = draggedMenuIndex === index;
+            const isDragOver = dragOverMenuIndex === index;
 
-        {/* Add New Menu Bar */}
-        <form onSubmit={handleAddMenu} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-          <span className="text-xs font-bold text-blue-700 uppercase tracking-wider block">
-            + Tambah Menu Navigasi Utama
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-            <div className="sm:col-span-4">
-              <label className="text-xs text-slate-600 font-semibold block mb-1">Nama Menu</label>
-              <input
-                type="text"
-                value={newMenuLabel}
-                onChange={(e) => setNewMenuLabel(e.target.value)}
-                placeholder="Contoh: PPDB / Kurikulum"
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-4">
-              <label className="text-xs text-slate-600 font-semibold block mb-1">Link Target / ID Hash</label>
-              <input
-                type="text"
-                value={newMenuPath}
-                onChange={(e) => setNewMenuPath(e.target.value)}
-                placeholder="#berita atau https://..."
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2 flex items-center h-10">
-              <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={newIsDropdown}
-                  onChange={(e) => setNewIsDropdown(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
-                />
-                <span>Punya Dropdown?</span>
-              </label>
-            </div>
-
-            <div className="sm:col-span-2">
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+            return (
+              <div
+                key={menu.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`relative group transition-all cursor-grab active:cursor-grabbing ${
+                  isDragging ? 'opacity-40 scale-95' : 'opacity-100'
+                } ${
+                  isDragOver ? 'ring-2 ring-blue-500 scale-105' : ''
+                }`}
               >
-                <Plus className="w-4 h-4" />
-                <span>Tambah</span>
-              </button>
-            </div>
-          </div>
-        </form>
+                <div
+                  onClick={() => {
+                    if (isDropdown) {
+                      setActiveOpenMenuId(isOpen ? null : menu.id);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-xl text-xs font-bold border transition-all select-none ${
+                    isOpen
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-200'
+                      : menu.enabled
+                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                      : 'bg-slate-100 text-slate-400 border-dashed border-slate-300'
+                  }`}
+                >
+                  <GripVertical className={`w-3 h-3 ${isOpen ? 'text-blue-200' : 'text-slate-400'} shrink-0`} />
 
-        {/* Existing Menus List */}
-        <div className="space-y-4">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-            Daftar Menu Navigasi Aktif ({navMenus.length})
-          </span>
+                  <span className="truncate max-w-[150px]">{menu.label}</span>
 
-          {navMenus.map((menu, index) => (
-            <div
-              key={menu.id}
-              className={`p-4 rounded-xl border transition-all ${
-                menu.enabled
-                  ? 'bg-white border-slate-300 shadow-2xs'
-                  : 'bg-slate-50 border-slate-200 opacity-60'
-              }`}
-            >
-              {/* Menu Row Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {/* Reorder Buttons */}
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => moveMenu(index, 'up')}
-                      className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 cursor-pointer"
-                      title="Pindahkan Ke Atas"
-                    >
-                      <MoveUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === navMenus.length - 1}
-                      onClick={() => moveMenu(index, 'down')}
-                      className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 cursor-pointer"
-                      title="Pindahkan Ke Bawah"
-                    >
-                      <MoveDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-base">{menu.label}</span>
-                      {menu.isDropdown && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
-                          <ChevronDown className="w-3 h-3" />
-                          Dropdown ({menu.dropdownItems?.length || 0} item)
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-slate-500 font-mono flex items-center gap-1 mt-0.5">
-                      <Link2 className="w-3 h-3 text-slate-400" />
-                      {menu.path}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleDropdownType(menu.id)}
-                    className="text-xs px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  >
-                    {menu.isDropdown ? 'Jadikan Link Biasa' : 'Jadikan Dropdown'}
-                  </button>
+                  {isDropdown && (
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform ${
+                        isOpen ? 'rotate-180 text-white' : 'text-slate-500'
+                      }`}
+                    />
+                  )}
 
                   <button
                     type="button"
-                    onClick={() => handleToggleMenu(menu.id)}
-                    className={`text-xs px-2.5 py-1 rounded font-semibold ${
-                      menu.enabled
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-slate-200 text-slate-600'
+                    onClick={(e) => handleOpenEditMenu(menu, e)}
+                    className={`p-1 rounded-lg cursor-pointer transition-colors ${
+                      isOpen
+                        ? 'bg-blue-700 text-white hover:bg-blue-800'
+                        : 'bg-white text-slate-600 hover:text-blue-600 border border-slate-300'
                     }`}
+                    title="Edit"
                   >
-                    {menu.enabled ? 'Aktif' : 'Nonaktif'}
+                    <Pencil className="w-3 h-3" />
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleDeleteMenu(menu.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    title="Hapus Menu"
+                    onClick={(e) => handleDeleteMenu(menu.id, e)}
+                    className={`p-1 rounded-lg cursor-pointer transition-colors ${
+                      isOpen
+                        ? 'bg-blue-700 text-white hover:bg-red-600'
+                        : 'bg-white text-slate-400 hover:text-red-600 border border-slate-300'
+                    }`}
+                    title="Hapus"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
+            );
+          })}
 
-              {/* Dropdown Items Editor if this menu is a dropdown */}
-              {menu.isDropdown && (
-                <div className="mt-4 pt-4 border-t border-slate-100 pl-4 sm:pl-8 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Submenu / Dropdown Items:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActiveMenuForSubmenu(
-                          activeMenuForSubmenu === menu.id ? null : menu.id
-                        )
-                      }
-                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-                    >
-                      <ListPlus className="w-3.5 h-3.5" />
-                      <span>{activeMenuForSubmenu === menu.id ? 'Tutup Form Submenu' : '+ Tambah Submenu'}</span>
-                    </button>
-                  </div>
-
-                  {/* Add submenu form */}
-                  {activeMenuForSubmenu === menu.id && (
-                    <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <input
-                          type="text"
-                          value={subLabel}
-                          onChange={(e) => setSubLabel(e.target.value)}
-                          placeholder="Label Submenu (misal: Visi Misi)"
-                          className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                        />
-                        <input
-                          type="text"
-                          value={subPath}
-                          onChange={(e) => setSubPath(e.target.value)}
-                          placeholder="Path / ID (#sambutan)"
-                          className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                        />
-                        <input
-                          type="text"
-                          value={subDesc}
-                          onChange={(e) => setSubDesc(e.target.value)}
-                          placeholder="Keterangan singkat (opsional)"
-                          className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleAddSubmenuItem(menu.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer"
-                        >
-                          Simpan Submenu
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Existing Submenu Items */}
-                  <div className="space-y-2">
-                    {menu.dropdownItems && menu.dropdownItems.length > 0 ? (
-                      menu.dropdownItems.map((sub) => (
-                        <div
-                          key={sub.id}
-                          className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2"
-                        >
-                          {editingSubId === sub.id ? (
-                            /* Submenu Edit Form */
-                            <div className="space-y-2">
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <input
-                                  type="text"
-                                  value={editSubLabel}
-                                  onChange={(e) => setEditSubLabel(e.target.value)}
-                                  placeholder="Label Submenu"
-                                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                                />
-                                <input
-                                  type="text"
-                                  value={editSubPath}
-                                  onChange={(e) => setEditSubPath(e.target.value)}
-                                  placeholder="Link / URL target"
-                                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                                />
-                                <input
-                                  type="text"
-                                  value={editSubDesc}
-                                  onChange={(e) => setEditSubDesc(e.target.value)}
-                                  placeholder="Keterangan singkat"
-                                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
-                                />
-                              </div>
-                              <div className="flex justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingSubId(null)}
-                                  className="px-2.5 py-1 text-slate-600 hover:bg-slate-200 rounded-md text-xs font-semibold cursor-pointer"
-                                >
-                                  Batal
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveEditSubmenu(menu.id)}
-                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Simpan Perubahan</span>
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            /* Normal Submenu Row */
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="font-bold text-slate-800">{sub.label}</span>
-                                <span className="text-slate-400 font-mono ml-2">({sub.path})</span>
-                                {sub.description && (
-                                  <span className="text-slate-500 block text-[11px] mt-0.5">
-                                    {sub.description}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleStartEditSubmenu(sub)}
-                                  className="text-slate-400 hover:text-blue-600 p-1 rounded-md hover:bg-blue-50 cursor-pointer"
-                                  title="Edit Submenu"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSubmenuItem(menu.id, sub.id)}
-                                  className="text-slate-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 cursor-pointer"
-                                  title="Hapus Submenu"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">
-                        Belum ada item submenu. Klik "+ Tambah Submenu" untuk menambahkan.
-                      </p>
-                    )}
-                  </div>
-
-                </div>
-              )}
-
-            </div>
-          ))}
+          <button
+            type="button"
+            onClick={handleCreateNewMenu}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border-2 border-dashed border-blue-400 text-blue-700 bg-blue-50/50 hover:bg-blue-100 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Tambah</span>
+          </button>
         </div>
 
+        {/* Sub-menu Dropdown List (Live Expanded) */}
+        {activeOpenMenuId && (
+          (() => {
+            const activeMenu = navMenus.find((m) => m.id === activeOpenMenuId);
+            if (!activeMenu) return null;
+            const subItems = activeMenu.dropdownItems || [];
+
+            return (
+              <div className="bg-slate-50 border border-blue-400 rounded-xl p-4 space-y-3 animate-in fade-in duration-150">
+                
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-xs text-slate-800">
+                      Sub-Menu: {activeMenu.label}
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                      {subItems.length}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => handleOpenEditMenu(activeMenu, e)}
+                      className="px-2 py-1 text-xs font-bold bg-white text-slate-700 hover:text-blue-600 border border-slate-300 rounded-lg cursor-pointer flex items-center gap-1"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      <span>Edit Menu</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveOpenMenuId(null)}
+                      className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-items (Draggable) */}
+                <div className="space-y-2">
+                  {subItems.map((sub, sIndex) => {
+                    const isSubDragging = draggedSubIndex === sIndex;
+                    const isSubDragOver = dragOverSubIndex === sIndex;
+
+                    return (
+                      <div
+                        key={sub.id}
+                        draggable
+                        onDragStart={(e) => handleSubDragStart(e, sIndex)}
+                        onDragOver={(e) => handleSubDragOver(e, sIndex)}
+                        onDrop={(e) => handleSubDrop(e, activeMenu.id, sIndex)}
+                        onDragEnd={handleSubDragEnd}
+                        className={`p-2.5 bg-white border rounded-lg flex items-center justify-between gap-2 cursor-grab active:cursor-grabbing transition-all ${
+                          isSubDragging ? 'opacity-40 scale-98' : 'opacity-100'
+                        } ${
+                          isSubDragOver ? 'border-blue-500 ring-2 ring-blue-300' : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <GripVertical className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="font-bold text-xs text-slate-800 truncate">{sub.label}</span>
+                            <span className="text-[10px] text-blue-700 font-mono bg-blue-50 px-1.5 py-0.2 rounded shrink-0">
+                              {sub.path}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenEditSubmenu(activeMenu.id, sub, e)}
+                            className="px-2 py-1 text-xs font-bold bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-md cursor-pointer flex items-center gap-1"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSubmenu(activeMenu.id, sub.id, e)}
+                            className="p-1 text-slate-400 hover:text-red-600 rounded-md cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Add sub-menu */}
+                {addingSubmenuToMenuId === activeMenu.id ? (
+                  <div className="p-3 bg-white border border-blue-300 rounded-xl space-y-2.5 animate-in fade-in duration-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        value={newSubLabel}
+                        onChange={(e) => setNewSubLabel(e.target.value)}
+                        placeholder="Nama Sub-Menu"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={newSubPath}
+                        onChange={(e) => setNewSubPath(e.target.value)}
+                        placeholder="Link Target"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setAddingSubmenuToMenuId(null)}
+                        className="px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-lg font-semibold cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddSubmenu(activeMenu.id)}
+                        disabled={!newSubLabel.trim()}
+                        className="px-3 py-1 text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg cursor-pointer flex items-center gap-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Simpan</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddingSubmenuToMenuId(activeMenu.id)}
+                    className="w-full py-2 border border-dashed border-blue-400 text-blue-700 bg-white hover:bg-blue-50 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Sub-Menu</span>
+                  </button>
+                )}
+
+              </div>
+            );
+          })()
+        )}
+
       </div>
+
+      {/* Edit Main Menu Modal */}
+      {editingMenu && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 p-5 space-y-4">
+            
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                Edit Menu
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingMenu(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input Label */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Nama Menu
+              </label>
+              <input
+                type="text"
+                value={menuFormLabel}
+                onChange={(e) => setMenuFormLabel(e.target.value)}
+                placeholder="Nama Menu"
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Menu Type Selector */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMenuFormIsDropdown(false)}
+                className={`p-2 rounded-lg border text-xs font-bold cursor-pointer ${
+                  !menuFormIsDropdown
+                    ? 'bg-blue-50 border-blue-500 text-blue-900 ring-1 ring-blue-300'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Link Tunggal
+              </button>
+              <button
+                type="button"
+                onClick={() => setMenuFormIsDropdown(true)}
+                className={`p-2 rounded-lg border text-xs font-bold cursor-pointer ${
+                  menuFormIsDropdown
+                    ? 'bg-blue-50 border-blue-500 text-blue-900 ring-1 ring-blue-300'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Dropdown
+              </button>
+            </div>
+
+            {/* Path */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Link Target
+              </label>
+              <input
+                type="text"
+                value={menuFormPath}
+                onChange={(e) => setMenuFormPath(e.target.value)}
+                placeholder="#sambutan / https://..."
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Toggle enabled & Delete action */}
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={menuFormEnabled}
+                    onChange={(e) => setMenuFormEnabled(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                  />
+                  <span>Aktif</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={(e) => handleDeleteMenu(editingMenu.id, e)}
+                  className="text-xs text-red-600 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMenu(null)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveMenuEdit}
+                  disabled={!menuFormLabel.trim()}
+                  className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg cursor-pointer flex items-center gap-1"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Simpan</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sub-Menu Modal */}
+      {editingSubmenuItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 p-5 space-y-4">
+            
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="font-extrabold text-sm text-slate-900">
+                Edit Sub-Menu
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSubmenuItem(null);
+                  setEditingSubmenuParentId(null);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Label */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Nama Sub-Menu
+              </label>
+              <input
+                type="text"
+                value={subFormLabel}
+                onChange={(e) => setSubFormLabel(e.target.value)}
+                placeholder="Nama Sub-Menu"
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Path */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Link Target
+              </label>
+              <input
+                type="text"
+                value={subFormPath}
+                onChange={(e) => setSubFormPath(e.target.value)}
+                placeholder="Link Target"
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+              {editingSubmenuParentId && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    handleDeleteSubmenu(editingSubmenuParentId, editingSubmenuItem.id, e);
+                    setEditingSubmenuItem(null);
+                    setEditingSubmenuParentId(null);
+                  }}
+                  className="text-xs text-red-600 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingSubmenuItem(null);
+                    setEditingSubmenuParentId(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSubmenuEdit}
+                  disabled={!subFormLabel.trim()}
+                  className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg cursor-pointer flex items-center gap-1"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Simpan</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
