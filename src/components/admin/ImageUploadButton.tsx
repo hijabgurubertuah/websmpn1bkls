@@ -28,6 +28,7 @@ interface ImageUploadButtonProps {
   onChange: (newUrl: string) => void;
   preset?: 'favicon' | 'logo' | 'avatar' | 'banner' | 'post';
   aspectRatio?: 'square' | 'wide' | 'banner';
+  layout?: 'vertical' | 'horizontal' | 'auto';
   placeholder?: string;
   allowDriveConverter?: boolean;
 }
@@ -38,6 +39,8 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   onChange,
   preset = 'banner',
   aspectRatio = 'wide',
+  layout = 'auto',
+  placeholder = 'Tempel link Google Drive atau URL gambar...',
   allowDriveConverter = true,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -189,10 +192,12 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     onChange(newText);
   };
 
+  const isVerticalLayout = layout === 'vertical' || aspectRatio === 'banner';
+
   const getPreviewClasses = () => {
     if (aspectRatio === 'square') return 'w-20 h-20 rounded-xl';
-    if (aspectRatio === 'banner') return 'w-full h-36 rounded-xl';
-    return 'w-full sm:w-40 h-28 rounded-xl';
+    if (aspectRatio === 'banner') return 'w-full h-44 sm:h-56 rounded-xl shadow-xs';
+    return isVerticalLayout ? 'w-full h-40 sm:h-48 rounded-xl' : 'w-full sm:w-44 h-28 rounded-xl';
   };
 
   const isGoogleDriveUrl = value?.includes('googleusercontent.com') || value?.includes('drive.google.com');
@@ -239,12 +244,12 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
       </div>
 
       {/* Main Container */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start">
+      <div className={isVerticalLayout ? "flex flex-col gap-3.5 items-stretch w-full" : "flex flex-col sm:flex-row gap-3 items-start"}>
         {/* Preview Thumbnail */}
         {value && (
           <div className={`relative overflow-hidden border border-slate-200 bg-slate-100 shrink-0 ${getPreviewClasses()}`}>
             <img src={value} alt="Preview" className="w-full h-full object-cover" />
-            <span className="absolute bottom-1 right-1 text-white text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-900/80">
+            <span className="absolute bottom-2 right-2 text-white text-[10px] px-2 py-0.5 rounded-md font-bold bg-slate-900/85 backdrop-blur-xs border border-white/20 shadow-xs">
               {isGoogleDriveUrl ? 'Google Drive' : value.startsWith('data:') ? 'WebP Lokal' : 'URL'}
             </span>
           </div>

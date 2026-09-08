@@ -31,6 +31,9 @@ export interface SchoolIdentity {
   faviconUrl: string;
   tickerEnabled: boolean;
   tickerText: string;
+  accreditationTickerEnabled?: boolean;
+  accreditationTickerText?: string;
+  accreditationTickerSpeed?: 'slow' | 'normal' | 'fast';
   primaryColor: string;
 }
 

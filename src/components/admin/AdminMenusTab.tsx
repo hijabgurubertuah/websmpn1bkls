@@ -52,6 +52,14 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
   const [newSubLabel, setNewSubLabel] = useState('');
   const [newSubPath, setNewSubPath] = useState('#');
 
+  // Custom in-app delete confirmation modal state (bypasses iframe window.confirm blocks)
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{
+    type: 'menu' | 'submenu';
+    menuId: string;
+    subId?: string;
+    label: string;
+  } | null>(null);
+
   // Active selected menu object
   const currentSelectedMenu = navMenus.find((m) => m.id === selectedMenuId) || navMenus[0] || null;
 
@@ -224,16 +232,60 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
     handleOpenEditMenu(newMenu);
   };
 
-  const handleDeleteMenu = (id: string, e?: React.MouseEvent) => {
+  const handleRequestDeleteMenu = (menu: NavMenu, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (confirm('Hapus menu ini?')) {
+    setDeleteConfirmTarget({
+      type: 'menu',
+      menuId: menu.id,
+      label: menu.label,
+    });
+  };
+
+  const handleRequestDeleteSubmenu = (menuId: string, sub: DropdownItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDeleteConfirmTarget({
+      type: 'submenu',
+      menuId,
+      subId: sub.id,
+      label: sub.label,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirmTarget) return;
+
+    if (deleteConfirmTarget.type === 'menu') {
+      const id = deleteConfirmTarget.menuId;
       const remaining = navMenus.filter((m) => m.id !== id);
       updateMenus(remaining);
       if (selectedMenuId === id) {
         setSelectedMenuId(remaining.length > 0 ? remaining[0].id : null);
       }
-      if (editingMenu?.id === id) setEditingMenu(null);
+      if (editingMenu?.id === id) {
+        setEditingMenu(null);
+      }
+    } else if (deleteConfirmTarget.type === 'submenu') {
+      const { menuId, subId } = deleteConfirmTarget;
+      if (subId) {
+        updateMenus(
+          navMenus.map((m) => {
+            if (m.id === menuId) {
+              return {
+                ...m,
+                dropdownItems: (m.dropdownItems || []).filter((item) => item.id !== subId),
+              };
+            }
+            return m;
+          })
+        );
+      }
+      if (editingSubmenuItem?.id === subId) {
+        setEditingSubmenuItem(null);
+        setEditingSubmenuParentId(null);
+      }
     }
+
+    setDeleteConfirmTarget(null);
   };
 
   const handleAddSubmenu = (menuId: string) => {
@@ -261,23 +313,6 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
     setNewSubLabel('');
     setNewSubPath('#');
     setAddingSubmenuToMenuId(null);
-  };
-
-  const handleDeleteSubmenu = (menuId: string, subId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (confirm('Hapus sub-menu ini?')) {
-      updateMenus(
-        navMenus.map((m) => {
-          if (m.id === menuId) {
-            return {
-              ...m,
-              dropdownItems: (m.dropdownItems || []).filter((item) => item.id !== subId),
-            };
-          }
-          return m;
-        })
-      );
-    }
   };
 
   return (
@@ -412,13 +447,13 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
                   {/* Delete Button */}
                   <button
                     type="button"
-                    onClick={(e) => handleDeleteMenu(menu.id, e)}
+                    onClick={(e) => handleRequestDeleteMenu(menu, e)}
                     className={`p-1 rounded-lg cursor-pointer transition-colors ${
                       isSelected
                         ? 'bg-blue-700 text-white hover:bg-red-600'
                         : 'bg-white text-slate-400 hover:text-red-600 border border-slate-300'
                     }`}
-                    title="Hapus"
+                    title="Hapus Menu"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -518,8 +553,9 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
                           </button>
                           <button
                             type="button"
-                            onClick={(e) => handleDeleteSubmenu(currentSelectedMenu.id, sub.id, e)}
-                            className="p-1 text-slate-400 hover:text-red-600 rounded-md cursor-pointer"
+                            onClick={(e) => handleRequestDeleteSubmenu(currentSelectedMenu.id, sub, e)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md cursor-pointer transition-colors"
+                            title="Hapus Sub-Menu"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -701,7 +737,7 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
 
                 <button
                   type="button"
-                  onClick={(e) => handleDeleteMenu(editingMenu.id, e)}
+                  onClick={(e) => handleRequestDeleteMenu(editingMenu, e)}
                   className="text-xs text-red-600 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -788,9 +824,7 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
                 <button
                   type="button"
                   onClick={(e) => {
-                    handleDeleteSubmenu(editingSubmenuParentId, editingSubmenuItem.id, e);
-                    setEditingSubmenuItem(null);
-                    setEditingSubmenuParentId(null);
+                    handleRequestDeleteSubmenu(editingSubmenuParentId, editingSubmenuItem, e);
                   }}
                   className="text-xs text-red-600 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
                 >
@@ -822,6 +856,43 @@ export const AdminMenusTab: React.FC<AdminMenusTabProps> = ({ config, onChange }
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* In-App Responsive Delete Confirmation Modal (Prevents sandbox/iframe block) */}
+      {deleteConfirmTarget && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-[60] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto shadow-inner">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            
+            <div className="text-center space-y-1.5">
+              <h4 className="font-black text-base text-slate-900">
+                Hapus {deleteConfirmTarget.type === 'menu' ? 'Menu' : 'Sub-Menu'}?
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Apakah Anda yakin ingin menghapus <strong className="text-slate-900 font-bold">"{deleteConfirmTarget.label}"</strong>?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmTarget(null)}
+                className="w-full py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="w-full py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-md shadow-red-600/30"
+              >
+                Ya, Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}

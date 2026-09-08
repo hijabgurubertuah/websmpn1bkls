@@ -12,6 +12,9 @@ export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
     faviconUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=64&auto=format&fit=crop&q=80',
     tickerEnabled: true,
     tickerText: '📢 Selamat Datang di Portal Resmi SMP Negeri 1 Bengkalis | Jl. Pertanian, Bengkalis Kota | NPSN: 10495146 | PPDB & Informasi Prestasi Siswa 🏆',
+    accreditationTickerEnabled: true,
+    accreditationTickerText: 'Status Akreditasi A (Unggul) — Sertifikasi Resmi BAN-S/M • Nomor Pokok Sekolah Nasional (NPSN): 10495146 • Peringkat Akreditasi Tertinggi Standar Mutu Pendidikan Nasional • SMP Negeri 1 Bengkalis — Unggul, Berkarakter & Berprestasi',
+    accreditationTickerSpeed: 'normal',
     primaryColor: 'blue',
   },
   header: {

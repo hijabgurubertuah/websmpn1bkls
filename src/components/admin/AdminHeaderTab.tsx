@@ -1,6 +1,6 @@
 import React from 'react';
 import { SchoolConfig } from '../../types';
-import { Image, Sparkles, Sliders, Eye } from 'lucide-react';
+import { Image, Sparkles, Sliders, Volume2, FastForward, RotateCcw, HelpCircle } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
 
 interface AdminHeaderTabProps {
@@ -37,6 +37,8 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
     );
     updateHeader('highlights', updated);
   };
+
+  const defaultAccreditationText = `[BAN-S/M] Status ${identity.akreditasi || 'Akreditasi A (Unggul)'} — Sertifikasi Resmi BAN-S/M • [NPSN] Nomor Pokok Sekolah Nasional: ${identity.npsn || '10495146'} — Terverifikasi Kemendikbudristek RI • [PRESTASI] Peringkat Akreditasi Tertinggi Standar Mutu Pendidikan Nasional — Sekolah Ramah Anak • [KURIKULUM] ${identity.name || 'SMP Negeri 1 Bengkalis'} — Unggul, Berkarakter & Berprestasi`;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -103,7 +105,7 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             />
           </div>
 
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Status Akreditasi
             </label>
@@ -138,12 +140,124 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             />
           </div>
         </div>
+      </div>
 
-        {/* Running Ticker Setting */}
-        <div className="pt-6 border-t border-slate-100 space-y-4">
+      {/* 2. Pengaturan Teks Berjalan (Running Text / Marquee) */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Volume2 className="w-5 h-5 text-blue-600" />
+            <span>Pengaturan Teks Berjalan (Running Text / Marquee)</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Kelola teks berjalan di bawah header (pita akreditasi) dan pengumuman berjalan paling atas.
+          </p>
+        </div>
+
+        {/* Section A: Teks Berjalan Pita Bawah Header */}
+        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-bold text-slate-800 text-sm">Pengumuman Berjalan (Ticker Bar)</h4>
+              <h4 className="font-bold text-slate-800 text-sm">
+                1. Pita Teks Berjalan Bawah Header (Akreditasi &amp; Info Sekolah)
+              </h4>
+              <p className="text-xs text-slate-500">
+                Pita biru tua elegan di bawah banner yang bergulir otomatis ke samping tanpa terpotong label.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={identity.accreditationTickerEnabled !== false}
+                onChange={(e) => updateIdentity('accreditationTickerEnabled', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          {identity.accreditationTickerEnabled !== false && (
+            <div className="space-y-4 pt-2 border-t border-slate-200/80">
+              {/* Speed selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <FastForward className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Kecepatan Teks Berjalan</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2 max-w-md">
+                  {(['slow', 'normal', 'fast'] as const).map((speed) => {
+                    const currentSpeed = identity.accreditationTickerSpeed || 'normal';
+                    const isSelected = currentSpeed === speed;
+                    const labels = {
+                      slow: 'Lambat (48s)',
+                      normal: 'Normal (30s)',
+                      fast: 'Cepat (18s)',
+                    };
+                    return (
+                      <button
+                        key={speed}
+                        type="button"
+                        onClick={() => updateIdentity('accreditationTickerSpeed', speed)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        {labels[speed]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Textarea Content */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Isi Teks Berjalan
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => updateIdentity('accreditationTickerText', defaultAccreditationText)}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset ke Teks Standar Akreditasi</span>
+                  </button>
+                </div>
+                <textarea
+                  rows={4}
+                  value={identity.accreditationTickerText ?? defaultAccreditationText}
+                  onChange={(e) => updateIdentity('accreditationTickerText', e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white font-medium leading-relaxed"
+                  placeholder="Masukkan kalimat yang ingin ditampilkan. Pisahkan poin dengan tanda titik tengah (•), pipa (|), atau baris baru..."
+                />
+                
+                {/* Tips format */}
+                <div className="flex items-start gap-2 text-[11px] text-slate-500 bg-blue-50/60 border border-blue-200/60 p-2.5 rounded-xl mt-2">
+                  <HelpCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-blue-900">Tips Format Teks:</p>
+                    <p>• Gunakan tanda peluru <code className="bg-white px-1 py-0.5 rounded text-blue-800 font-bold">•</code> atau baris baru untuk memisahkan setiap segmen pengumuman.</p>
+                    <p>• Tambahkan awalan kurung seperti <code className="bg-white px-1 py-0.5 rounded text-blue-800 font-bold">[BAN-S/M]</code> atau <code className="bg-white px-1 py-0.5 rounded text-blue-800 font-bold">[NPSN]</code> untuk otomatis membuat lencana kuning keemasan.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Section B: Pengumuman Berjalan Paling Atas (Top Bar Ticker) */}
+        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm">
+                2. Pengumuman Berjalan Paling Atas (Top Bar Ticker)
+              </h4>
+              <p className="text-xs text-slate-500">
+                Pita tipis di atas menu navigasi utama untuk pengumuman singkat, alamat, atau info mendesak.
+              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -157,12 +271,15 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
           </div>
 
           {identity.tickerEnabled && (
-            <div>
+            <div className="pt-2 border-t border-slate-200/80">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Isi Pengumuman Top Bar
+              </label>
               <textarea
                 rows={2}
                 value={identity.tickerText}
                 onChange={(e) => updateIdentity('tickerText', e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 placeholder="Tuliskan pengumuman berjalan di sini..."
               />
             </div>
@@ -170,7 +287,7 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
         </div>
       </div>
 
-      {/* 2. Hero Banner & Header Image */}
+      {/* 3. Hero Banner & Header Image */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
         <div>
           <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -179,7 +296,7 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
           </h3>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Judul Utama Banner (H1)
@@ -204,15 +321,18 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             />
           </div>
 
-          {/* Header Image with Upload & Compression */}
-          <ImageUploadButton
-            label="Gambar Header Background (Hero Banner)"
-            value={header.heroImageUrl}
-            onChange={(url) => updateHeader('heroImageUrl', url)}
-            preset="banner"
-            aspectRatio="banner"
-            placeholder="https://images.unsplash.com/... atau tautan Google Drive"
-          />
+          {/* Header Image with Upload, Full Vertical Stack (controls underneath picture) */}
+          <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200">
+            <ImageUploadButton
+              label="Gambar Header Background (Hero Banner)"
+              value={header.heroImageUrl}
+              onChange={(url) => updateHeader('heroImageUrl', url)}
+              preset="banner"
+              aspectRatio="banner"
+              layout="vertical"
+              placeholder="https://images.unsplash.com/... atau tautan Google Drive"
+            />
+          </div>
 
           {/* CTA Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

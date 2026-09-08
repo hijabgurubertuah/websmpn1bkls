@@ -186,11 +186,41 @@ export default function App() {
   };
 
   if (isLoading) {
+    const schoolLogo = config.identity.logoUrl || DEFAULT_SCHOOL_CONFIG.identity.logoUrl;
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white p-4">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-base font-bold text-slate-200">Memuat Portal Sekolah...</p>
-        <p className="text-xs text-slate-400 mt-1">Menghubungkan ke database Firebase</p>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6 relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute w-72 h-72 bg-blue-600/10 rounded-full blur-3xl -top-10 -left-10 pointer-events-none" />
+        <div className="absolute w-72 h-72 bg-indigo-600/10 rounded-full blur-3xl -bottom-10 -right-10 pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
+          {/* School Logo */}
+          <div className="relative mb-6">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-3 shadow-2xl flex items-center justify-center animate-pulse">
+              <img
+                src={schoolLogo}
+                alt={config.identity.name || 'Logo Sekolah'}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = DEFAULT_SCHOOL_CONFIG.identity.logoUrl;
+                }}
+              />
+            </div>
+            <div className="absolute -inset-1.5 rounded-3xl bg-blue-500/20 blur-md -z-10 animate-pulse" />
+          </div>
+
+          {/* Spinner & Italic Loading Text */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <p className="italic text-base sm:text-lg font-semibold text-slate-100 tracking-wide">
+              Memuat Portal Sekolah...
+            </p>
+          </div>
+          <p className="text-xs text-slate-400 font-medium">
+            {config.identity.name || 'Portal Resmi Sekolah'}
+          </p>
+        </div>
       </div>
     );
   }
