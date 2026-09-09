@@ -14,6 +14,7 @@ import {
 import { SchoolConfig, NewsArticle } from '../types';
 import { DEFAULT_SCHOOL_CONFIG, DEFAULT_NEWS_ARTICLES } from './defaultData';
 import { getOfflineItem, setOfflineItem, clearOfflineStorage } from './offlineStorage';
+import { saveStoredAppsScriptConfig } from './googleAppsScript';
 
 // Silence internal retry and connection warning logs from Firestore in browser/iframe environments
 try {
@@ -162,6 +163,11 @@ export async function saveToPublicCache(config: SchoolConfig, articles: NewsArti
     // Also keep base key for service worker offline manifest
     await setOfflineItem('school_config', config);
     await setOfflineItem('news_articles', articles);
+
+    // Sync Google Apps Script configuration across browsers
+    if (config.googleAppsScript?.webAppUrl) {
+      saveStoredAppsScriptConfig(config.googleAppsScript);
+    }
   } catch (e) {
     console.warn('Error saving to public cache:', e);
   }
@@ -176,6 +182,11 @@ export async function saveToAdminCache(config: SchoolConfig, articles: NewsArtic
     localStorage.setItem(ADMIN_NEWS_KEY, JSON.stringify(articles));
     await setOfflineItem('admin_school_config', config);
     await setOfflineItem('admin_news_articles', articles);
+
+    // Sync Google Apps Script configuration across browsers
+    if (config.googleAppsScript?.webAppUrl) {
+      saveStoredAppsScriptConfig(config.googleAppsScript);
+    }
   } catch (e) {
     console.warn('Error saving to admin cache:', e);
   }
@@ -347,6 +358,11 @@ export async function saveSchoolTabConfig(tab: string, config: SchoolConfig): Pr
     case 'footer':
       tabPayload = {
         footer: config.footer,
+      };
+      break;
+    case 'appscript':
+      tabPayload = {
+        googleAppsScript: config.googleAppsScript,
       };
       break;
     default:

@@ -23,91 +23,85 @@ export const AdminPrincipalTab: React.FC<AdminPrincipalTabProps> = ({ config, on
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Award className="w-5 h-5 text-blue-600" />
-            <span>Sambutan &amp; Profil Kepala Sekolah</span>
-          </h3>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+          <Award className="w-4 h-4 text-blue-600" />
+          <span>Sambutan &amp; Profil Kepala Sekolah</span>
+        </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
               Nama Lengkap &amp; Gelar
             </label>
             <input
               type="text"
               value={principal.name}
               onChange={(e) => updatePrincipal('name', e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="Drs. H. Bambang Suryanto, M.Pd."
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              placeholder="Nama Kepala Sekolah..."
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
               Jabatan Resmi
             </label>
             <input
               type="text"
               value={principal.title}
               onChange={(e) => updatePrincipal('title', e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="Kepala Sekolah SMA Negeri 1 Nusantara"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              placeholder="Kepala SMP Negeri 1 Bengkalis"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Nomor Induk Pegawai (NIP)
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              NIP
             </label>
             <input
               type="text"
               value={principal.nip}
               onChange={(e) => updatePrincipal('nip', e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="19710815 199702 1 003"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              placeholder="Nomor NIP..."
             />
           </div>
 
-          {/* Photo Upload with Compression & Preview */}
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2">
             <ImageUploadButton
-              label="Foto Resmi Kepala Sekolah (Disimpan di Firebase)"
+              label="Foto Kepala Sekolah"
               value={principal.imageUrl}
               onChange={(url) => updatePrincipal('imageUrl', url)}
               preset="avatar"
               aspectRatio="square"
-              placeholder="https://images.unsplash.com/... atau tautan Google Drive"
+              placeholder="URL Foto..."
             />
           </div>
         </div>
 
-        {/* Short Quote */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-            Kutipan Inspiratif Pimpinan (Quote Singkat)
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Kutipan Singkat (Quote)
           </label>
           <textarea
             rows={2}
             value={principal.quote}
             onChange={(e) => updatePrincipal('quote', e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none italic"
-            placeholder="Pendidikan bukan sekadar mengisi wadah..."
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none italic"
+            placeholder="Kutipan inspiratif..."
           />
         </div>
 
-        {/* Full Speech */}
         <RichTextEditorWithImages
           value={principal.fullSpeech}
           onChange={(val) => updatePrincipal('fullSpeech', val)}
-          label="Isi Teks Sambutan Lengkap Kepala Sekolah"
-          placeholder="Tuliskan amanat dan sambutan lengkap kepala sekolah. Gunakan format tebal, miring, rata kanan-kiri, atau sisipkan foto dokumentasi dari Drive..."
-          minRows={8}
+          label="Teks Sambutan Lengkap"
+          placeholder="Tuliskan isi sambutan lengkap..."
+          minRows={6}
         />
-
       </div>
     </div>
   );

@@ -5,6 +5,16 @@ const APPS_SCRIPT_STORAGE_KEY = 'school_apps_script_config';
 export const DEFAULT_FOLDER_NAME = '[SMPN 1 Bengkalis] Web Assets';
 
 /**
+ * Hardcoded Default Google Apps Script Web App Deployment URL & Folder ID
+ * Tertanam langsung ke baris kode agar aktif otomatis di perangkat & browser baru
+ * atau setelah reset cache. Tetap bisa diganti kapan saja dari tab "Google Drive & Sheets".
+ */
+export const DEFAULT_APPS_SCRIPT_WEB_APP_URL =
+  'https://script.google.com/macros/s/AKfycbzDwgMpuYfhYLKXwKZx1i03NliLZnCGf_17Fnra29JE7TyoToQ6PKpdp7z6lRcOq1VJ/exec';
+
+export const DEFAULT_APPS_SCRIPT_FOLDER_ID = '1IZHlhQxAREuthdmf5M5QCSqDFQPDyq6s';
+
+/**
  * Complete, ready-to-use Google Apps Script (.gs) source code.
  * Users can copy and paste this directly into script.google.com!
  */
@@ -196,16 +206,69 @@ function getOrCreateDefaultFolder() {
 `;
 
 /**
- * Get cached/stored Google Apps Script configuration
+ * Get cached/stored Google Apps Script configuration with multi-tier fallback:
+ * Tier 1: Local browser storage (custom configuration on this device)
+ * Tier 2: Synced school config from Firebase Firestore (cached in smpn1_admin_config_v4 / smpn1_public_config_v4)
+ * Tier 3: Hardcoded code default (DEFAULT_APPS_SCRIPT_WEB_APP_URL)
  */
-export function getStoredAppsScriptConfig(): GoogleAppsScriptConfig | null {
+export function getStoredAppsScriptConfig(): GoogleAppsScriptConfig {
+  let stored: Partial<GoogleAppsScriptConfig> | null = null;
+
+  // 1. Check direct Apps Script key in localStorage
   try {
     const raw = localStorage.getItem(APPS_SCRIPT_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    if (raw) {
+      stored = JSON.parse(raw);
+    }
   } catch {
-    return null;
+    // ignore
   }
+
+  // 2. Check if general school config cached from Firebase contains googleAppsScript
+  if (!stored?.webAppUrl || stored.webAppUrl.trim() === '') {
+    try {
+      const configRaw =
+        localStorage.getItem('admin_school_config') ||
+        localStorage.getItem('public_school_config') ||
+        localStorage.getItem('school_config') ||
+        localStorage.getItem('custom_default_config') ||
+        localStorage.getItem('smpn1_admin_config_v4') ||
+        localStorage.getItem('smpn1_public_config_v4');
+      if (configRaw) {
+        const parsed = JSON.parse(configRaw);
+        if (parsed?.googleAppsScript?.webAppUrl && parsed.googleAppsScript.webAppUrl.trim() !== '') {
+          stored = {
+            ...(stored || {}),
+            ...parsed.googleAppsScript,
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. Fallback to hardcoded default in code if webAppUrl is still empty
+  const activeWebAppUrl =
+    (stored?.webAppUrl && stored.webAppUrl.trim() !== '')
+      ? stored.webAppUrl.trim()
+      : (DEFAULT_APPS_SCRIPT_WEB_APP_URL || '').trim();
+
+  const activeFolderId =
+    (stored?.folderId && stored.folderId.trim() !== '')
+      ? stored.folderId.trim()
+      : (DEFAULT_APPS_SCRIPT_FOLDER_ID || '').trim();
+
+  return {
+    enabled: stored?.enabled ?? true,
+    webAppUrl: activeWebAppUrl,
+    folderId: activeFolderId,
+    spreadsheetId: stored?.spreadsheetId || '',
+    autoCreateFolder: stored?.autoCreateFolder ?? true,
+    lastTestedAt: stored?.lastTestedAt,
+    testStatus: stored?.testStatus || 'untested',
+    testMessage: stored?.testMessage,
+  };
 }
 
 /**

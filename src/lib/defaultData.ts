@@ -1,5 +1,6 @@
 import { SchoolConfig, NewsArticle } from '../types';
 import { DEFAULT_THEME_CONFIG } from './themePresets';
+import { DEFAULT_APPS_SCRIPT_WEB_APP_URL, DEFAULT_APPS_SCRIPT_FOLDER_ID } from './googleAppsScript';
 
 export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
   adminPassword: 'smpn1bks',
@@ -269,8 +270,8 @@ export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
   themeConfig: DEFAULT_THEME_CONFIG,
   googleAppsScript: {
     enabled: true,
-    webAppUrl: '',
-    folderId: '',
+    webAppUrl: DEFAULT_APPS_SCRIPT_WEB_APP_URL || '',
+    folderId: DEFAULT_APPS_SCRIPT_FOLDER_ID || '',
     spreadsheetId: '',
     autoCreateFolder: true,
     testStatus: 'untested',

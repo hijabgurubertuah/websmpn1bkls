@@ -4,23 +4,18 @@ import {
   CloudUpload,
   CheckCircle2,
   AlertCircle,
-  Copy,
-  Check,
-  ExternalLink,
-  HelpCircle,
-  Sparkles,
-  Zap,
   Folder,
   RefreshCw,
-  Info,
+  ExternalLink,
 } from 'lucide-react';
 import { SchoolConfig, GoogleAppsScriptConfig } from '../../types';
 import {
-  SAMPLE_APPS_SCRIPT_CODE,
   testAppsScriptConnection,
   uploadFileViaAppsScript,
   getStoredAppsScriptConfig,
   saveStoredAppsScriptConfig,
+  DEFAULT_APPS_SCRIPT_WEB_APP_URL,
+  DEFAULT_APPS_SCRIPT_FOLDER_ID,
   AppsScriptUploadResult,
 } from '../../lib/googleAppsScript';
 
@@ -35,12 +30,19 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
 }) => {
   const currentGasConfig: GoogleAppsScriptConfig = config.googleAppsScript || {
     enabled: true,
-    webAppUrl: '',
-    folderId: '',
+    webAppUrl: DEFAULT_APPS_SCRIPT_WEB_APP_URL || '',
+    folderId: DEFAULT_APPS_SCRIPT_FOLDER_ID || '',
     spreadsheetId: '',
     autoCreateFolder: true,
     testStatus: 'untested',
   };
+
+  if (!currentGasConfig.webAppUrl && DEFAULT_APPS_SCRIPT_WEB_APP_URL) {
+    currentGasConfig.webAppUrl = DEFAULT_APPS_SCRIPT_WEB_APP_URL;
+  }
+  if (!currentGasConfig.folderId && DEFAULT_APPS_SCRIPT_FOLDER_ID) {
+    currentGasConfig.folderId = DEFAULT_APPS_SCRIPT_FOLDER_ID;
+  }
 
   const [formData, setFormData] = useState<GoogleAppsScriptConfig>(currentGasConfig);
   const [testing, setTesting] = useState(false);
@@ -50,18 +52,13 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
     latencyMs?: number;
   } | null>(null);
 
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [showCode, setShowCode] = useState(true);
-
-  // Live tester
   const [testUploading, setTestUploading] = useState(false);
   const [testUploadResult, setTestUploadResult] = useState<AppsScriptUploadResult | null>(null);
   const [testUploadError, setTestUploadError] = useState<string | null>(null);
 
-  // Sync with local storage on mount
   useEffect(() => {
     const stored = getStoredAppsScriptConfig();
-    if (stored && stored.webAppUrl && !formData.webAppUrl) {
+    if (stored && stored.webAppUrl) {
       setFormData((prev) => ({
         ...prev,
         ...stored,
@@ -86,7 +83,7 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
     if (!formData.webAppUrl.trim()) {
       setTestResult({
         success: false,
-        message: 'Masukkan URL Web App terlebih dahulu sebelum menguji koneksi.',
+        message: 'Masukkan URL Web App terlebih dahulu.',
       });
       return;
     }
@@ -120,23 +117,12 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
     }
   };
 
-  const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(SAMPLE_APPS_SCRIPT_CODE);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 3000);
-    } catch {
-      // Fallback
-      setCopiedCode(false);
-    }
-  };
-
   const handleTestUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!formData.webAppUrl.trim()) {
-      setTestUploadError('Harap simpan URL Web App terlebih dahulu sebelum menguji upload.');
+      setTestUploadError('Isi URL Web App terlebih dahulu.');
       return;
     }
 
@@ -151,114 +137,26 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
         spreadsheetId: formData.spreadsheetId,
       });
       setTestUploadResult(res);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+    } catch (uploadErr: unknown) {
+      const msg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
       setTestUploadError(msg);
     } finally {
       setTestUploading(false);
-      e.target.value = '';
     }
   };
 
-  const isConfigured = Boolean(formData.webAppUrl && formData.webAppUrl.trim().length > 15);
-
   return (
-    <div id="admin-apps-script-tab" className="space-y-8 max-w-5xl">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden border border-blue-800/50">
-        <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-blue-200 text-xs font-semibold backdrop-blur-xs">
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span>Solusi Tanpa Pop-up & Tanpa Login Akun</span>
-          </div>
-
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            Integrasi Google Drive &amp; Spreadsheet (Apps Script)
-          </h2>
-
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-300 font-medium bg-emerald-950/60 px-3 py-1 rounded-lg border border-emerald-500/30">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Bebas Blokir Pop-up Browser
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-blue-300 font-medium bg-blue-950/60 px-3 py-1 rounded-lg border border-blue-500/30">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400" /> Terhubung Google Sheets
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-amber-300 font-medium bg-amber-950/60 px-3 py-1 rounded-lg border border-amber-500/30">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> CDN Gambar Google Cepat
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Connection Status Badge */}
-      <div
-        className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-          isConfigured && formData.testStatus === 'success'
-            ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
-            : isConfigured
-            ? 'bg-blue-50/90 border-blue-200 text-blue-900'
-            : 'bg-amber-50/90 border-amber-200 text-amber-900'
-        }`}
-      >
-        <div className="flex items-start sm:items-center gap-3.5">
-          <div
-            className={`p-2.5 rounded-xl shrink-0 ${
-              isConfigured && formData.testStatus === 'success'
-                ? 'bg-emerald-600 text-white'
-                : isConfigured
-                ? 'bg-blue-600 text-white'
-                : 'bg-amber-600 text-white'
-            }`}
-          >
-            {isConfigured && formData.testStatus === 'success' ? (
-              <CheckCircle2 className="w-5 h-5" />
-            ) : (
-              <AlertCircle className="w-5 h-5" />
-            )}
-          </div>
-          <div>
-            <h3 className="font-bold text-sm sm:text-base">
-              {isConfigured && formData.testStatus === 'success'
-                ? 'Google Apps Script Siap & Terhubung'
-                : isConfigured
-                ? 'URL Web App Terisi (Perlu Pengujian)'
-                : 'Belum Dikonfigurasi'}
-            </h3>
-          </div>
-        </div>
-
-        {isConfigured && (
-          <button
-            type="button"
-            onClick={handleRunTest}
-            disabled={testing}
-            className="px-4 py-2 text-xs font-bold bg-white text-slate-800 hover:bg-slate-50 border border-slate-300 rounded-xl transition-all shadow-2xs hover:shadow-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${testing ? 'animate-spin' : ''}`} />
-            <span>{testing ? 'Menguji...' : 'Tes Ulang Koneksi'}</span>
-          </button>
-        )}
-      </div>
-
-      {/* Main Settings Form */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
-              <FileSpreadsheet className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Pengaturan Endpoint Google Apps Script
-              </h3>
-              <p className="text-xs text-slate-500">
-                Data URL dan parameter target penyimpanan Google Drive & Spreadsheet Anda.
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* 1. Pengaturan URL & Target */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+            <span>Google Drive & Sheets API</span>
+          </h3>
 
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <span className="text-xs font-bold text-slate-600">Aktifkan</span>
+            <span className="text-xs font-semibold text-slate-600">Aktif</span>
             <input
               type="checkbox"
               checked={formData.enabled}
@@ -268,350 +166,164 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
           </label>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Web App URL */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              URL Web App Google Apps Script <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                type="url"
-                value={formData.webAppUrl}
-                onChange={(e) => handleFieldChange('webAppUrl', e.target.value)}
-                placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
-                className="w-full px-3.5 py-2.5 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-800"
-              />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700">
+                URL Web App Google Apps Script
+              </label>
+
+              {formData.webAppUrl !== DEFAULT_APPS_SCRIPT_WEB_APP_URL && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFieldChange('webAppUrl', DEFAULT_APPS_SCRIPT_WEB_APP_URL);
+                    if (DEFAULT_APPS_SCRIPT_FOLDER_ID) {
+                      handleFieldChange('folderId', DEFAULT_APPS_SCRIPT_FOLDER_ID);
+                    }
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                >
+                  Reset Default
+                </button>
+              )}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1">
-              <Info className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              Diperoleh setelah Anda menekan tombol <strong>Deploy &gt; New deployment &gt; Web app</strong> di Google Apps Script.
-            </p>
+
+            <input
+              type="url"
+              value={formData.webAppUrl}
+              onChange={(e) => handleFieldChange('webAppUrl', e.target.value)}
+              placeholder="https://script.google.com/macros/s/.../exec"
+              className="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white text-slate-800"
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Folder ID */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                <span>ID Folder Google Drive (Opsional)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Kosong = Otomatis</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ID Folder Google Drive
               </label>
               <div className="relative">
-                <Folder className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Folder className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={formData.folderId || ''}
                   onChange={(e) => handleFieldChange('folderId', e.target.value)}
-                  placeholder="Contoh: 1vJ8_kL9mOpQrStUv..."
-                  className="w-full pl-9 pr-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+                  placeholder="ID Folder..."
+                  className="w-full pl-8 pr-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
                 />
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Bila dikosongkan, script otomatis membuat folder bernama <code>[SMPN 1 Bengkalis] Web Assets</code> di Google Drive Anda.
-              </p>
             </div>
 
             {/* Spreadsheet ID */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                <span>ID Google Spreadsheet Log (Opsional)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Pencatatan Riwayat</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ID Spreadsheet Log (Opsional)
               </label>
               <div className="relative">
-                <FileSpreadsheet className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <FileSpreadsheet className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={formData.spreadsheetId || ''}
                   onChange={(e) => handleFieldChange('spreadsheetId', e.target.value)}
-                  placeholder="Contoh: 1BxiMVs0XRA5nFMdKv..."
-                  className="w-full pl-9 pr-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
+                  placeholder="ID Spreadsheet..."
+                  className="w-full pl-8 pr-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
                 />
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Jika diisi, setiap file foto/dokumen yang diunggah akan otomatis dicatat tanggal, link, dan ukurannya ke Spreadsheet ini.
-              </p>
             </div>
           </div>
 
           {/* Test connection result notice */}
           {testResult && (
             <div
-              className={`p-4 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in duration-150 ${
+              className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
                 testResult.success
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                   : 'bg-red-50 text-red-800 border border-red-200'
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
               )}
-              <div>
-                <p className="font-bold">{testResult.message}</p>
-                {testResult.latencyMs && (
-                  <p className="text-[11px] opacity-80 mt-0.5">
-                    Waktu respon server: {testResult.latencyMs} ms
-                  </p>
-                )}
-              </div>
+              <span className="font-semibold">{testResult.message}</span>
             </div>
           )}
 
-          {/* Action Button */}
-          <div className="pt-3 flex flex-wrap items-center gap-3">
+          {/* Action Buttons */}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={handleRunTest}
               disabled={testing || !formData.webAppUrl.trim()}
-              className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm hover:shadow cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${testing ? 'animate-spin' : ''}`} />
-              <span>{testing ? 'Menguji Koneksi...' : 'Uji Koneksi Web App'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
+              <span>{testing ? 'Menguji...' : 'Uji Koneksi'}</span>
             </button>
 
-            <span className="text-xs text-slate-400">
-              Pengaturan otomatis tersimpan saat Anda mengubah kolom input.
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Upload Tester */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
-            <CloudUpload className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Uji Coba Unggah File ke Google Drive Sekarang
-            </h3>
-            <p className="text-xs text-slate-500">
-              Pilih foto uji coba untuk memastikan Apps Script Anda berhasil menyimpan file ke Google Drive dan mengembalikan link CDN.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-2">
-          <label className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs hover:shadow flex items-center gap-2 shrink-0">
-            <CloudUpload className={`w-4 h-4 ${testUploading ? 'animate-bounce' : ''}`} />
-            <span>{testUploading ? 'Sedang Mengunggah...' : 'Pilih Gambar untuk Tes Upload'}</span>
-            <input
-              type="file"
-              accept="image/*"
-              disabled={testUploading || !formData.webAppUrl.trim()}
-              onChange={handleTestUpload}
-              className="hidden"
-            />
-          </label>
-
-          {!formData.webAppUrl.trim() && (
-            <span className="text-xs text-amber-600 font-medium">
-              * Isi URL Web App di atas terlebih dahulu untuk mencoba fitur ini.
-            </span>
-          )}
-        </div>
-
-        {testUploadError && (
-          <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{testUploadError}</span>
-          </div>
-        )}
-
-        {testUploadResult && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>File Berhasil Diunggah ke Google Drive Anda!</span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white p-3 rounded-lg border border-emerald-100 text-xs">
-              <img
-                src={testUploadResult.fileUrl}
-                alt="Preview Tes"
-                className="w-20 h-20 object-cover rounded-lg border border-slate-200 shrink-0 bg-slate-100"
+            <label className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0">
+              <CloudUpload className={`w-3.5 h-3.5 ${testUploading ? 'animate-bounce' : ''}`} />
+              <span>{testUploading ? 'Mengunggah...' : 'Tes Unggah File'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                disabled={testUploading || !formData.webAppUrl.trim()}
+                onChange={handleTestUpload}
+                className="hidden"
               />
-              <div className="space-y-1 min-w-0">
-                <p className="font-bold text-slate-800 truncate">{testUploadResult.fileName}</p>
-                <p className="text-[11px] text-slate-500">
-                  Ukuran: {Math.round(testUploadResult.size / 1024)} KB | Folder: {testUploadResult.folderName || 'Default'}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  Log Spreadsheet:{' '}
-                  {testUploadResult.sheetLogged ? (
-                    <span className="text-emerald-600 font-semibold">Tercatat</span>
-                  ) : (
-                    <span className="text-slate-400">Tidak disetel</span>
-                  )}
-                </p>
-                <div className="flex items-center gap-3 pt-1">
-                  <a
-                    href={testUploadResult.viewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline flex items-center gap-1 font-semibold text-[11px]"
-                  >
-                    <span>Buka di Google Drive</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                  <a
-                    href={testUploadResult.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-600 hover:underline flex items-center gap-1 font-semibold text-[11px]"
-                  >
-                    <span>Buka CDN Gambar Langsung</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 4-Step Tutorial Deployment Guide */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
-              <HelpCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Panduan 4 Langkah Deploy Google Apps Script
-              </h3>
-            </div>
-          </div>
-
-          <a
-            href="https://script.google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3.5 py-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>Buka script.google.com</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Step 1 */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                1
-              </span>
-              <h4 className="font-bold text-xs text-slate-800">
-                Buat Proyek Baru di Google Apps Script
-              </h4>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed pl-8">
-              Buka <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold underline">script.google.com</a> dengan akun Google sekolah Anda, lalu klik <strong>New Project (Proyek Baru)</strong>. Beri nama proyek misalnya <em>"SMPN 1 Bengkalis Drive API"</em>.
-            </p>
-          </div>
-
-          {/* Step 2 */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                2
-              </span>
-              <h4 className="font-bold text-xs text-slate-800">
-                Salin & Tempel Kode Script
-              </h4>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed pl-8">
-              Hapus isi file <code>Code.gs</code> yang sudah ada, lalu klik tombol <strong>"Salin Seluruh Kode Apps Script"</strong> di bawah dan tempelkan (Paste) seluruh kode tersebut ke editor. Simpan dengan menekan ikon Disket (Save).
-            </p>
-          </div>
-
-          {/* Step 3 */}
-          <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-amber-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                3
-              </span>
-              <h4 className="font-bold text-xs text-amber-950">
-                Deploy Sebagai Web App (Kunci Utama)
-              </h4>
-            </div>
-            <p className="text-xs text-amber-900 leading-relaxed pl-8">
-              Klik menu <strong>Deploy (Terapkan) &gt; New deployment (Penerapan baru)</strong>.
-              Pilih tipe ikon roda gigi <strong>Web app (Aplikasi web)</strong>.
-              <br />
-              Atur tepat seperti ini:
-              <br />
-              • <strong>Execute as:</strong> <code>Me (Akun saya)</code>
-              <br />
-              • <strong>Who has access:</strong> <code>Anyone (Siapa saja)</code>
-            </p>
-          </div>
-
-          {/* Step 4 */}
-          <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                4
-              </span>
-              <h4 className="font-bold text-xs text-emerald-950">
-                Salin URL Web App & Selesai!
-              </h4>
-            </div>
-            <p className="text-xs text-emerald-900 leading-relaxed pl-8">
-              Klik <strong>Deploy</strong>, lalu berikan izin akses Google Drive Anda (klik <em>Advanced &gt; Go to ... (unsafe)</em>). Salin <strong>Web App URL</strong> yang dihasilkan (akhiran <code>/exec</code>), lalu tempelkan ke kolom URL di atas.
-            </p>
+            </label>
           </div>
         </div>
       </div>
 
-      {/* Code Snippet Box with 1-Click Copy */}
-      <div className="bg-slate-900 text-slate-200 rounded-2xl border border-slate-800 overflow-hidden shadow-lg space-y-0">
-        <div className="p-4 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-            <span className="w-3 h-3 rounded-full bg-amber-500 inline-block" />
-            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
-            <span className="text-xs font-mono text-slate-400 ml-2">Code.gs (Google Apps Script)</span>
+      {/* Test Upload Results */}
+      {testUploadError && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{testUploadError}</span>
+        </div>
+      )}
+
+      {testUploadResult && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+          <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>Upload Berhasil: {testUploadResult.fileName}</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowCode(!showCode)}
-              className="px-3 py-1 text-xs font-medium text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-            >
-              {showCode ? 'Sembunyikan Kode' : 'Tampilkan Kode'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              {copiedCode ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Kode Berhasil Disalin!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Salin Seluruh Kode Apps Script</span>
-                </>
-              )}
-            </button>
+          <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-emerald-100 text-xs">
+            <img
+              src={testUploadResult.fileUrl}
+              alt="Preview"
+              className="w-12 h-12 object-cover rounded border border-slate-200 shrink-0"
+            />
+            <div className="flex items-center gap-3 text-xs">
+              <a
+                href={testUploadResult.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+              >
+                <span>Lihat Gambar CDN</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href={testUploadResult.viewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-600 hover:underline flex items-center gap-1"
+              >
+                <span>Buka Google Drive</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
         </div>
-
-        {showCode && (
-          <div className="p-4 overflow-x-auto max-h-96 text-xs font-mono leading-relaxed text-slate-300 bg-slate-950/90 select-all">
-            <pre>{SAMPLE_APPS_SCRIPT_CODE}</pre>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };
