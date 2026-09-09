@@ -99,6 +99,22 @@ export default function App() {
     syncPWAManifest(config.identity);
   }, [config.identity]);
 
+  // Synchronize Theme Colors to CSS Root Variables
+  useEffect(() => {
+    if (config.themeConfig) {
+      const root = document.documentElement;
+      const t = config.themeConfig;
+      if (t.primaryColor) root.style.setProperty('--primary-color', t.primaryColor);
+      if (t.primaryHoverColor) root.style.setProperty('--primary-hover-color', t.primaryHoverColor);
+      if (t.headerBgColor) root.style.setProperty('--header-bg-color', t.headerBgColor);
+      if (t.navbarBgColor) root.style.setProperty('--navbar-bg-color', t.navbarBgColor);
+      if (t.navbarTextColor) root.style.setProperty('--navbar-text-color', t.navbarTextColor);
+      if (t.buttonBgColor) root.style.setProperty('--button-bg-color', t.buttonBgColor);
+      if (t.buttonTextColor) root.style.setProperty('--button-text-color', t.buttonTextColor);
+      if (t.footerBgColor) root.style.setProperty('--footer-bg-color', t.footerBgColor);
+    }
+  }, [config.themeConfig]);
+
   // Manual refresh trigger for public and admin views
   const handleManualRefresh = async () => {
     setIsRefreshing(true);

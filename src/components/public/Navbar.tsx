@@ -18,7 +18,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onRefresh,
   isRefreshing,
 }) => {
-  const { identity, navMenus } = config;
+  const { identity, navMenus, themeConfig } = config;
+
+  const navbarBg = themeConfig?.navbarBgColor;
+  const navbarText = themeConfig?.navbarTextColor;
+  const primaryColor = themeConfig?.primaryColor;
+  const btnBg = themeConfig?.buttonBgColor || primaryColor;
+  const btnText = themeConfig?.buttonTextColor;
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -107,11 +114,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       <nav
         ref={navRef}
         id="main-navbar"
+        style={navbarBg ? { backgroundColor: navbarBg } : undefined}
         className={`sticky top-0 z-40 transition-all duration-200 ${
           scrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200'
-            : 'bg-white border-b border-slate-100 shadow-xs'
-        }`}
+            ? 'shadow-md border-b border-slate-200/80'
+            : 'border-b border-slate-100 shadow-xs'
+        } ${!navbarBg ? 'bg-white' : ''}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
@@ -143,12 +151,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <div className="flex flex-col min-w-0 overflow-hidden">
               {/* School Name strictly 1 line, enlarged font */}
-              <span className="font-black text-slate-900 text-base xs:text-lg sm:text-2xl tracking-tight leading-tight group-hover:text-blue-700 transition-colors whitespace-nowrap truncate">
+              <span
+                style={navbarText ? { color: navbarText } : undefined}
+                className="font-black text-slate-900 text-base xs:text-lg sm:text-2xl tracking-tight leading-tight group-hover:opacity-80 transition-opacity whitespace-nowrap truncate"
+              >
                 {identity.name}
               </span>
 
               {/* Motto / Tagline Running Text Marquee */}
-              <div className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium w-36 xs:w-48 sm:w-64 md:w-80">
+              <div
+                style={navbarText ? { color: navbarText, opacity: 0.8 } : undefined}
+                className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium w-36 xs:w-48 sm:w-64 md:w-80"
+              >
                 <div className="inline-block animate-marquee pl-0">
                   {identity.tagline || 'Unggul, Berkarakter & Berprestasi'}
                 </div>
@@ -263,7 +277,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     handleNavClick(link);
                   }
                 }}
-                className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
+                style={btnBg ? { backgroundColor: btnBg, color: btnText || '#ffffff' } : undefined}
+                className={`inline-flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer ${
+                  !btnBg ? 'bg-blue-700 hover:bg-blue-800 text-white' : ''
+                }`}
               >
                 <GraduationCap className="w-4 h-4" />
                 <span>{config.ppdb?.buttonLabel || 'Info PPDB 2026'}</span>

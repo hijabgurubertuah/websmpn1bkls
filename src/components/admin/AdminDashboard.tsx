@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SchoolConfig, NewsArticle } from '../../types';
 import {
   Sparkles,
+  Palette,
   Layers,
   FileText,
   Layout,
@@ -29,6 +30,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { AdminHeaderTab } from './AdminHeaderTab';
+import { AdminThemeTab } from './AdminThemeTab';
 import { AdminTickerTab } from './AdminTickerTab';
 import { AdminMenusTab } from './AdminMenusTab';
 import { AdminPPDBTab } from './AdminPPDBTab';
@@ -62,6 +64,7 @@ interface AdminDashboardProps {
 
 export type AdminTab =
   | 'header'
+  | 'theme'
   | 'ticker'
   | 'menus'
   | 'ppdb'
@@ -183,6 +186,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
     { id: 'header', label: 'Header & Identitas', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'theme', label: 'Warna & Tema Website', icon: <Palette className="w-4 h-4" /> },
     { id: 'ticker', label: 'Teks Berjalan (Ticker)', icon: <Volume2 className="w-4 h-4" /> },
     { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
     { id: 'ppdb', label: 'PPDB Online', icon: <GraduationCap className="w-4 h-4" /> },
@@ -677,6 +681,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Dynamic Tab Views */}
           {activeTab === 'header' && (
             <AdminHeaderTab config={config} onChange={handleConfigUpdate} />
+          )}
+
+          {activeTab === 'theme' && (
+            <AdminThemeTab config={config} onChange={handleConfigUpdate} />
           )}
 
           {activeTab === 'ticker' && (

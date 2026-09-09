@@ -21,6 +21,35 @@ export interface HighlightStat {
   value: string;
 }
 
+export interface ThemePreset {
+  id: string;
+  name: string;
+  primaryColor: string;
+  primaryHoverColor?: string;
+  headerBgColor?: string;
+  navbarBgColor?: string;
+  navbarTextColor?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  accentColor?: string;
+  footerBgColor?: string;
+  isCustom?: boolean;
+}
+
+export interface ThemeConfig {
+  presetId?: string;
+  primaryColor: string;
+  primaryHoverColor?: string;
+  headerBgColor?: string;
+  navbarBgColor?: string;
+  navbarTextColor?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  accentColor?: string;
+  footerBgColor?: string;
+  customPresets?: ThemePreset[];
+}
+
 export interface SchoolIdentity {
   name: string;
   shortName?: string;
@@ -176,6 +205,7 @@ export interface SchoolConfig {
   extracurriculars: ExtracurricularItem[];
   agendas: AgendaItem[];
   footer: FooterConfig;
+  themeConfig?: ThemeConfig;
   googleAppsScript?: GoogleAppsScriptConfig;
 }
 

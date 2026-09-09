@@ -7,7 +7,9 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
-  const { header, identity, layoutSections } = config;
+  const { header, identity, layoutSections, themeConfig } = config;
+  const btnBg = themeConfig?.buttonBgColor || themeConfig?.primaryColor;
+  const btnText = themeConfig?.buttonTextColor;
 
   // Icon mapping helper
   const getStatIcon = (iconName: string) => {
@@ -70,7 +72,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
                 <button
                   type="button"
                   onClick={() => handleScrollTo(header.heroCtaLink)}
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 transition-all text-xs sm:text-sm cursor-pointer transform hover:-translate-y-0.5"
+                  style={btnBg ? { backgroundColor: btnBg, color: btnText || '#ffffff' } : undefined}
+                  className={`inline-flex items-center gap-2 font-bold px-5 py-3 rounded-xl shadow-lg transition-all text-xs sm:text-sm cursor-pointer transform hover:-translate-y-0.5 ${
+                    !btnBg ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30' : ''
+                  }`}
                 >
                   <span>{header.heroCtaText}</span>
                   <ChevronRight className="w-4 h-4" />

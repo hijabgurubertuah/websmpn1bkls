@@ -1,4 +1,5 @@
 import { SchoolConfig, NewsArticle } from '../types';
+import { DEFAULT_THEME_CONFIG } from './themePresets';
 
 export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
   adminPassword: 'smpn1bks',
@@ -265,6 +266,7 @@ export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
     },
     copyright: '© 2026 SMP Negeri 1 Bengkalis (NPSN: 10495146). Hak Cipta Dilindungi Undang-Undang.',
   },
+  themeConfig: DEFAULT_THEME_CONFIG,
   googleAppsScript: {
     enabled: true,
     webAppUrl: '',
