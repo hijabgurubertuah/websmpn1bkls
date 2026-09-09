@@ -1,6 +1,7 @@
 import React from 'react';
 import { PrincipalConfig } from '../../types';
 import { X, Award } from 'lucide-react';
+import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
 
 interface SpeechDetailModalProps {
   principal: PrincipalConfig;
@@ -50,8 +51,8 @@ export const SpeechDetailModal: React.FC<SpeechDetailModalProps> = ({
             "{principal.quote}"
           </div>
 
-          <div className="whitespace-pre-line space-y-3 text-slate-700">
-            {principal.fullSpeech}
+          <div className="space-y-3 text-slate-700">
+            <FormattedContentRenderer content={principal.fullSpeech} />
           </div>
 
           <div className="pt-4 border-t border-slate-100 mt-6 flex items-center justify-between">

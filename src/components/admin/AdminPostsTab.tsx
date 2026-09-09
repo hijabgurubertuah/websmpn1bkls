@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
 import { MultiImageUploader } from './MultiImageUploader';
+import { RichTextEditorWithImages } from '../common/RichTextEditorWithImages';
 import { parseEmbedUrl } from '../../lib/embedHelper';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
 
@@ -129,6 +130,25 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     setIsEditing(true);
   };
 
+  // Helper to sanitize article content before saving to local or cloud storage
+  const sanitizeArticleContent = (raw: string): string => {
+    if (!raw) return '';
+    let cleaned = raw;
+    if (cleaned.includes('&lt;') && cleaned.includes('&gt;')) {
+      cleaned = cleaned
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&');
+    }
+    // Extract [img] from <p>[img...]</p>
+    cleaned = cleaned.replace(/<p[^>]*>\s*(\[img\b[^\]]*\])\s*<\/p>/gi, '\n$1\n');
+    // Strip empty paragraphs with br or nbsp
+    cleaned = cleaned.replace(/<p[^>]*>\s*(<br\s*\/?>|&nbsp;|\s*)*<\/p>/gi, '');
+    return cleaned.trim();
+  };
+
   // Save to Local Draft only (0 Firebase write operations)
   const handleSaveLocal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +156,8 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       setFormError('Judul berita tidak boleh kosong.');
       return;
     }
-    if (!content.trim()) {
+    const cleanContentText = sanitizeArticleContent(content);
+    if (!cleanContentText) {
       setFormError('Konten lengkap berita tidak boleh kosong.');
       return;
     }
@@ -151,8 +172,8 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, ''),
       category,
-      summary: summary.trim(),
-      content: content.trim(),
+      summary: summary.trim().replace(/<[^>]*>/g, ''),
+      content: cleanContentText,
       coverImage:
         coverImage.trim() ||
         'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
@@ -202,7 +223,8 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       setFormError('Judul berita tidak boleh kosong.');
       return;
     }
-    if (!content.trim()) {
+    const cleanContentText = sanitizeArticleContent(content);
+    if (!cleanContentText) {
       setFormError('Konten lengkap berita tidak boleh kosong.');
       return;
     }
@@ -217,8 +239,8 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, ''),
       category,
-      summary: summary.trim(),
-      content: content.trim(),
+      summary: summary.trim().replace(/<[^>]*>/g, ''),
+      content: cleanContentText,
       coverImage:
         coverImage.trim() ||
         'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
@@ -535,20 +557,14 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
               />
             </div>
 
-            {/* Full Content */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Konten / Isi Lengkap Berita *
-              </label>
-              <textarea
-                rows={8}
-                required
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Tuliskan berita lengkap di sini (mendukung beberapa paragraf, format link [Teks](url) atau tautan langsung)..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none leading-relaxed"
-              />
-            </div>
+            {/* Full Content with Formatting & Drive Image Inserter */}
+            <RichTextEditorWithImages
+              value={content}
+              onChange={setContent}
+              label="Konten / Isi Lengkap Berita *"
+              placeholder="Tuliskan berita lengkap di sini. Gunakan toolbar di atas untuk format teks (bold, miring, rata kanan-kiri, dll.) dan tombol 'Sisipkan Gambar' untuk menambahkan foto dari Drive dengan susunan layout fleksibel..."
+              minRows={10}
+            />
 
             {/* Multiple Gallery Images */}
             <MultiImageUploader

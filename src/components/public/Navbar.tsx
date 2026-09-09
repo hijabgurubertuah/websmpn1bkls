@@ -1,7 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SchoolConfig, NavMenu } from '../../types';
-import { Menu, X, ChevronDown, School, ShieldCheck, Settings, Search, GraduationCap, RefreshCw } from 'lucide-react';
+import {
+  Menu,
+  X,
+  ChevronDown,
+  School,
+  ShieldCheck,
+  Settings,
+  Search,
+  GraduationCap,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
+import { hardResetAppCache } from '../../lib/offlineStorage';
 
 interface NavbarProps {
   config: SchoolConfig;
@@ -28,8 +41,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [refreshMenuOpen, setRefreshMenuOpen] = useState(false);
+  const [isHardResetting, setIsHardResetting] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const refreshMenuRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const mobileDrawerRef = useRef<HTMLDivElement>(null);
 
@@ -51,10 +67,20 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setOpenDropdownId(null);
       }
+      if (refreshMenuRef.current && !refreshMenuRef.current.contains(event.target as Node)) {
+        setRefreshMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Handler for Hard Reset execution
+  const handleExecuteHardReset = async () => {
+    setRefreshMenuOpen(false);
+    setIsHardResetting(true);
+    await hardResetAppCache();
+  };
 
   // Auto-close mobile menu when tapping or clicking outside the mobile menu list
   useEffect(() => {
@@ -287,19 +313,96 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
             )}
 
-            {/* Quick Refresh Cloud Data Button (Right beside Settings) */}
+            {/* Quick Refresh & Hard Reset Dropdown (Right beside Settings) */}
             {onRefresh && (
-              <button
-                id="btn-navbar-refresh"
-                type="button"
-                onClick={onRefresh}
-                disabled={isRefreshing}
-                className="p-2.5 border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-slate-600 hover:text-blue-600 rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                title="Segarkan data terbaru dari Firebase"
-                aria-label="Segarkan Data"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-600'}`} />
-              </button>
+              <div className="relative" ref={refreshMenuRef}>
+                <button
+                  id="btn-navbar-refresh"
+                  type="button"
+                  onClick={() => setRefreshMenuOpen(!refreshMenuOpen)}
+                  disabled={isRefreshing || isHardResetting}
+                  className={`p-2.5 border rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1 ${
+                    refreshMenuOpen
+                      ? 'border-blue-500 bg-blue-50 text-blue-600 ring-2 ring-blue-100'
+                      : 'border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-slate-600 hover:text-blue-600'
+                  }`}
+                  title="Pilihan Segarkan Data & Hard Reset Cache"
+                  aria-label="Segarkan Data atau Hard Reset"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+                  <ChevronDown className={`w-3 h-3 transition-transform ${refreshMenuOpen ? 'rotate-180 text-blue-600' : 'text-slate-400'}`} />
+                </button>
+
+                {/* Dropdown Card */}
+                {refreshMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
+                    <div className="px-2 py-1.5 border-b border-slate-100 mb-2">
+                      <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Penyegaran Data &amp; Cache</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                        Pilih metode penyegaran untuk browser ini
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {/* 1. Quick Refresh */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRefreshMenuOpen(false);
+                          onRefresh();
+                        }}
+                        className="w-full text-left p-2.5 rounded-xl hover:bg-blue-50/80 border border-transparent hover:border-blue-100 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span className="p-1.5 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-colors mt-0.5 shrink-0">
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </span>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700">
+                              Segarkan Data Cloud (Cepat)
+                            </div>
+                            <div className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                              Ambil berita &amp; settingan terbaru dari Firebase tanpa memuat ulang browser.
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* 2. Hard Reset */}
+                      <button
+                        type="button"
+                        onClick={handleExecuteHardReset}
+                        className="w-full text-left p-2.5 rounded-xl hover:bg-red-50/80 border border-transparent hover:border-red-100 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span className="p-1.5 rounded-lg bg-red-100 text-red-700 group-hover:bg-red-600 group-hover:text-white transition-colors mt-0.5 shrink-0">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-red-700">
+                                Hard Reset &amp; Bersihkan Cache
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-red-100 text-red-800">
+                                Bersih Total
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                              Hapus seluruh cache memori, Service Worker PWA, dan muat ulang halaman.
+                              <span className="text-red-600 font-semibold block mt-0.5">
+                                Solusi jika muncul karakter aneh di browser lain.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* The single, unified admin panel button with gear icon */}
@@ -323,10 +426,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 id="btn-navbar-refresh-mobile"
                 type="button"
-                onClick={onRefresh}
-                disabled={isRefreshing}
-                className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                title="Segarkan Data"
+                onClick={() => setRefreshMenuOpen(!refreshMenuOpen)}
+                disabled={isRefreshing || isHardResetting}
+                className={`p-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
+                  refreshMenuOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-100'
+                }`}
+                title="Pilihan Segarkan Data & Hard Reset"
                 aria-label="Segarkan Data"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : 'text-slate-700'}`} />
@@ -441,7 +546,92 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Mobile Refresh Menu Popover */}
+      {refreshMenuOpen && (
+        <div className="lg:hidden px-4 pb-4 bg-white border-t border-slate-100 animate-in slide-in-from-top-2 duration-150">
+          <div className="bg-slate-50 rounded-2xl border border-slate-200 p-3 mt-2 shadow-lg">
+            <div className="px-2 py-1.5 border-b border-slate-200/60 mb-2">
+              <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>Penyegaran Data &amp; Cache</span>
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Pilih metode penyegaran untuk browser ini
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setRefreshMenuOpen(false);
+                  onRefresh?.();
+                }}
+                className="w-full text-left p-2.5 rounded-xl bg-white hover:bg-blue-50/80 border border-slate-200 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="p-1.5 rounded-lg bg-blue-100 text-blue-700 mt-0.5 shrink-0">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </span>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">
+                      Segarkan Data Cloud (Cepat)
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Ambil berita &amp; settingan terbaru dari Firebase tanpa reload.
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteHardReset}
+                className="w-full text-left p-2.5 rounded-xl bg-white hover:bg-red-50/80 border border-red-200 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="p-1.5 rounded-lg bg-red-100 text-red-700 mt-0.5 shrink-0">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-red-700">
+                        Hard Reset &amp; Bersihkan Cache
+                      </span>
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-800">
+                        Bersih Total
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Hapus seluruh cache browser &amp; muat ulang penuh.
+                      <span className="text-red-600 font-semibold block mt-0.5">
+                        Solusi jika muncul karakter aneh di browser lain.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
+
+    {/* Fullscreen Hard Reset Loading Screen */}
+    {isHardResetting && (
+      <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-white text-center animate-in fade-in duration-200">
+        <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 p-4 mb-4 flex items-center justify-center shadow-2xl">
+          <RotateCcw className="w-8 h-8 text-blue-400 animate-spin" />
+        </div>
+        <h3 className="text-lg font-bold text-white mb-1">
+          Sedang Membersihkan Seluruh Cache...
+        </h3>
+        <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
+          Menghapus cache offline browser &amp; memuat ulang versi terbaru dari server. Halaman akan terbuka otomatis.
+        </p>
+      </div>
+    )}
     </>
   );
 };

@@ -90,7 +90,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onDataRestored,
   onSyncFromCloud,
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('header');
+  const [activeTab, setActiveTab] = useState<AdminTab>('posts');
   const [savingTab, setSavingTab] = useState(false);
   const [unsavedTabs, setUnsavedTabs] = useState<Record<string, boolean>>({});
   const [showToast, setShowToast] = useState(false);

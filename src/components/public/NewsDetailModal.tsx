@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { parseEmbedUrl } from '../../lib/embedHelper';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
+import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
 
 interface NewsDetailModalProps {
   article: NewsArticle | null;
@@ -214,8 +215,8 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, onClo
           )}
 
           {/* Body Content */}
-          <div className="text-slate-800 text-base leading-relaxed whitespace-pre-line space-y-4">
-            {renderFormattedContent(article.content)}
+          <div className="text-slate-800 text-base leading-relaxed">
+            <FormattedContentRenderer content={article.content} />
           </div>
 
           {/* Custom Action Link Button / Link Tertentu */}

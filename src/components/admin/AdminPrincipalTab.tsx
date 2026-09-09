@@ -2,6 +2,7 @@ import React from 'react';
 import { SchoolConfig, PrincipalConfig } from '../../types';
 import { Award } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
+import { RichTextEditorWithImages } from '../common/RichTextEditorWithImages';
 
 interface AdminPrincipalTabProps {
   config: SchoolConfig;
@@ -99,18 +100,13 @@ export const AdminPrincipalTab: React.FC<AdminPrincipalTabProps> = ({ config, on
         </div>
 
         {/* Full Speech */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-            Isi Teks Sambutan Lengkap
-          </label>
-          <textarea
-            rows={8}
-            value={principal.fullSpeech}
-            onChange={(e) => updatePrincipal('fullSpeech', e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none leading-relaxed"
-            placeholder="Tuliskan amanat dan sambutan lengkap kepala sekolah..."
-          />
-        </div>
+        <RichTextEditorWithImages
+          value={principal.fullSpeech}
+          onChange={(val) => updatePrincipal('fullSpeech', val)}
+          label="Isi Teks Sambutan Lengkap Kepala Sekolah"
+          placeholder="Tuliskan amanat dan sambutan lengkap kepala sekolah. Gunakan format tebal, miring, rata kanan-kiri, atau sisipkan foto dokumentasi dari Drive..."
+          minRows={8}
+        />
 
       </div>
     </div>
