@@ -33,13 +33,13 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ config }) => {
           {/* Col 1: Brand & About (5 cols) */}
           <div className="lg:col-span-5 space-y-5">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-blue-900/40 border border-blue-700/50 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-700/80 flex items-center justify-center shrink-0 p-1 shadow-xs">
                 {identity.logoUrl ? (
                   <img
                     src={identity.logoUrl}
                     alt={identity.name}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <School className="w-7 h-7 text-blue-400" />

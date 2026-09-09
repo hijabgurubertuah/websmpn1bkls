@@ -80,10 +80,15 @@ export const AccreditationRibbon: React.FC<AccreditationRibbonProps> = ({ config
     ];
   }
 
+  const customBg = identity.accreditationTickerBgColor;
+
   return (
     <section
       id="akreditasi-running-text"
-      className="relative z-10 bg-gradient-to-r from-slate-950 via-blue-950 to-slate-950 text-white border-y border-blue-800/40 shadow-xs overflow-hidden py-2 sm:py-2.5"
+      className={`relative z-10 text-white border-y border-white/10 shadow-xs overflow-hidden py-2 sm:py-2.5 ${
+        customBg ? '' : 'bg-gradient-to-r from-slate-950 via-blue-950 to-slate-950 border-blue-800/40'
+      }`}
+      style={customBg ? { backgroundColor: customBg } : undefined}
     >
       <div className="w-full px-4 sm:px-6 lg:px-8">
         {/* Full-width Running Text Marquee Track */}

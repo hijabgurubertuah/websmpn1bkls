@@ -114,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           
           {/* Brand Logo & Name */}
           <a
@@ -123,31 +123,36 @@ export const Navbar: React.FC<NavbarProps> = ({
               e.preventDefault();
               handleNavClick('#beranda');
             }}
-            className="flex items-center gap-3.5 group cursor-pointer"
+            className="flex items-center gap-2 sm:gap-3 group cursor-pointer max-w-[calc(100%-80px)] lg:max-w-none"
           >
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl overflow-hidden bg-white border border-slate-200/90 flex items-center justify-center shrink-0 shadow-xs p-0.5 sm:p-1 group-hover:scale-105 transition-transform">
               {identity.logoUrl ? (
                 <img
                   src={identity.logoUrl}
                   alt={identity.name}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
               ) : (
-                <School className="w-7 h-7 text-blue-700" />
+                <School className="w-6 h-6 sm:w-7 sm:h-7 text-blue-700" />
               )}
             </div>
 
-            <div className="flex flex-col">
-              <span className="font-extrabold text-slate-900 text-lg sm:text-xl tracking-tight leading-tight group-hover:text-blue-700 transition-colors">
+            <div className="flex flex-col min-w-0 overflow-hidden">
+              {/* School Name strictly 1 line, enlarged font */}
+              <span className="font-black text-slate-900 text-base xs:text-lg sm:text-2xl tracking-tight leading-tight group-hover:text-blue-700 transition-colors whitespace-nowrap truncate">
                 {identity.name}
               </span>
-              <span className="text-xs text-slate-500 font-medium line-clamp-1 max-w-[280px] sm:max-w-md">
-                {identity.tagline}
-              </span>
+
+              {/* Motto / Tagline Running Text Marquee */}
+              <div className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium w-36 xs:w-48 sm:w-64 md:w-80">
+                <div className="inline-block animate-marquee pl-0">
+                  {identity.tagline || 'Unggul, Berkarakter & Berprestasi'}
+                </div>
+              </div>
             </div>
           </a>
 
@@ -311,17 +316,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* The single, unified admin panel button with gear icon for mobile */}
-            <button
-              id="btn-admin-gear-mobile"
-              onClick={onOpenAdmin}
-              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              title="Panel Admin"
-              aria-label="Panel Admin"
-            >
-              <Settings className="w-5 h-5 text-slate-700 hover:text-blue-600" />
-            </button>
-
             <button
               id="btn-mobile-menu-toggle"
               type="button"
@@ -393,7 +387,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
 
           {config.ppdb?.enabled === true && (
-            <div className="pt-3 space-y-2">
+            <div className="pt-2 space-y-2">
               <a
                 href={config.ppdb?.buttonLink || '#berita'}
                 target={config.ppdb?.openInNewTab ? '_blank' : undefined}
@@ -405,13 +399,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                     handleNavClick(link);
                   }
                 }}
-                className="flex items-center justify-center gap-2 w-full bg-blue-700 text-white font-bold py-3 rounded-lg text-center text-sm"
+                className="flex items-center justify-center gap-2 w-full bg-blue-700 text-white font-bold py-2.5 rounded-lg text-center text-sm"
               >
                 <GraduationCap className="w-4 h-4" />
                 <span>{config.ppdb?.buttonLabel || 'Info PPDB 2026/2027'}</span>
               </a>
             </div>
           )}
+
+          {/* Login Admin Menu Entry at Bottom of Mobile Menu */}
+          <div className="pt-3 border-t border-slate-100">
+            <button
+              id="btn-login-admin-mobile-menu"
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenAdmin();
+              }}
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition-colors cursor-pointer border border-slate-200"
+            >
+              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>Login Admin</span>
+            </button>
+          </div>
         </div>
       )}
     </nav>

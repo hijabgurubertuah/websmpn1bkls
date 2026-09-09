@@ -26,8 +26,10 @@ import {
   CloudDownload,
   RefreshCw,
   AlertCircle,
+  Volume2,
 } from 'lucide-react';
 import { AdminHeaderTab } from './AdminHeaderTab';
+import { AdminTickerTab } from './AdminTickerTab';
 import { AdminMenusTab } from './AdminMenusTab';
 import { AdminPPDBTab } from './AdminPPDBTab';
 import { AdminPostsTab } from './AdminPostsTab';
@@ -60,6 +62,7 @@ interface AdminDashboardProps {
 
 export type AdminTab =
   | 'header'
+  | 'ticker'
   | 'menus'
   | 'ppdb'
   | 'posts'
@@ -180,6 +183,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
     { id: 'header', label: 'Header & Identitas', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'ticker', label: 'Teks Berjalan (Ticker)', icon: <Volume2 className="w-4 h-4" /> },
     { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
     { id: 'ppdb', label: 'PPDB Online', icon: <GraduationCap className="w-4 h-4" /> },
     { id: 'posts', label: 'Postingan Berita', icon: <FileText className="w-4 h-4" /> },
@@ -673,6 +677,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Dynamic Tab Views */}
           {activeTab === 'header' && (
             <AdminHeaderTab config={config} onChange={handleConfigUpdate} />
+          )}
+
+          {activeTab === 'ticker' && (
+            <AdminTickerTab config={config} onChange={handleConfigUpdate} />
           )}
 
           {activeTab === 'menus' && (

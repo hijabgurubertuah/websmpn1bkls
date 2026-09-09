@@ -34,19 +34,23 @@ export interface SchoolIdentity {
   accreditationTickerEnabled?: boolean;
   accreditationTickerText?: string;
   accreditationTickerSpeed?: 'slow' | 'normal' | 'fast';
+  accreditationTickerBgColor?: string;
   primaryColor: string;
 }
 
 export interface ImportantAnnouncement {
   enabled: boolean;
   badge: string;
-  title?: string;
   text: string;
-  theme: 'warning' | 'danger' | 'info' | 'emerald';
-  buttonEnabled: boolean;
-  buttonText: string;
-  buttonUrl: string;
+  theme: 'warning' | 'danger' | 'info' | 'emerald' | 'slate' | 'purple' | 'orange';
+  speed?: 'slow' | 'normal' | 'fast';
+  customBgColor?: string;
+  title?: string;
+  buttonEnabled?: boolean;
+  buttonText?: string;
+  buttonUrl?: string;
   isMarquee?: boolean;
+  isSticky?: boolean;
   dismissible?: boolean;
 }
 
