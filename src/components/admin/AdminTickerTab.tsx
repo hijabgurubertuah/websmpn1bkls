@@ -85,7 +85,7 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
         {/* ================================================================================= */}
         {/* KOLOM 1: RUNNING TEKS 1 (INFO PENTING) */}
         {/* ================================================================================= */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-5 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-3.5 sm:p-6 border border-slate-200 shadow-xs space-y-4 sm:space-y-5 flex flex-col justify-between">
           <div className="space-y-5">
             
             {/* Header & Toggle */}
@@ -221,20 +221,16 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                 </div>
 
                 {/* Tautan Berita & Popup Detail Setting Box */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                <div className="p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 sm:space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
                     <Link className="w-4 h-4 text-blue-600" />
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                      Pengaturan Aksi Klik (Popup Detail)
+                      Popup Berita
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-500 font-medium">
-                    Pilih salah satu dari 3 opsi di bawah ini untuk menentukan aksi ketika pengunjung mengklik running text:
-                  </p>
-
                   {/* 3 Opsi Radio Cards */}
-                  <div className="space-y-3">
+                  <div className="space-y-2.5 sm:space-y-3">
                     
                     {/* OPSI 1: Pilih Postingan */}
                     <div
@@ -411,7 +407,7 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
         {/* ================================================================================= */}
         {/* KOLOM 2: RUNNING TEKS 2 (AKREDITASI) */}
         {/* ================================================================================= */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-5 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-3.5 sm:p-6 border border-slate-200 shadow-xs space-y-4 sm:space-y-5 flex flex-col justify-between">
           <div className="space-y-5">
             
             {/* Header & Toggle */}

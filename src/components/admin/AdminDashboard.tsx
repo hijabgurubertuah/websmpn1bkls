@@ -495,7 +495,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </aside>
 
       {/* Main Container: Desktop Persistent Sidebar + Workspace Content */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
+      <div className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8 flex flex-col md:flex-row gap-4 sm:gap-6 lg:gap-8 items-start">
         
         {/* Desktop Persistent Sidebar (Un-hidden on >= md screens) */}
         <aside className="hidden md:flex flex-col w-64 lg:w-72 shrink-0 sticky top-24 space-y-4 self-start">
