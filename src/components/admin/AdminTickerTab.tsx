@@ -221,157 +221,141 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                 </div>
 
                 {/* Tautan Berita & Popup Detail Setting Box */}
-                <div className="p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 sm:space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                    <Link className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                      Popup Berita
-                    </span>
-                  </div>
+                <div className="p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Link className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                        Popup Berita
+                      </span>
+                    </div>
 
-                  {/* 3 Opsi Radio Cards */}
-                  <div className="space-y-2.5 sm:space-y-3">
-                    
-                    {/* OPSI 1: Pilih Postingan */}
-                    <div
-                      onClick={() => updateImportantAnnouncement('popupMode', 'article')}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                        (ann.popupMode === 'article' || (!ann.popupMode && Boolean(ann.targetArticleId)))
-                          ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20'
-                          : 'bg-white border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
+                    {/* Compact 3-Option Pills Header */}
+                    <div className="flex flex-wrap items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
+                      <label
+                        onClick={() => updateImportantAnnouncement('popupMode', 'article')}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:py-1 rounded-lg cursor-pointer transition-all ${
+                          (ann.popupMode === 'article' || (!ann.popupMode && Boolean(ann.targetArticleId)))
+                            ? 'bg-white text-blue-700 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="tickerPopupMode"
                           checked={ann.popupMode === 'article' || (!ann.popupMode && Boolean(ann.targetArticleId))}
                           onChange={() => updateImportantAnnouncement('popupMode', 'article')}
-                          className="mt-0.5 w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
-                        <div className="flex-1 space-y-2">
-                          <div>
-                            <span className="text-xs font-bold text-slate-900 block">
-                              Pilih Postingan
-                            </span>
-                            <span className="text-[11px] text-slate-500">
-                              Otomatis membuka postingan berita yang sudah ada saat diklik.
-                            </span>
-                          </div>
+                        <span>Pilih Postingan</span>
+                      </label>
 
-                          {(ann.popupMode === 'article' || (!ann.popupMode && Boolean(ann.targetArticleId))) && (
-                            <div className="pt-2" onClick={(e) => e.stopPropagation()}>
-                              <select
-                                value={ann.targetArticleId || ''}
-                                onChange={(e) => updateImportantAnnouncement('targetArticleId', e.target.value)}
-                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white text-slate-800"
-                              >
-                                <option value="">-- Pilih Berita Dari Daftar --</option>
-                                {articles.map((art) => (
-                                  <option key={art.id} value={art.id}>
-                                    [Berita] {art.title} ({art.date})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* OPSI 2: Buat Teks */}
-                    <div
-                      onClick={() => updateImportantAnnouncement('popupMode', 'custom')}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                        ann.popupMode === 'custom'
-                          ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20'
-                          : 'bg-white border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
+                      <label
+                        onClick={() => updateImportantAnnouncement('popupMode', 'custom')}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:py-1 rounded-lg cursor-pointer transition-all ${
+                          ann.popupMode === 'custom'
+                            ? 'bg-white text-blue-700 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="tickerPopupMode"
                           checked={ann.popupMode === 'custom'}
                           onChange={() => updateImportantAnnouncement('popupMode', 'custom')}
-                          className="mt-0.5 w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
-                        <div className="flex-1 space-y-3">
-                          <div>
-                            <span className="text-xs font-bold text-slate-900 block">
-                              Buat Teks
-                            </span>
-                          </div>
+                        <span>Buat Teks</span>
+                      </label>
 
-                          {ann.popupMode === 'custom' && (
-                            <div className="space-y-3 pt-2 border-t border-blue-200/60" onClick={(e) => e.stopPropagation()}>
-                              <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                                  Judul
-                                </label>
-                                <input
-                                  type="text"
-                                  value={ann.detailTitle || ''}
-                                  onChange={(e) => updateImportantAnnouncement('detailTitle', e.target.value)}
-                                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                                  placeholder="Judul Pengumuman Lengkap..."
-                                />
-                              </div>
-
-                              <div>
-                                <RichTextEditorWithImages
-                                  label="Isi Teks"
-                                  value={ann.detailContent || ''}
-                                  onChange={(newVal) => updateImportantAnnouncement('detailContent', newVal)}
-                                  placeholder="Tuliskan isi pengumuman lengkap..."
-                                  minRows={5}
-                                  articles={articles.map((a) => ({ id: a.id, title: a.title, category: a.category }))}
-                                />
-                              </div>
-
-                              <div className="pt-1">
-                                <ImageUploadButton
-                                  label="Gambar Sampul / Lampiran Popup"
-                                  value={ann.detailImageUrl || ''}
-                                  onChange={(newUrl) => updateImportantAnnouncement('detailImageUrl', newUrl)}
-                                  preset="post"
-                                  placeholder="Unggah dari Google Drive, WebP lokal, atau tempel URL..."
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* OPSI 3: Tanpa Popup */}
-                    <div
-                      onClick={() => updateImportantAnnouncement('popupMode', 'none')}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                        ann.popupMode === 'none'
-                          ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/20'
-                          : 'bg-white border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
+                      <label
+                        onClick={() => updateImportantAnnouncement('popupMode', 'none')}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:py-1 rounded-lg cursor-pointer transition-all ${
+                          ann.popupMode === 'none'
+                            ? 'bg-white text-blue-700 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="tickerPopupMode"
                           checked={ann.popupMode === 'none'}
                           onChange={() => updateImportantAnnouncement('popupMode', 'none')}
-                          className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
+                        <span>Tanpa Popup</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Body Content based on selected option - Full Width for Maximum Editor Freedom */}
+                  <div>
+                    {/* OPSI 1: Pilih Postingan */}
+                    {(ann.popupMode === 'article' || (!ann.popupMode && Boolean(ann.targetArticleId))) && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          Pilih Berita Yang Dibuka Saat Teks Diklik
+                        </label>
+                        <select
+                          value={ann.targetArticleId || ''}
+                          onChange={(e) => updateImportantAnnouncement('targetArticleId', e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white text-slate-800"
+                        >
+                          <option value="">-- Pilih Berita Dari Daftar --</option>
+                          {articles.map((art) => (
+                            <option key={art.id} value={art.id}>
+                              [Berita] {art.title} ({art.date})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* OPSI 2: Buat Teks */}
+                    {ann.popupMode === 'custom' && (
+                      <div className="space-y-3">
                         <div>
-                          <span className="text-xs font-bold text-slate-900 block">
-                            Tanpa Popup
-                          </span>
-                          <span className="text-[11px] text-slate-500">
-                            Hanya running text berjalan tanpa aksi popup saat diklik.
-                          </span>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Judul
+                          </label>
+                          <input
+                            type="text"
+                            value={ann.detailTitle || ''}
+                            onChange={(e) => updateImportantAnnouncement('detailTitle', e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+                            placeholder="Judul Pengumuman Lengkap..."
+                          />
+                        </div>
+
+                        <div>
+                          <RichTextEditorWithImages
+                            label="Isi Teks"
+                            value={ann.detailContent || ''}
+                            onChange={(newVal) => updateImportantAnnouncement('detailContent', newVal)}
+                            placeholder="Tuliskan isi pengumuman lengkap..."
+                            minRows={6}
+                            articles={articles.map((a) => ({ id: a.id, title: a.title, category: a.category }))}
+                          />
+                        </div>
+
+                        <div className="pt-1">
+                          <ImageUploadButton
+                            label="Gambar Sampul / Lampiran Popup"
+                            value={ann.detailImageUrl || ''}
+                            onChange={(newUrl) => updateImportantAnnouncement('detailImageUrl', newUrl)}
+                            preset="post"
+                            placeholder="Unggah dari Google Drive, WebP lokal, atau tempel URL..."
+                          />
                         </div>
                       </div>
-                    </div>
+                    )}
 
+                    {/* OPSI 3: Tanpa Popup */}
+                    {ann.popupMode === 'none' && (
+                      <div className="p-3 bg-white border border-slate-200/80 rounded-xl text-xs text-slate-500 text-center">
+                        Hanya running text berjalan tanpa aksi popup saat diklik.
+                      </div>
+                    )}
                   </div>
                 </div>
 
