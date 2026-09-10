@@ -27,9 +27,14 @@ import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
 interface NewsDetailModalProps {
   article: NewsArticle | null;
   onClose: () => void;
+  zIndexClass?: string;
 }
 
-export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, onClose }) => {
+export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
+  article,
+  onClose,
+  zIndexClass = 'z-50',
+}) => {
   // Prevent background scrolling while the news modal or lightbox is open
   useBodyScrollLock(!!article);
 
@@ -108,7 +113,7 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overscroll-contain touch-none animate-in fade-in duration-200">
+    <div className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overscroll-contain touch-none animate-in fade-in duration-200`}>
       <div
         className={`relative w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col overscroll-contain transition-all duration-300 ${
           isEmbedExpanded ? 'max-w-6xl h-[96vh]' : 'max-w-4xl max-h-[92vh]'

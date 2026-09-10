@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { ExternalLink, X, ChevronLeft, ChevronRight, Eye, Globe } from 'lucide-react';
+import { ExternalLink, X, ChevronLeft, ChevronRight, Eye, Globe, Newspaper, Calendar } from 'lucide-react';
 import { convertGoogleDriveUrl } from '../../lib/imageOptimizer';
+import { NewsArticle } from '../../types';
+import { loadNewsArticles } from '../../lib/firebase';
+import { DEFAULT_NEWS_ARTICLES } from '../../lib/defaultData';
+import { NewsDetailModal } from '../public/NewsDetailModal';
 
 interface FormattedContentRendererProps {
   content: string;
@@ -69,25 +73,116 @@ function parseImageShortcode(tagStr: string): ParsedImageShortcode | null {
   };
 }
 
+/**
+ * Resolves whether a link target corresponds to an internal news article/post
+ */
+async function resolveInternalArticle(
+  href: string,
+  linkText?: string
+): Promise<NewsArticle | null> {
+  let articles: NewsArticle[] = [];
+  try {
+    articles = await loadNewsArticles();
+  } catch {
+    articles = DEFAULT_NEWS_ARTICLES;
+  }
+  if (!articles || articles.length === 0) articles = DEFAULT_NEWS_ARTICLES;
+
+  const published = articles.filter((a) => a.status === 'published' && !a.isLocalDraft);
+  if (published.length === 0) return null;
+
+  const cleanHref = href.trim().toLowerCase();
+  const cleanText = (linkText || '').trim().toLowerCase();
+
+  // 1. Direct match by exact article ID
+  for (const art of published) {
+    if (art.id && cleanHref.includes(art.id.toLowerCase())) {
+      return art;
+    }
+  }
+
+  // 2. Direct match by exact article slug
+  for (const art of published) {
+    if (art.slug && cleanHref.includes(art.slug.toLowerCase())) {
+      return art;
+    }
+  }
+
+  // 3. Match by link text or title match
+  for (const art of published) {
+    if (art.title) {
+      const titleLower = art.title.toLowerCase();
+      if (cleanText.length >= 4 && (titleLower.includes(cleanText) || cleanText.includes(titleLower))) {
+        return art;
+      }
+      const titleSlug = titleLower.replace(/[^a-z0-9]+/g, '-');
+      if (titleSlug.length >= 4 && cleanHref.includes(titleSlug)) {
+        return art;
+      }
+    }
+  }
+
+  // 4. Query param / hash extract e.g. ?post=..., ?id=..., #post-...
+  const idMatch = cleanHref.match(/(?:post|article|berita|id)[=\/-]([a-z0-9_-]+)/i);
+  if (idMatch) {
+    const extractedId = idMatch[1].toLowerCase();
+    for (const art of published) {
+      if (art.id.toLowerCase().includes(extractedId) || extractedId.includes(art.id.toLowerCase())) {
+        return art;
+      }
+    }
+  }
+
+  // 5. Internal relative links or internal domain match
+  const isInternal =
+    cleanHref.startsWith('#') ||
+    cleanHref.startsWith('/') ||
+    cleanHref.startsWith('./') ||
+    (typeof window !== 'undefined' && cleanHref.includes(window.location.hostname));
+
+  if (isInternal) {
+    const urlWords = cleanHref.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter((w) => w.length >= 4);
+    for (const art of published) {
+      const titleLower = art.title.toLowerCase();
+      const matched = urlWords.filter((w) => titleLower.includes(w));
+      if (matched.length >= 1) return art;
+    }
+  }
+
+  return null;
+}
+
 export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> = ({
   content,
   className = '',
 }) => {
   const [lightboxIndex, setLightboxIndex] = useState<{ urls: string[]; index: number } | null>(null);
-  const [confirmLinkUrl, setConfirmLinkUrl] = useState<string | null>(null);
+  const [pendingLink, setPendingLink] = useState<{
+    href: string;
+    linkText: string;
+    matchedArticle: NewsArticle | null;
+  } | null>(null);
+  const [nestedArticle, setNestedArticle] = useState<NewsArticle | null>(null);
 
   if (!content) return null;
 
   // Intercept any <a> tag clicks inside rendered content to show 2nd layer confirmation popup
-  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContainerClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const anchor = target.closest('a');
     if (anchor) {
       const href = anchor.getAttribute('href');
+      const linkText = anchor.innerText || anchor.textContent || '';
       if (href && href !== '#' && !href.startsWith('javascript:')) {
         e.preventDefault();
         e.stopPropagation();
-        setConfirmLinkUrl(href);
+
+        const matched = await resolveInternalArticle(href, linkText);
+        setPendingLink({
+          href,
+          linkText,
+          matchedArticle: matched,
+        });
       }
     }
   };
@@ -654,73 +749,158 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
         </div>
       )}
 
-      {/* Layer 2: Link Confirmation Popup Modal */}
-      {confirmLinkUrl && (
+      {/* Layer 2: Confirmation Dialog Popup */}
+      {pendingLink && (
         <div
           className="fixed inset-0 z-[70] bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={(e) => {
             e.stopPropagation();
-            setConfirmLinkUrl(null);
+            setPendingLink(null);
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-in zoom-in-95 duration-150"
+            className="relative max-w-lg w-full bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-in zoom-in-95 duration-150"
           >
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shrink-0">
-                <ExternalLink className="w-6 h-6" />
-              </div>
-              <div className="space-y-1 pr-6">
-                <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
-                  Konfirmasi Buka Tautan
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Apakah Anda ingin membuka link ini?
+            {pendingLink.matchedArticle ? (
+              /* Internal Article Confirmation Card */
+              <>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-100 text-blue-700 rounded-xl shrink-0">
+                    <Newspaper className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1 pr-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block">
+                      Postingan Terkait Web
+                    </span>
+                    <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                      Konfirmasi Buka Postingan
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Tautan ini mengarah ke postingan di dalam website ini. Apakah Anda ingin membacanya di dalam popup?
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingLink(null)}
+                    className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                      {pendingLink.matchedArticle.category}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {pendingLink.matchedArticle.date}
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                    {pendingLink.matchedArticle.title}
+                  </h4>
+                  {pendingLink.matchedArticle.summary && (
+                    <p className="text-xs text-slate-600 line-clamp-2 italic">
+                      "{pendingLink.matchedArticle.summary}"
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setPendingLink(null)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetArt = pendingLink.matchedArticle;
+                      setPendingLink(null);
+                      if (targetArt) {
+                        setNestedArticle(targetArt);
+                      }
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Buka Postingan</span>
+                    <Newspaper className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* External Link Confirmation Card */
+              <>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shrink-0">
+                    <ExternalLink className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1 pr-6">
+                    <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                      Konfirmasi Buka Tautan Eksternal
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Apakah Anda ingin membuka link eksternal ini?
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingLink(null)}
+                    className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5 overflow-hidden">
+                  <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="text-xs font-mono text-slate-800 break-all select-all font-semibold">
+                    {pendingLink.href}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Tautan ini akan dibuka pada tab baru di browser Anda.
                 </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setConfirmLinkUrl(null)}
-                className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5 overflow-hidden">
-              <Globe className="w-4 h-4 text-blue-600 shrink-0" />
-              <span className="text-xs font-mono text-slate-800 break-all select-all font-semibold">
-                {confirmLinkUrl}
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-500">
-              Tautan ini akan dibuka pada tab baru di browser Anda.
-            </p>
-
-            <div className="pt-2 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setConfirmLinkUrl(null)}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.open(confirmLinkUrl, '_blank', 'noopener,noreferrer');
-                  setConfirmLinkUrl(null);
-                }}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <span>Buka Link</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setPendingLink(null)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.open(pendingLink.href, '_blank', 'noopener,noreferrer');
+                      setPendingLink(null);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Buka Link</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      )}
+
+      {/* Layer 2: Nested Post Detail Modal Popup (Popup di atas Popup) */}
+      {nestedArticle && (
+        <NewsDetailModal
+          article={nestedArticle}
+          onClose={() => setNestedArticle(null)}
+          zIndexClass="z-[75]"
+        />
       )}
     </div>
   );
