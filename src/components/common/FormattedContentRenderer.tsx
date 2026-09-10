@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { ExternalLink, X, ChevronLeft, ChevronRight, Eye, Globe } from 'lucide-react';
 import { convertGoogleDriveUrl } from '../../lib/imageOptimizer';
 
 interface FormattedContentRendererProps {
@@ -74,8 +74,23 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
   className = '',
 }) => {
   const [lightboxIndex, setLightboxIndex] = useState<{ urls: string[]; index: number } | null>(null);
+  const [confirmLinkUrl, setConfirmLinkUrl] = useState<string | null>(null);
 
   if (!content) return null;
+
+  // Intercept any <a> tag clicks inside rendered content to show 2nd layer confirmation popup
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (anchor) {
+      const href = anchor.getAttribute('href');
+      if (href && href !== '#' && !href.startsWith('javascript:')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setConfirmLinkUrl(href);
+      }
+    }
+  };
 
   // Global pre-sanitization before splitting or rendering
   let normalizedContent = content;
@@ -341,8 +356,21 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
 
     if (!cleanText.trim()) return null;
 
-    // Check if text is raw HTML or contains HTML paragraph/div elements
-    if (cleanText.includes('<p') || cleanText.includes('<div') || cleanText.includes('<h2') || cleanText.includes('<h3') || cleanText.includes('<blockquote')) {
+    // Check if text is raw HTML or contains HTML tags/attributes
+    if (
+      cleanText.includes('<p') ||
+      cleanText.includes('<div') ||
+      cleanText.includes('<h2') ||
+      cleanText.includes('<h3') ||
+      cleanText.includes('<blockquote') ||
+      cleanText.includes('<span') ||
+      cleanText.includes('<font') ||
+      cleanText.includes('<strong') ||
+      cleanText.includes('<em') ||
+      cleanText.includes('<sub') ||
+      cleanText.includes('<sup') ||
+      cleanText.includes('style=')
+    ) {
       let processedHtml = cleanText;
 
       // 1. Convert Google Drive file links inside <a> tags to direct <img> tags
@@ -366,7 +394,7 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
       return (
         <div
           key={key}
-          className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed space-y-3 [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700"
+          className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed space-y-3 [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5"
           dangerouslySetInnerHTML={{ __html: processedHtml }}
         />
       );
@@ -545,11 +573,11 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
       }
       if (part.startsWith('[u]') && part.endsWith('[/u]')) {
         const inner = part.slice(3, -4);
-        return <u key={idx} className="underline decoration-slate-400 decoration-2">{inner}</u>;
+        return <u key={idx} className="underline decoration-current decoration-2">{inner}</u>;
       }
       if (part.startsWith('<u>') && part.endsWith('</u>')) {
         const inner = part.slice(3, -4);
-        return <u key={idx} className="underline decoration-slate-400 decoration-2">{inner}</u>;
+        return <u key={idx} className="underline decoration-current decoration-2">{inner}</u>;
       }
 
       return part;
@@ -557,7 +585,7 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
   };
 
   return (
-    <div className={`prose max-w-none clear-both ${className}`}>
+    <div className={`prose max-w-none clear-both ${className}`} onClick={handleContainerClick}>
       {renderRichText(normalizedContent)}
 
       {/* Lightbox Modal for Fullscreen Viewing */}
@@ -622,6 +650,75 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                 Foto {lightboxIndex.index + 1} dari {lightboxIndex.urls.length}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Layer 2: Link Confirmation Popup Modal */}
+      {confirmLinkUrl && (
+        <div
+          className="fixed inset-0 z-[70] bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirmLinkUrl(null);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shrink-0">
+                <ExternalLink className="w-6 h-6" />
+              </div>
+              <div className="space-y-1 pr-6">
+                <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                  Konfirmasi Buka Tautan
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Apakah Anda ingin membuka link ini?
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmLinkUrl(null)}
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5 overflow-hidden">
+              <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+              <span className="text-xs font-mono text-slate-800 break-all select-all font-semibold">
+                {confirmLinkUrl}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Tautan ini akan dibuka pada tab baru di browser Anda.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirmLinkUrl(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.open(confirmLinkUrl, '_blank', 'noopener,noreferrer');
+                  setConfirmLinkUrl(null);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Buka Link</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -28,3 +28,41 @@ html {
   animation-play-state: paused;
 }
 
+/* Subscript & Superscript styling rules */
+sub {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  bottom: -0.25em;
+}
+
+sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+  top: -0.5em;
+}
+
+/* Prevent nested sub or sup from scaling font size down recursively */
+sub sub, sub sup, sup sub, sup sup {
+  font-size: 1em !important;
+}
+
+/* Link styling in editor & content renderer */
+[contenteditable] a,
+.prose a,
+.formatted-content a {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+[contenteditable] a:hover,
+.prose a:hover,
+.formatted-content a:hover {
+  color: #1d4ed8 !important;
+}
+

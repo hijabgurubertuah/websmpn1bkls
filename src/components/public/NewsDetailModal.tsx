@@ -37,6 +37,7 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, onClo
   const [isEmbedExpanded, setIsEmbedExpanded] = useState(false);
   const [iframeKey, setIframeKey] = useState(1);
   const [copiedNotice, setCopiedNotice] = useState(false);
+  const [actionConfirmUrl, setActionConfirmUrl] = useState<string | null>(null);
 
   if (!article) return null;
 
@@ -234,15 +235,14 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, onClo
                 </p>
               </div>
 
-              <a
-                href={article.actionLink.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => setActionConfirmUrl(article.actionLink.url)}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow transition-all shrink-0 cursor-pointer"
               >
                 <span>Buka Tautan</span>
                 <ExternalLink className="w-4 h-4" />
-              </a>
+              </button>
             </div>
           )}
 
@@ -454,6 +454,75 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, onClo
               {/* Counter Indicator */}
               <div className="mt-3 text-white text-xs font-semibold bg-white/15 px-3 py-1 rounded-full">
                 Foto {activeGalleryIndex + 1} dari {gallery.length}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layer 2: Action Link Confirmation Popup Modal */}
+        {actionConfirmUrl && (
+          <div
+            className="fixed inset-0 z-[70] bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActionConfirmUrl(null);
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-in zoom-in-95 duration-150"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shrink-0">
+                  <ExternalLink className="w-6 h-6" />
+                </div>
+                <div className="space-y-1 pr-6">
+                  <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                    Konfirmasi Buka Tautan
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Apakah Anda ingin membuka link ini?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionConfirmUrl(null)}
+                  className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2.5 overflow-hidden">
+                <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="text-xs font-mono text-slate-800 break-all select-all font-semibold">
+                  {actionConfirmUrl}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Tautan ini akan dibuka pada tab baru di browser Anda.
+              </p>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setActionConfirmUrl(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open(actionConfirmUrl, '_blank', 'noopener,noreferrer');
+                    setActionConfirmUrl(null);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Buka Link</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>

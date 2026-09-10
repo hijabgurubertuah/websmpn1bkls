@@ -7,15 +7,12 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Heading2,
-  Heading3,
   Quote,
   ImageIcon,
   Eye,
   Edit3,
   Plus,
   Trash2,
-  Code,
   X,
   Smile,
   Link as LinkIcon,
@@ -25,6 +22,14 @@ import {
   Search,
   FileText,
   ExternalLink,
+  Palette,
+  Type,
+  ChevronDown,
+  Highlighter,
+  List,
+  ListOrdered,
+  Subscript,
+  Superscript,
 } from 'lucide-react';
 import { FormattedContentRenderer } from './FormattedContentRenderer';
 import { ImageUploadButton } from '../admin/ImageUploadButton';
@@ -52,6 +57,61 @@ const EMOJI_LIST = [
   '💪', '✨', '⭐', '🌟', '🚀', '🏆', '🥇', '🥈', '🥉', '🏅', '🎯', '💡', '📌', '📍', '🔔',
   '📢', '🎓', '🏫', '📚', '📖', '📝', '📊', '📈', '📅', '🗓️', '⏰', '💼', '🏢', '🇮🇩', '🌐',
   '💻', '📱', '✉️', '🎉', '🔥', '❤️', '💯', '✅', '⚠️', '❗', '❓'
+];
+
+// Color palette choices for text color tool
+const COLOR_PALETTE = [
+  { hex: '#0f172a', label: 'Hitam Utama' },
+  { hex: '#2563eb', label: 'Biru' },
+  { hex: '#059669', label: 'Hijau' },
+  { hex: '#d97706', label: 'Kuning / Emas' },
+  { hex: '#dc2626', label: 'Merah' },
+  { hex: '#7c3aed', label: 'Ungu' },
+  { hex: '#0891b2', label: 'Teal' },
+  { hex: '#e11d48', label: 'Rose' },
+  { hex: '#475569', label: 'Abu-Abu' },
+  { hex: '#ffffff', label: 'Putih', isLight: true },
+];
+
+// Font choices for Font Family tool
+const FONT_OPTIONS = [
+  { name: 'Font Default', family: 'Default', label: 'Default' },
+  { name: 'Sans-Serif (Modern)', family: 'Plus Jakarta Sans, sans-serif', label: 'Jakarta Sans' },
+  { name: 'Playfair (Serif)', family: 'Playfair Display, serif', label: 'Playfair' },
+  { name: 'Georgia (Klasik)', family: 'Georgia, serif', label: 'Georgia' },
+  { name: 'Times New Roman', family: 'Times New Roman, serif', label: 'Times' },
+  { name: 'Arial', family: 'Arial, sans-serif', label: 'Arial' },
+  { name: 'Courier (Kode)', family: 'Courier New, monospace', label: 'Courier' },
+  { name: 'Comic Sans', family: 'Comic Sans MS, cursive', label: 'Comic Sans' },
+  { name: 'Impact (Tebal)', family: 'Impact, sans-serif', label: 'Impact' },
+];
+
+// Highlight / Stabilo palette
+const HIGHLIGHT_PALETTE = [
+  { hex: '#fef08a', label: 'Kuning Stabilo' },
+  { hex: '#bbf7d0', label: 'Hijau Stabilo' },
+  { hex: '#fbcfe8', label: 'Merah Muda' },
+  { hex: '#bfdbfe', label: 'Biru Muda' },
+  { hex: '#fed7aa', label: 'Oranye' },
+  { hex: '#e9d5ff', label: 'Ungu Muda' },
+  { hex: '#e2e8f0', label: 'Abu-Abu' },
+  { hex: 'transparent', label: 'Hapus Highlight', isClear: true },
+];
+
+// Bullet style options
+const BULLET_VARIATIONS = [
+  { label: 'Bulat Penuh', style: 'disc', icon: '•' },
+  { label: 'Lingkaran Kosong', style: 'circle', icon: '◦' },
+  { label: 'Kotak / Persegi', style: 'square', icon: '▪' },
+];
+
+// Numbering style options
+const NUMBER_VARIATIONS = [
+  { label: 'Angka (1, 2, 3)', style: 'decimal', sample: '1.' },
+  { label: 'Huruf Besar (A, B, C)', style: 'upper-alpha', sample: 'A.' },
+  { label: 'Huruf Kecil (a, b, c)', style: 'lower-alpha', sample: 'a.' },
+  { label: 'Romawi Besar (I, II, III)', style: 'upper-roman', sample: 'I.' },
+  { label: 'Romawi Kecil (i, ii, iii)', style: 'lower-roman', sample: 'i.' },
 ];
 
 // Helper: Convert legacy BBCode / plain text into clean HTML for live WYSIWYG editing
@@ -132,7 +192,29 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
     h3: false,
     blockquote: false,
     link: false,
+    subscript: false,
+    superscript: false,
   });
+
+  // Color picker popover & selected color state
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [activeColor, setActiveColor] = useState('#0f172a');
+
+  // Highlight / Stabilo picker state
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [activeHighlightColor, setActiveHighlightColor] = useState('#fef08a');
+
+  // Font size numeric state & preset menu popover
+  const [fontSizePx, setFontSizePx] = useState<number>(14);
+  const [showFontSizeMenu, setShowFontSizeMenu] = useState(false);
+
+  // Font family menu popover & selected font state
+  const [showFontMenu, setShowFontMenu] = useState(false);
+  const [selectedFontLabel, setSelectedFontLabel] = useState('Default');
+
+  // Bullet & Numbering list popover states
+  const [showBulletMenu, setShowBulletMenu] = useState(false);
+  const [showNumberMenu, setShowNumberMenu] = useState(false);
 
   // Emoticon popover state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -183,13 +265,13 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
 
   // Initial load / Sync external value to contentEditable div
   useEffect(() => {
-    if (editorRef.current && editorMode === 'wysiwyg') {
+    if (activeTab === 'editor' && editorRef.current && editorMode === 'wysiwyg') {
       const formattedHtml = bbcodeToHtml(value);
       if (editorRef.current.innerHTML !== formattedHtml && !editorRef.current.contains(document.activeElement)) {
         editorRef.current.innerHTML = formattedHtml || `<p><br></p>`;
       }
     }
-  }, [value, editorMode]);
+  }, [value, editorMode, activeTab]);
 
   // Handle live content changes from contentEditable
   const handleEditorInput = () => {
@@ -199,6 +281,16 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
       currentHtml = currentHtml.replace(/<p[^>]*>\s*(<br\s*\/?>|&nbsp;|\s*)*<\/p>/gi, '');
       onChange(currentHtml);
     }
+  };
+
+  // Switch tab with instant content sync
+  const handleSwitchTab = (newTab: 'editor' | 'preview') => {
+    if (activeTab === 'editor' && editorMode === 'wysiwyg' && editorRef.current) {
+      let currentHtml = editorRef.current.innerHTML;
+      currentHtml = currentHtml.replace(/<p[^>]*>\s*(<br\s*\/?>|&nbsp;|\s*)*<\/p>/gi, '');
+      onChange(currentHtml);
+    }
+    setActiveTab(newTab);
   };
 
   // Update active format state based on current cursor / selection
@@ -224,6 +316,14 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
       let isH3 = blockTag === 'h3';
       let isBlockquote = blockTag === 'blockquote';
 
+      let subscript = activeFormats.subscript;
+      let superscript = activeFormats.superscript;
+
+      if (!sel.isCollapsed) {
+        subscript = document.queryCommandState('subscript');
+        superscript = document.queryCommandState('superscript');
+      }
+
       let isInsideLink = false;
       let currNode: Node | null = sel.anchorNode;
       while (currNode && currNode !== editorRef.current) {
@@ -233,8 +333,42 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
           if (tag === 'h3') isH3 = true;
           if (tag === 'blockquote') isBlockquote = true;
           if (tag === 'a') isInsideLink = true;
+          if (!sel.isCollapsed) {
+            if (tag === 'sub') subscript = true;
+            if (tag === 'sup') superscript = true;
+          }
         }
         currNode = currNode.parentNode;
+      }
+
+      // Detect live font size at cursor position
+      let targetElement: HTMLElement | null = null;
+      if (sel.anchorNode.nodeType === Node.TEXT_NODE) {
+        targetElement = sel.anchorNode.parentElement;
+      } else if (sel.anchorNode instanceof HTMLElement) {
+        targetElement = sel.anchorNode;
+      }
+
+      if (targetElement && editorRef.current.contains(targetElement)) {
+        // Climb up out of sub or sup tags to get the base element font size
+        let fontElem: HTMLElement | null = targetElement;
+        while (
+          fontElem &&
+          fontElem !== editorRef.current &&
+          (fontElem.tagName.toLowerCase() === 'sub' || fontElem.tagName.toLowerCase() === 'sup')
+        ) {
+          fontElem = fontElem.parentElement;
+        }
+
+        if (fontElem) {
+          const computedSize = window.getComputedStyle(fontElem).fontSize;
+          if (computedSize) {
+            const parsedPx = Math.round(parseFloat(computedSize));
+            if (!isNaN(parsedPx) && parsedPx >= 6 && parsedPx <= 120) {
+              setFontSizePx(parsedPx);
+            }
+          }
+        }
       }
 
       setActiveFormats({
@@ -249,15 +383,40 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
         h3: isH3,
         blockquote: isBlockquote,
         link: isInsideLink,
+        subscript,
+        superscript,
       });
     } catch {
       // Ignore queryCommandState errors
     }
   };
 
+  // Helper: Save current selection range inside editorRef
+  const saveSelection = () => {
+    if (editorMode !== 'wysiwyg' || !editorRef.current) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && sel.anchorNode && editorRef.current.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  // Helper: Restore saved selection range
+  const restoreSelection = () => {
+    if (editorMode !== 'wysiwyg' || !editorRef.current) return;
+    editorRef.current.focus();
+    if (savedRangeRef.current) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+      }
+    }
+  };
+
   // Listen to selection changes
   useEffect(() => {
     const handleSelectionChange = () => {
+      saveSelection();
       updateActiveFormats();
     };
 
@@ -267,20 +426,480 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
     };
   }, [editorMode]);
 
+  // Intercept beforeinput to prevent typing inside sub/sup when X2/X² is OFF
+  const handleBeforeInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const nativeEvent = e.nativeEvent as InputEvent;
+    if (nativeEvent.inputType === 'insertText' && nativeEvent.data) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+        let subElem: HTMLElement | null = null;
+        let supElem: HTMLElement | null = null;
+        let currNode: Node | null = sel.anchorNode;
+
+        while (currNode && currNode !== editorRef.current) {
+          if (currNode instanceof HTMLElement) {
+            const tag = currNode.tagName.toLowerCase();
+            if (tag === 'sub') subElem = currNode;
+            if (tag === 'sup') supElem = currNode;
+          }
+          currNode = currNode.parentNode;
+        }
+
+        // Caret is inside <sub>, but Subscript is OFF -> Force typing OUTSIDE <sub>
+        if (subElem && !activeFormats.subscript) {
+          e.preventDefault();
+          const textToInsert = nativeEvent.data;
+
+          let nextNode = subElem.nextSibling;
+          if (!nextNode || nextNode.nodeType !== Node.TEXT_NODE) {
+            nextNode = document.createTextNode('');
+            if (subElem.parentNode) {
+              subElem.parentNode.insertBefore(nextNode, subElem.nextSibling);
+            }
+          }
+
+          const textNode = nextNode as Text;
+          if (textNode.textContent === '\u200B') {
+            textNode.textContent = '';
+          }
+          const insertOffset = textNode.textContent?.length || 0;
+          textNode.insertData(insertOffset, textToInsert);
+
+          const newRange = document.createRange();
+          newRange.setStart(textNode, insertOffset + textToInsert.length);
+          newRange.setEnd(textNode, insertOffset + textToInsert.length);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+          savedRangeRef.current = newRange.cloneRange();
+
+          handleEditorInput();
+          updateActiveFormats();
+          return;
+        }
+
+        // Caret is inside <sup>, but Superscript is OFF -> Force typing OUTSIDE <sup>
+        if (supElem && !activeFormats.superscript) {
+          e.preventDefault();
+          const textToInsert = nativeEvent.data;
+
+          let nextNode = supElem.nextSibling;
+          if (!nextNode || nextNode.nodeType !== Node.TEXT_NODE) {
+            nextNode = document.createTextNode('');
+            if (supElem.parentNode) {
+              supElem.parentNode.insertBefore(nextNode, supElem.nextSibling);
+            }
+          }
+
+          const textNode = nextNode as Text;
+          if (textNode.textContent === '\u200B') {
+            textNode.textContent = '';
+          }
+          const insertOffset = textNode.textContent?.length || 0;
+          textNode.insertData(insertOffset, textToInsert);
+
+          const newRange = document.createRange();
+          newRange.setStart(textNode, insertOffset + textToInsert.length);
+          newRange.setEnd(textNode, insertOffset + textToInsert.length);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+          savedRangeRef.current = newRange.cloneRange();
+
+          handleEditorInput();
+          updateActiveFormats();
+          return;
+        }
+      }
+    }
+  };
+
   // Execute formatting command directly on live document
   const execCommand = (command: string, valueArg: string | undefined = undefined) => {
     if (editorMode === 'code') return;
-
-    if (editorRef.current) {
-      editorRef.current.focus();
-    }
+    restoreSelection();
 
     try {
-      document.execCommand(command, false, valueArg);
+      if (command === 'subscript') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+          let subElem: HTMLElement | null = null;
+          let supElem: HTMLElement | null = null;
+          let currNode: Node | null = sel.anchorNode;
+
+          while (currNode && currNode !== editorRef.current) {
+            if (currNode instanceof HTMLElement) {
+              const tag = currNode.tagName.toLowerCase();
+              if (tag === 'sub') subElem = currNode;
+              if (tag === 'sup') supElem = currNode;
+            }
+            currNode = currNode.parentNode;
+          }
+
+          if (subElem) {
+            // TURN OFF: User clicked X₂ to turn subscript OFF!
+            // Step caret OUTSIDE <sub> element into a normal text node
+            let nextNode = subElem.nextSibling;
+            if (!nextNode || nextNode.nodeType !== Node.TEXT_NODE) {
+              nextNode = document.createTextNode('\u200B');
+              if (subElem.parentNode) {
+                subElem.parentNode.insertBefore(nextNode, subElem.nextSibling);
+              }
+            }
+
+            const newRange = document.createRange();
+            newRange.setStart(nextNode, nextNode.textContent?.length || 0);
+            newRange.setEnd(nextNode, nextNode.textContent?.length || 0);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+
+            // Clean up empty <sub> if nothing was typed in it
+            const text = subElem.textContent?.replace(/\u200B/g, '');
+            if (!text) {
+              subElem.remove();
+            }
+
+            setActiveFormats((prev) => ({ ...prev, subscript: false }));
+          } else {
+            // TURN ON: User clicked X₂ to turn subscript ON!
+            if (supElem) {
+              // Exit <sup> first if inside superscript
+              const exitSupRange = document.createRange();
+              exitSupRange.setStartAfter(supElem);
+              exitSupRange.setEndAfter(supElem);
+              sel.removeAllRanges();
+              sel.addRange(exitSupRange);
+            }
+
+            const sub = document.createElement('sub');
+            const zwNode = document.createTextNode('\u200B');
+            sub.appendChild(zwNode);
+
+            const range = sel.getRangeAt(0);
+            range.insertNode(sub);
+
+            const newRange = document.createRange();
+            newRange.setStart(zwNode, 1);
+            newRange.setEnd(zwNode, 1);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+
+            setActiveFormats((prev) => ({ ...prev, subscript: true, superscript: false }));
+          }
+        } else {
+          if (document.queryCommandState('superscript')) {
+            document.execCommand('superscript', false);
+          }
+          document.execCommand('subscript', false);
+        }
+      } else if (command === 'superscript') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+          let subElem: HTMLElement | null = null;
+          let supElem: HTMLElement | null = null;
+          let currNode: Node | null = sel.anchorNode;
+
+          while (currNode && currNode !== editorRef.current) {
+            if (currNode instanceof HTMLElement) {
+              const tag = currNode.tagName.toLowerCase();
+              if (tag === 'sub') subElem = currNode;
+              if (tag === 'sup') supElem = currNode;
+            }
+            currNode = currNode.parentNode;
+          }
+
+          if (supElem) {
+            // TURN OFF: User clicked X² to turn superscript OFF!
+            let nextNode = supElem.nextSibling;
+            if (!nextNode || nextNode.nodeType !== Node.TEXT_NODE) {
+              nextNode = document.createTextNode('\u200B');
+              if (supElem.parentNode) {
+                supElem.parentNode.insertBefore(nextNode, supElem.nextSibling);
+              }
+            }
+
+            const newRange = document.createRange();
+            newRange.setStart(nextNode, nextNode.textContent?.length || 0);
+            newRange.setEnd(nextNode, nextNode.textContent?.length || 0);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+
+            const text = supElem.textContent?.replace(/\u200B/g, '');
+            if (!text) {
+              supElem.remove();
+            }
+
+            setActiveFormats((prev) => ({ ...prev, superscript: false }));
+          } else {
+            // TURN ON: User clicked X² to turn superscript ON!
+            if (subElem) {
+              const exitSubRange = document.createRange();
+              exitSubRange.setStartAfter(subElem);
+              exitSubRange.setEndAfter(subElem);
+              sel.removeAllRanges();
+              sel.addRange(exitSubRange);
+            }
+
+            const sup = document.createElement('sup');
+            const zwNode = document.createTextNode('\u200B');
+            sup.appendChild(zwNode);
+
+            const range = sel.getRangeAt(0);
+            range.insertNode(sup);
+
+            const newRange = document.createRange();
+            newRange.setStart(zwNode, 1);
+            newRange.setEnd(zwNode, 1);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+
+            setActiveFormats((prev) => ({ ...prev, superscript: true, subscript: false }));
+          }
+        } else {
+          if (document.queryCommandState('subscript')) {
+            document.execCommand('subscript', false);
+          }
+          document.execCommand('superscript', false);
+        }
+      } else {
+        document.execCommand(command, false, valueArg);
+      }
     } catch {
       // Fallback
     }
 
+    saveSelection();
+    handleEditorInput();
+    setTimeout(updateActiveFormats, 10);
+  };
+
+  // Force caret back to Normal Text format without altering existing sub/sup elements
+  const handleForceNormalText = () => {
+    if (editorMode !== 'wysiwyg' || !editorRef.current) return;
+    editorRef.current.focus();
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      let subOrSupElem: HTMLElement | null = null;
+      let currNode: Node | null = sel.anchorNode;
+
+      while (currNode && currNode !== editorRef.current) {
+        if (currNode instanceof HTMLElement) {
+          const tag = currNode.tagName.toLowerCase();
+          if (tag === 'sub' || tag === 'sup') {
+            subOrSupElem = currNode;
+          }
+        }
+        currNode = currNode.parentNode;
+      }
+
+      if (subOrSupElem && subOrSupElem.parentNode) {
+        let nextNode = subOrSupElem.nextSibling;
+        if (!nextNode || nextNode.nodeType !== Node.TEXT_NODE) {
+          nextNode = document.createTextNode('\u200B');
+          subOrSupElem.parentNode.insertBefore(nextNode, subOrSupElem.nextSibling);
+        }
+
+        const newRange = document.createRange();
+        const targetOffset = nextNode.textContent?.length || 0;
+        newRange.setStart(nextNode, targetOffset);
+        newRange.setEnd(nextNode, targetOffset);
+
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        savedRangeRef.current = newRange.cloneRange();
+      }
+    }
+
+    setActiveFormats((prev) => ({
+      ...prev,
+      subscript: false,
+      superscript: false,
+    }));
+
+    handleEditorInput();
+    setTimeout(updateActiveFormats, 10);
+  };
+
+  // Apply exact font size (px)
+  const handleApplyExactFontSize = (sizePx: number) => {
+    if (editorMode !== 'wysiwyg' || !editorRef.current) return;
+    restoreSelection();
+
+    const validPx = Math.min(100, Math.max(8, sizePx));
+    setFontSizePx(validPx);
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+
+      if (!sel.isCollapsed) {
+        // Apply to blocked text
+        const span = document.createElement('span');
+        span.style.fontSize = `${validPx}px`;
+
+        try {
+          const contents = range.extractContents();
+          span.appendChild(contents);
+          range.insertNode(span);
+
+          sel.removeAllRanges();
+          const newRange = document.createRange();
+          newRange.selectNodeContents(span);
+          sel.addRange(newRange);
+        } catch {
+          document.execCommand('fontSize', false, '3');
+        }
+      } else {
+        // Collapsed caret cursor: insert span with zero-width space so new typed characters inherit this size
+        const span = document.createElement('span');
+        span.style.fontSize = `${validPx}px`;
+        const zeroWidthNode = document.createTextNode('\u200B');
+        span.appendChild(zeroWidthNode);
+
+        try {
+          range.insertNode(span);
+          const newRange = document.createRange();
+          newRange.setStart(zeroWidthNode, 1);
+          newRange.setEnd(zeroWidthNode, 1);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+        } catch {
+          // fallback
+        }
+      }
+    }
+
+    saveSelection();
+    handleEditorInput();
+    setTimeout(updateActiveFormats, 10);
+  };
+
+  // Step Font Size (A+ / A-) for blocked text
+  const handleStepFontSize = (delta: number) => {
+    const nextPx = Math.min(72, Math.max(10, fontSizePx + delta * 2));
+    handleApplyExactFontSize(nextPx);
+  };
+
+  // Change Font Family for blocked text
+  const handleApplyFontName = (fontFamily: string, fontLabel?: string) => {
+    if (editorMode !== 'wysiwyg' || !editorRef.current) return;
+    restoreSelection();
+
+    if (fontLabel) {
+      setSelectedFontLabel(fontLabel);
+    }
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      const range = sel.getRangeAt(0);
+
+      if (fontFamily === 'Default') {
+        document.execCommand('removeFormat', false);
+      } else {
+        // Create a span element with explicit inline style font-family for maximum CSS specificity
+        const span = document.createElement('span');
+        span.style.fontFamily = fontFamily;
+
+        try {
+          const contents = range.extractContents();
+          span.appendChild(contents);
+          range.insertNode(span);
+
+          // Reselect newly formatted span so selection stays visible
+          sel.removeAllRanges();
+          const newRange = document.createRange();
+          newRange.selectNodeContents(span);
+          sel.addRange(newRange);
+        } catch {
+          // Fallback to execCommand fontName
+          document.execCommand('fontName', false, fontFamily);
+        }
+      }
+    } else {
+      // Fallback for collapsed selection / next typed character
+      document.execCommand('fontName', false, fontFamily);
+    }
+
+    saveSelection();
+    handleEditorInput();
+    setTimeout(updateActiveFormats, 10);
+  };
+
+  // Change Text Color for blocked text
+  const handleApplyTextColor = (colorHex: string) => {
+    setActiveColor(colorHex);
+    if (editorMode === 'wysiwyg' && editorRef.current) {
+      restoreSelection();
+      document.execCommand('foreColor', false, colorHex);
+      saveSelection();
+      handleEditorInput();
+      setTimeout(updateActiveFormats, 10);
+    }
+  };
+
+  // Change Highlight / Background Color for blocked text
+  const handleApplyHighlightColor = (colorHex: string) => {
+    setActiveHighlightColor(colorHex);
+    if (editorMode === 'wysiwyg' && editorRef.current) {
+      restoreSelection();
+
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        const range = sel.getRangeAt(0);
+
+        if (colorHex === 'transparent' || !colorHex) {
+          document.execCommand('removeFormat', false);
+        } else {
+          const span = document.createElement('span');
+          span.style.backgroundColor = colorHex;
+
+          try {
+            const contents = range.extractContents();
+            span.appendChild(contents);
+            range.insertNode(span);
+
+            sel.removeAllRanges();
+            const newRange = document.createRange();
+            newRange.selectNodeContents(span);
+            sel.addRange(newRange);
+          } catch {
+            document.execCommand('hiliteColor', false, colorHex);
+          }
+        }
+      } else {
+        document.execCommand('hiliteColor', false, colorHex);
+      }
+
+      saveSelection();
+      handleEditorInput();
+      setTimeout(updateActiveFormats, 10);
+    }
+  };
+
+  // Change List Style (Bulleted & Numbered)
+  const handleApplyList = (type: 'ul' | 'ol', listStyleType: string) => {
+    if (editorMode !== 'wysiwyg' || !editorRef.current) return;
+    restoreSelection();
+
+    if (type === 'ul') {
+      document.execCommand('insertUnorderedList', false);
+    } else {
+      document.execCommand('insertOrderedList', false);
+    }
+
+    const sel = window.getSelection();
+    if (sel && sel.anchorNode) {
+      let node: Node | null = sel.anchorNode;
+      while (node && node !== editorRef.current) {
+        const tag = node.nodeName.toLowerCase();
+        if (tag === 'ul' || tag === 'ol') {
+          (node as HTMLElement).style.listStyleType = listStyleType;
+          break;
+        }
+        node = node.parentNode;
+      }
+    }
+
+    saveSelection();
     handleEditorInput();
     setTimeout(updateActiveFormats, 10);
   };
@@ -288,9 +907,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
   // Block format toggler (h2, h3, blockquote)
   const handleBlockFormat = (tag: 'h2' | 'h3' | 'blockquote') => {
     if (editorMode === 'code') return;
-    if (editorRef.current) {
-      editorRef.current.focus();
-    }
+    restoreSelection();
 
     if (activeFormats[tag]) {
       // Toggle off back to normal paragraph
@@ -299,6 +916,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
       document.execCommand('formatBlock', false, `<${tag}>`);
     }
 
+    saveSelection();
     handleEditorInput();
     setTimeout(updateActiveFormats, 10);
   };
@@ -381,14 +999,27 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
         sel.addRange(savedRangeRef.current);
       }
 
-      const selectedStr = sel?.toString();
-      if (selectedStr) {
-        document.execCommand('createLink', false, finalUrl);
-      } else {
-        const label = linkText.trim() || finalUrl;
-        const linkHtml = `<a href="${finalUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-medium hover:text-blue-800">${label}</a>`;
+      const selectedStr = sel?.toString() || '';
+      const label = linkText.trim() || selectedStr.trim() || finalUrl;
+      const isExternal = finalUrl.startsWith('http://') || finalUrl.startsWith('https://');
+      const targetAttr = isExternal ? 'target="_blank" rel="noopener noreferrer"' : '';
+
+      const linkHtml = `<a href="${finalUrl}" ${targetAttr} style="color:#2563eb;text-decoration:underline;font-weight:500;" class="text-blue-600 underline font-medium hover:text-blue-800">${label}</a>&nbsp;`;
+
+      try {
         document.execCommand('insertHTML', false, linkHtml);
+      } catch {
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          const temp = document.createElement('div');
+          temp.innerHTML = linkHtml;
+          while (temp.firstChild) {
+            range.insertNode(temp.firstChild);
+          }
+        }
       }
+
       handleEditorInput();
       setTimeout(updateActiveFormats, 10);
     } else {
@@ -510,34 +1141,36 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
   return (
     <div className="space-y-2">
       {/* Top Header Label & Editor / Preview Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-          {label}
-        </label>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+        {label && (
+          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            {label}
+          </label>
+        )}
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs self-start sm:self-auto">
+        <div className="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl border border-slate-300/70 text-xs w-full sm:w-auto self-stretch sm:self-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('editor')}
-            className={`px-3 py-1 rounded-md font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            onClick={() => handleSwitchTab('editor')}
+            className={`flex-1 sm:flex-none justify-center px-4 py-2 sm:py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs ${
               activeTab === 'editor'
-                ? 'bg-white text-blue-700 shadow-2xs'
+                ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Edit3 className="w-3.5 h-3.5" />
+            <Edit3 className="w-3.5 h-3.5 shrink-0" />
             <span>Editor</span>
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('preview')}
-            className={`px-3 py-1 rounded-md font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            onClick={() => handleSwitchTab('preview')}
+            className={`flex-1 sm:flex-none justify-center px-4 py-2 sm:py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs ${
               activeTab === 'preview'
-                ? 'bg-blue-600 text-white shadow-2xs'
+                ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-3.5 h-3.5 shrink-0" />
             <span>Pratinjau</span>
           </button>
         </div>
@@ -554,6 +1187,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
             <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('bold')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.bold
@@ -563,10 +1200,14 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 title="Tebal (Bold)"
                 aria-label="Tebal"
               >
-                <Bold className="w-4 h-4" />
+                <Bold className="w-4 h-4 stroke-[3]" />
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('italic')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.italic
@@ -580,6 +1221,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('underline')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.underline
@@ -593,12 +1238,361 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
             </div>
 
+            {/* Group: Font Family & Size Step (A+ / A-) */}
+            <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 relative">
+              {/* Custom Font Family Popover Button */}
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
+                onClick={() => {
+                  saveSelection();
+                  setShowFontMenu(!showFontMenu);
+                  setShowColorPicker(false);
+                  setShowEmojiPicker(false);
+                  setShowLinkModal(false);
+                }}
+                className={`px-2 py-1 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1 text-xs font-bold text-slate-700 max-w-[120px] sm:max-w-[140px] ${
+                  showFontMenu
+                    ? 'border-blue-500 ring-2 ring-blue-500/20 text-blue-600'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+                title="Pilih Jenis Font Teks Yang Di-blok"
+                aria-label="Pilih Jenis Font"
+              >
+                <Type className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span className="truncate">{selectedFontLabel}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-auto" />
+              </button>
+
+              {/* Font Family Dropdown Popover */}
+              {showFontMenu && (
+                <div className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 max-h-64 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    Pilih Jenis Font
+                  </div>
+                  {FONT_OPTIONS.map((f) => (
+                    <button
+                      key={f.family}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        saveSelection();
+                      }}
+                      onClick={() => {
+                        handleApplyFontName(f.family, f.label);
+                        setShowFontMenu(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                        selectedFontLabel === f.label
+                          ? 'bg-blue-50 text-blue-700 font-bold'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span style={{ fontFamily: f.family !== 'Default' ? f.family : undefined }}>
+                        {f.name}
+                      </span>
+                      {selectedFontLabel === f.label && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="h-4 w-px bg-slate-200 mx-0.5" />
+
+              {/* A- Button */}
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
+                onClick={() => handleStepFontSize(-1)}
+                className="px-1.5 py-1 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-all cursor-pointer font-black text-xs flex items-center leading-none"
+                title="Perkecil Ukuran Font (A-)"
+                aria-label="Perkecil Ukuran Font"
+              >
+                <span className="text-xs font-bold leading-none">A</span>
+                <span className="text-[10px] font-black leading-none text-blue-600 ml-0.5">-</span>
+              </button>
+
+              {/* Numeric Font Size Input & Custom Preset Dropdown */}
+              <div className="flex items-center relative">
+                <input
+                  type="number"
+                  min={8}
+                  max={96}
+                  value={fontSizePx || ''}
+                  onFocus={() => saveSelection()}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val)) {
+                      handleApplyExactFontSize(val);
+                    } else {
+                      setFontSizePx(0);
+                    }
+                  }}
+                  className="w-9 text-center py-0.5 px-0.5 text-xs font-extrabold text-blue-700 bg-slate-50 border border-slate-200 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  title="Ketik Ukuran Font Teks"
+                />
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    saveSelection();
+                  }}
+                  onClick={() => {
+                    saveSelection();
+                    setShowFontSizeMenu(!showFontSizeMenu);
+                    setShowFontMenu(false);
+                    setShowColorPicker(false);
+                    setShowHighlightPicker(false);
+                    setShowBulletMenu(false);
+                    setShowNumberMenu(false);
+                    setShowEmojiPicker(false);
+                  }}
+                  className="px-1 py-1 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 border border-l-0 border-slate-200 rounded-r-md transition-colors flex items-center justify-center cursor-pointer h-full"
+                  title="Pilih Preset Ukuran Font"
+                  aria-label="Preset Ukuran Font"
+                >
+                  <ChevronDown className="w-3 h-3 text-slate-600" />
+                </button>
+
+                {/* Custom Font Size Popover Menu */}
+                {showFontSizeMenu && (
+                  <div className="absolute top-8 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-28 max-h-52 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                      Ukuran Preset
+                    </div>
+                    {[10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64].map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          handleApplyExactFontSize(sz);
+                          setShowFontSizeMenu(false);
+                        }}
+                        className={`w-full text-left px-2 py-1 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer font-bold ${
+                          fontSizePx === sz
+                            ? 'bg-blue-600 text-white font-extrabold'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>{sz}</span>
+                        <span className={`text-[9px] ${fontSizePx === sz ? 'text-blue-100' : 'text-slate-400'}`}>pt</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* A+ Button */}
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
+                onClick={() => handleStepFontSize(+1)}
+                className="px-1.5 py-1 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-all cursor-pointer font-black text-xs flex items-center leading-none"
+                title="Perbesar Ukuran Font (A+)"
+                aria-label="Perbesar Ukuran Font"
+              >
+                <span className="text-sm font-black leading-none">A</span>
+                <span className="text-[10px] font-black leading-none text-blue-600 ml-0.5">+</span>
+              </button>
+            </div>
+
+            {/* Group: Text Color & Stabilo Highlight Picker */}
+            <div className="flex items-center gap-1">
+              {/* Text Color Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    saveSelection();
+                  }}
+                  onClick={() => {
+                    saveSelection();
+                    setShowColorPicker(!showColorPicker);
+                    setShowHighlightPicker(false);
+                    setShowFontMenu(false);
+                    setShowBulletMenu(false);
+                    setShowNumberMenu(false);
+                    setShowEmojiPicker(false);
+                    setShowLinkModal(false);
+                  }}
+                  className={`p-1.5 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    showColorPicker
+                      ? 'border-blue-500 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                  title="Ubah Warna Teks Yang Di-blok"
+                  aria-label="Warna Teks"
+                >
+                  <Palette className="w-4 h-4 text-slate-700" />
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                    style={{ backgroundColor: activeColor }}
+                  />
+                </button>
+
+                {/* Color Picker Popover */}
+                {showColorPicker && (
+                  <div className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-800">Warna Teks</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowColorPicker(false)}
+                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Palette Swatches */}
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {COLOR_PALETTE.map((c) => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            handleApplyTextColor(c.hex);
+                          }}
+                          className="w-7 h-7 rounded-lg border border-slate-200/80 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow-2xs"
+                          style={{ backgroundColor: c.hex }}
+                          title={c.label}
+                        >
+                          {activeColor === c.hex && (
+                            <Check className={`w-3.5 h-3.5 ${c.isLight ? 'text-slate-900' : 'text-white'}`} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom Input Color */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-slate-500">Pilih Warna Bebas:</span>
+                      <input
+                        type="color"
+                        value={activeColor}
+                        onFocus={saveSelection}
+                        onChange={(e) => handleApplyTextColor(e.target.value)}
+                        className="w-8 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Stabilo / Highlight Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    saveSelection();
+                  }}
+                  onClick={() => {
+                    saveSelection();
+                    setShowHighlightPicker(!showHighlightPicker);
+                    setShowColorPicker(false);
+                    setShowFontMenu(false);
+                    setShowBulletMenu(false);
+                    setShowNumberMenu(false);
+                    setShowEmojiPicker(false);
+                    setShowLinkModal(false);
+                  }}
+                  className={`p-1.5 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    showHighlightPicker
+                      ? 'border-amber-500 ring-2 ring-amber-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                  title="Stabilo / Highlight Latar Belakang Teks"
+                  aria-label="Stabilo Teks"
+                >
+                  <Highlighter className="w-4 h-4 text-slate-700" />
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                    style={{ backgroundColor: activeHighlightColor === 'transparent' ? '#fef08a' : activeHighlightColor }}
+                  />
+                </button>
+
+                {/* Highlight Color Popover */}
+                {showHighlightPicker && (
+                  <div className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                        <Highlighter className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Warna Stabilo</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowHighlightPicker(false)}
+                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Swatches */}
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {HIGHLIGHT_PALETTE.map((c) => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            handleApplyHighlightColor(c.hex);
+                            setShowHighlightPicker(false);
+                          }}
+                          className={`h-7 rounded-lg border border-slate-200 flex items-center justify-center transition-transform hover:scale-105 cursor-pointer text-[10px] font-bold ${
+                            c.isClear ? 'col-span-4 bg-slate-100 text-slate-600 hover:bg-slate-200' : ''
+                          }`}
+                          style={{ backgroundColor: !c.isClear ? c.hex : undefined }}
+                          title={c.label}
+                        >
+                          {c.isClear ? (
+                            '🚫 Hapus Stabilo'
+                          ) : (
+                            activeHighlightColor === c.hex && <Check className="w-3.5 h-3.5 text-slate-900" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom Color Input */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-slate-500">Warna Bebas:</span>
+                      <input
+                        type="color"
+                        value={activeHighlightColor === 'transparent' ? '#fef08a' : activeHighlightColor}
+                        onFocus={saveSelection}
+                        onChange={(e) => handleApplyHighlightColor(e.target.value)}
+                        className="w-8 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="h-5 w-px bg-slate-300 mx-0.5 hidden sm:block" />
 
             {/* Group 2: Alignment Buttons */}
             <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('justifyLeft')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.justifyLeft
@@ -612,6 +1606,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('justifyCenter')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.justifyCenter
@@ -625,6 +1623,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('justifyRight')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.justifyRight
@@ -638,6 +1640,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => execCommand('justifyFull')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   activeFormats.justifyFull
@@ -651,38 +1657,119 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
             </div>
 
+            {/* Group: Bullet & Numbering Lists with Variations */}
+            <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200 relative">
+              {/* Bullet List Button & Popover */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    saveSelection();
+                  }}
+                  onClick={() => {
+                    saveSelection();
+                    setShowBulletMenu(!showBulletMenu);
+                    setShowNumberMenu(false);
+                    setShowHighlightPicker(false);
+                    setShowColorPicker(false);
+                    setShowFontMenu(false);
+                  }}
+                  className={`p-1.5 rounded-md transition-all cursor-pointer text-slate-700 flex items-center gap-0.5 ${
+                    showBulletMenu ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100'
+                  }`}
+                  title="Daftar Simbol / Bullet List"
+                  aria-label="Bullet List"
+                >
+                  <List className="w-4 h-4" />
+                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                </button>
+
+                {showBulletMenu && (
+                  <div className="absolute top-10 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-48 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                      Gaya Bullet
+                    </div>
+                    {BULLET_VARIATIONS.map((b) => (
+                      <button
+                        key={b.style}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          handleApplyList('ul', b.style);
+                          setShowBulletMenu(false);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer font-medium text-slate-700"
+                      >
+                        <span className="text-base leading-none w-4 text-center font-extrabold text-blue-600">{b.icon}</span>
+                        <span>{b.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Numbering List Button & Popover */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    saveSelection();
+                  }}
+                  onClick={() => {
+                    saveSelection();
+                    setShowNumberMenu(!showNumberMenu);
+                    setShowBulletMenu(false);
+                    setShowHighlightPicker(false);
+                    setShowColorPicker(false);
+                    setShowFontMenu(false);
+                  }}
+                  className={`p-1.5 rounded-md transition-all cursor-pointer text-slate-700 flex items-center gap-0.5 ${
+                    showNumberMenu ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100'
+                  }`}
+                  title="Daftar Penomoran / Numbering List"
+                  aria-label="Numbering List"
+                >
+                  <ListOrdered className="w-4 h-4" />
+                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
+                </button>
+
+                {showNumberMenu && (
+                  <div className="absolute top-10 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                      Gaya Penomoran
+                    </div>
+                    {NUMBER_VARIATIONS.map((n) => (
+                      <button
+                        key={n.style}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          handleApplyList('ol', n.style);
+                          setShowNumberMenu(false);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer font-medium text-slate-700"
+                      >
+                        <span className="text-xs font-extrabold text-blue-600 w-5">{n.sample}</span>
+                        <span>{n.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="h-5 w-px bg-slate-300 mx-0.5 hidden sm:block" />
 
-            {/* Group 3: Headings & Quote */}
+            {/* Group 3: Quote */}
             <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
               <button
                 type="button"
-                onClick={() => handleBlockFormat('h2')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer text-xs font-extrabold flex items-center justify-center ${
-                  activeFormats.h2
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Judul Sub-Bab (H2)"
-                aria-label="Judul Sub-Bab"
-              >
-                <Heading2 className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleBlockFormat('h3')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer text-xs font-bold flex items-center justify-center ${
-                  activeFormats.h3
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Judul Kecil (H3)"
-                aria-label="Judul Kecil"
-              >
-                <Heading3 className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => handleBlockFormat('blockquote')}
                 className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
                   activeFormats.blockquote
@@ -703,6 +1790,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               {/* Text Link Button */}
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={handleOpenLinkModal}
                 className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
                   activeFormats.link || showLinkModal
@@ -718,7 +1809,12 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               {/* Emoticon Button */}
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => {
+                  saveSelection();
                   setShowEmojiPicker(!showEmojiPicker);
                   setShowLinkModal(false);
                 }}
@@ -736,7 +1832,12 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               {/* Image Inserter Button */}
               <button
                 type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
                 onClick={() => {
+                  saveSelection();
                   setShowImageModal(true);
                   setShowEmojiPicker(false);
                   setShowLinkModal(false);
@@ -748,25 +1849,6 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 <ImageIcon className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Mode Switcher Toggle (Visual vs Code) */}
-            <button
-              type="button"
-              onClick={() => {
-                if (editorMode === 'wysiwyg' && editorRef.current) {
-                  onChange(editorRef.current.innerHTML);
-                }
-                setEditorMode(editorMode === 'wysiwyg' ? 'code' : 'wysiwyg');
-                setShowEmojiPicker(false);
-                setShowLinkModal(false);
-              }}
-              className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1 border border-slate-200 bg-white ml-auto"
-              title="Beralih Mode Editor"
-              aria-label="Beralih Mode"
-            >
-              <Code className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden sm:inline">{editorMode === 'wysiwyg' ? 'Kode Teks' : 'Visual Live'}</span>
-            </button>
 
           </div>
 
@@ -934,12 +2016,22 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
             <div
               ref={editorRef}
               contentEditable
+              onBeforeInput={handleBeforeInput}
               onInput={handleEditorInput}
               onBlur={handleEditorInput}
-              onKeyUp={updateActiveFormats}
-              onMouseUp={updateActiveFormats}
-              onClick={updateActiveFormats}
-              className="w-full p-4 min-h-[220px] text-sm font-sans text-slate-800 leading-relaxed focus:outline-none bg-white font-normal [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_a]:font-medium"
+              onKeyUp={() => {
+                saveSelection();
+                updateActiveFormats();
+              }}
+              onMouseUp={() => {
+                saveSelection();
+                updateActiveFormats();
+              }}
+              onClick={() => {
+                saveSelection();
+                updateActiveFormats();
+              }}
+              className="w-full p-4 min-h-[220px] text-sm font-sans text-slate-800 leading-relaxed focus:outline-none bg-white font-normal [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_a]:font-medium [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5"
               style={{ minHeight: `${minRows * 24}px` }}
             />
           ) : (
