@@ -35,11 +35,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
 
   const hasQuickStats = layoutSections.showQuickStats && header.highlights && header.highlights.length > 0;
 
+  // Banner overlay color & opacity configuration from Admin Theme settings
+  const bannerColor = themeConfig?.bannerOverlayColor || '#020617';
+  const bannerOpacity = typeof themeConfig?.bannerOverlayOpacity === 'number' ? themeConfig.bannerOverlayOpacity : 45;
+  const opacityRatio = Math.max(0, Math.min(100, bannerOpacity)) / 100;
+
+  const hexToRgba = (hex: string, alpha: number) => {
+    let c = (hex || '#020617').replace('#', '');
+    if (c.length === 3) c = c.split('').map((x) => x + x).join('');
+    const r = parseInt(c.substring(0, 2), 16) || 0;
+    const g = parseInt(c.substring(2, 4), 16) || 0;
+    const b = parseInt(c.substring(4, 6), 16) || 0;
+    return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+  };
+
   return (
-    <div id="beranda" className="relative bg-slate-950 text-white">
+    <div id="beranda" className="relative text-white">
       
-      {/* Background Hero Image with Overlays - Slimmer height */}
-      <div className="relative overflow-hidden">
+      {/* Background Hero Image with Overlays - Batas bawah tepat di tengah kartu */}
+      <div className="relative overflow-hidden bg-slate-950">
         <div className="absolute inset-0 z-0">
           <img
             src={header.heroImageUrl || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&auto=format&fit=crop&q=80'}
@@ -47,13 +61,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center transform scale-105 duration-1000 ease-out"
           />
-          {/* Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-900/60" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+          {/* Configurable Gradients Overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none transition-all duration-300"
+            style={{
+              background: `linear-gradient(to right, ${hexToRgba(bannerColor, Math.min(1, opacityRatio * 1.15))}, ${hexToRgba(bannerColor, Math.min(1, opacityRatio * 0.75))}, ${hexToRgba(bannerColor, Math.min(1, opacityRatio * 0.25))})`,
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none transition-all duration-300"
+            style={{
+              background: `linear-gradient(to top, ${hexToRgba(bannerColor, Math.min(1, opacityRatio * 0.85))}, transparent 70%)`,
+            }}
+          />
         </div>
 
         {/* Hero Content Area */}
-        <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 ${hasQuickStats ? 'pb-20 sm:pb-24' : 'pb-10 sm:pb-14'}`}>
+        <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 ${hasQuickStats ? 'pb-20 sm:pb-28' : 'pb-12 sm:pb-16'}`}>
           <div className="max-w-3xl space-y-4">
             
             {/* Main Title */}
@@ -62,7 +86,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
             </h1>
 
             {/* Subtitle */}
-            <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed max-w-2xl">
+            <p className="text-sm sm:text-base text-slate-200 font-normal leading-relaxed max-w-2xl">
               {header.heroSubtitle}
             </p>
 
@@ -98,14 +122,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
         </div>
       </div>
 
-      {/* Floating 4 Stat Cards */}
+      {/* Floating 4 Stat Cards: Batas bawah banner tepat di tengah kartu (separuh atas di dalam banner, separuh bawah di luar banner) */}
       {hasQuickStats && (
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 sm:-mt-14 mb-6 sm:mb-8">
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -translate-y-1/2 -mb-8 sm:-mb-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
             {header.highlights.map((stat) => (
               <div
                 key={stat.id}
-                className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-lg ring-1 ring-white/10 hover:border-blue-500/60 transition-all duration-300 transform hover:-translate-y-1 group"
+                className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-2xl ring-1 ring-white/10 hover:border-blue-500/60 transition-all duration-300 transform hover:-translate-y-1 group"
               >
                 <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
                   <div className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 border border-slate-700/50 group-hover:scale-105 transition-transform">

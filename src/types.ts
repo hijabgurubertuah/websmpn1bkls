@@ -47,6 +47,8 @@ export interface ThemeConfig {
   buttonTextColor?: string;
   accentColor?: string;
   footerBgColor?: string;
+  bannerOverlayColor?: string;
+  bannerOverlayOpacity?: number;
   customPresets?: ThemePreset[];
 }
 

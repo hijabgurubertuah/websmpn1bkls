@@ -92,6 +92,8 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   buttonTextColor: '#ffffff',
   accentColor: '#f59e0b',
   footerBgColor: '#0f172a',
+  bannerOverlayColor: '#0f172a',
+  bannerOverlayOpacity: 45,
   customPresets: [],
 };
 

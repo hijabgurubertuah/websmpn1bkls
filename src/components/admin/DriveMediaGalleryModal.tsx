@@ -32,7 +32,8 @@ import {
 } from '../../lib/googleAppsScript';
 import { formatFileSize } from '../../lib/imageOptimizer';
 
-const ITEMS_PER_PAGE = 40;
+const MOBILE_ITEMS_PER_PAGE = 40;
+const DESKTOP_ITEMS_PER_PAGE = 100;
 
 interface DriveMediaGalleryModalProps {
   isOpen: boolean;
@@ -55,16 +56,47 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'size' | 'name'>('newest');
 
-  // Column view layout: single button toggles 2 -> 3 -> 4 -> 2
-  const [gridCols, setGridCols] = useState<2 | 3 | 4>(() => {
+  // Deteksi Tampilan Desktop (layar lebar >= 1024px)
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Tampilan kolom Mobile: 2 | 3 | 4
+  const [mobileCols, setMobileCols] = useState<2 | 3 | 4>(() => {
     try {
-      const saved = localStorage.getItem('drive_media_grid_cols');
+      const saved =
+        localStorage.getItem('drive_media_grid_cols_mobile') ||
+        localStorage.getItem('drive_media_grid_cols');
       if (saved === '2' || saved === '3' || saved === '4') {
         return parseInt(saved, 10) as 2 | 3 | 4;
       }
     } catch {}
     return 3;
   });
+
+  // Tampilan kolom Desktop: 4 | 6 | 8 | 10 (Default: 10 kolom ke samping seperti permintaan user)
+  const [desktopCols, setDesktopCols] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('drive_media_grid_cols_desktop');
+      if (saved && [4, 6, 8, 10].includes(parseInt(saved, 10))) {
+        return parseInt(saved, 10);
+      }
+    } catch {}
+    return 10;
+  });
+
+  const effectiveGridCols = isDesktop ? desktopCols : mobileCols;
 
   // Ordered multiple selection: first long-pressed is #1, next clicked is #2, #3, etc.
   const [selectedItems, setSelectedItems] = useState<DriveMediaItem[]>([]);
@@ -95,7 +127,8 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
     }
   };
 
-  // Pagination & Swipe
+  // Pagination & Swipe: Desktop 100 gambar, Mobile 40 gambar
+  const itemsPerPage = isDesktop ? DESKTOP_ITEMS_PER_PAGE : MOBILE_ITEMS_PER_PAGE;
   const [currentPage, setCurrentPage] = useState(1);
 
   // Direct Upload within modal
@@ -110,15 +143,30 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
   const isLongPressTriggeredRef = useRef(false);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Swipe touch refs
+  // Swipe touch & mouse drag refs
   const swipeStartXRef = useRef<number | null>(null);
   const swipeStartYRef = useRef<number | null>(null);
+  const mouseDragStartXRef = useRef<number | null>(null);
+  const mouseDragStartYRef = useRef<number | null>(null);
+  const isMouseDraggingRef = useRef(false);
 
-  const handleSetGridCols = (cols: 2 | 3 | 4) => {
-    setGridCols(cols);
-    try {
-      localStorage.setItem('drive_media_grid_cols', cols.toString());
-    } catch {}
+  const handleToggleGridCols = () => {
+    if (isDesktop) {
+      const desktopOptions = [4, 6, 8, 10];
+      const currIdx = desktopOptions.indexOf(desktopCols);
+      const nextCols = desktopOptions[(currIdx + 1) % desktopOptions.length];
+      setDesktopCols(nextCols);
+      try {
+        localStorage.setItem('drive_media_grid_cols_desktop', nextCols.toString());
+      } catch {}
+    } else {
+      const nextCols: 2 | 3 | 4 = mobileCols === 2 ? 3 : mobileCols === 3 ? 4 : 2;
+      setMobileCols(nextCols);
+      try {
+        localStorage.setItem('drive_media_grid_cols_mobile', nextCols.toString());
+        localStorage.setItem('drive_media_grid_cols', nextCols.toString());
+      } catch {}
+    }
   };
 
   // Load items on open
@@ -278,8 +326,8 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
     return result;
   }, [items, searchQuery, sortBy]);
 
-  // Pagination (40 items per page)
-  const totalPages = Math.max(1, Math.ceil(filteredAndSortedItems.length / ITEMS_PER_PAGE));
+  // Pagination (Desktop: 100 gambar per tampilan; Mobile: 40 gambar per tampilan)
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedItems.length / itemsPerPage));
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -288,11 +336,32 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
   }, [totalPages, currentPage]);
 
   const pagedItems = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAndSortedItems.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredAndSortedItems, currentPage]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedItems.slice(start, start + itemsPerPage);
+  }, [filteredAndSortedItems, currentPage, itemsPerPage]);
 
-  // Swipe detection
+  // Navigasi Keyboard Panah Kiri & Kanan untuk desktop
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        setCurrentPage((p) => Math.max(1, p - 1));
+      } else if (e.key === 'ArrowRight') {
+        setCurrentPage((p) => Math.min(totalPages, p + 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, totalPages]);
+
+  // Swipe detection via Touch
   const handleTouchStart = (e: React.TouchEvent) => {
     swipeStartXRef.current = e.touches[0].clientX;
     swipeStartYRef.current = e.touches[0].clientY;
@@ -305,12 +374,12 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
 
     if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
       if (deltaX < 0) {
-        // Swipe left -> Next 40 images
+        // Swipe ke kiri -> Halaman berikutnya (100 gambar di desktop / 40 di HP)
         if (currentPage < totalPages) {
           setCurrentPage((p) => p + 1);
         }
       } else {
-        // Swipe right -> Previous 40 images
+        // Swipe ke kanan -> Halaman sebelumnya
         if (currentPage > 1) {
           setCurrentPage((p) => p - 1);
         }
@@ -319,6 +388,42 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
 
     swipeStartXRef.current = null;
     swipeStartYRef.current = null;
+  };
+
+  // Swipe detection via Mouse Drag (Desktop)
+  const handleMouseDownSwipe = (e: React.MouseEvent) => {
+    if (e.button === 0) {
+      mouseDragStartXRef.current = e.clientX;
+      mouseDragStartYRef.current = e.clientY;
+      isMouseDraggingRef.current = true;
+    }
+  };
+
+  const handleMouseUpSwipe = (e: React.MouseEvent) => {
+    if (!isMouseDraggingRef.current || mouseDragStartXRef.current === null) return;
+    const deltaX = e.clientX - mouseDragStartXRef.current;
+    const deltaY =
+      mouseDragStartYRef.current !== null
+        ? Math.abs(e.clientY - mouseDragStartYRef.current)
+        : 0;
+
+    isMouseDraggingRef.current = false;
+    mouseDragStartXRef.current = null;
+    mouseDragStartYRef.current = null;
+
+    if (Math.abs(deltaX) > 75 && Math.abs(deltaX) > deltaY * 1.4) {
+      if (deltaX < 0) {
+        // Drag ke kiri -> 100 gambar berikutnya
+        if (currentPage < totalPages) {
+          setCurrentPage((p) => p + 1);
+        }
+      } else {
+        // Drag ke kanan -> 100 gambar sebelumnya
+        if (currentPage > 1) {
+          setCurrentPage((p) => p - 1);
+        }
+      }
+    }
   };
 
   // Long press handler: set as image #1
@@ -423,7 +528,7 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
       }}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[94vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
+        className="relative w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[96vw] max-h-[95vh] h-[92vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -481,24 +586,41 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
             </select>
           </div>
 
-          {/* Tombol Pengubah Tampilan Grid: Satu tombol berisi kotak (2 kotak -> 3 kotak -> 4 kotak -> 2 kotak) */}
+          {/* Tombol Pengubah Tampilan Grid: Responsif (HP: 2->3->4->2; Desktop: 4->6->8->10->4) */}
           <button
             type="button"
-            onClick={() => {
-              const nextCols: 2 | 3 | 4 = gridCols === 2 ? 3 : gridCols === 3 ? 4 : 2;
-              handleSetGridCols(nextCols);
-            }}
+            onClick={handleToggleGridCols}
             className="h-[32px] sm:h-[34px] px-2 bg-slate-50 hover:bg-slate-100 active:scale-95 rounded-xl border border-slate-200 flex items-center justify-center gap-1 shrink-0 transition-all cursor-pointer"
-            title={`Tampilan ${gridCols} kolom. Klik untuk ganti.`}
+            title={
+              isDesktop
+                ? `Tampilan ${effectiveGridCols} kolom ke samping (${itemsPerPage} gambar). Klik untuk ganti.`
+                : `Tampilan ${effectiveGridCols} kolom. Klik untuk ganti.`
+            }
           >
-            <div className="flex items-center gap-0.5">
-              {Array.from({ length: gridCols }).map((_, i) => (
-                <span
-                  key={i}
-                  className="w-2 h-3.5 rounded-xs bg-slate-700 block transition-all"
-                />
-              ))}
-            </div>
+            {isDesktop ? (
+              <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: Math.min(effectiveGridCols, 5) }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-1.5 h-3 rounded-xs bg-slate-700 block transition-all"
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] font-bold text-slate-800 font-mono">
+                  {effectiveGridCols}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: effectiveGridCols }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="w-2 h-3.5 rounded-xs bg-slate-700 block transition-all"
+                  />
+                ))}
+              </div>
+            )}
           </button>
 
           {/* Tombol Refresh / Sinkronkan */}
@@ -564,165 +686,222 @@ export const DriveMediaGalleryModal: React.FC<DriveMediaGalleryModalProps> = ({
           </div>
         )}
 
-        {/* SWIPE NAVIGATION SUB-HEADER (Maksimal 40 gambar per swipe/tampilan) */}
+        {/* SWIPE NAVIGATION SUB-HEADER (Desktop: 100 gambar; Mobile: 40 gambar) */}
         {totalPages > 1 && (
           <div className="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 select-none shrink-0">
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none font-semibold cursor-pointer text-[11px]"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 hover:text-blue-600 disabled:opacity-30 disabled:pointer-events-none font-semibold cursor-pointer text-[11px] sm:text-xs shadow-2xs transition-all active:scale-95"
+              title="Lihat halaman sebelumnya"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Sebelumnya</span>
+              <span>{isDesktop ? `${itemsPerPage} Sebelumnya` : 'Sebelumnya'}</span>
             </button>
 
-            <span className="text-[11px] font-semibold text-slate-700">
-              {currentPage} / {totalPages}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-800 bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs">
+                Halaman {currentPage} / {totalPages}
+              </span>
+              <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+                • {filteredAndSortedItems.length} gambar total ({itemsPerPage}/tampilan)
+              </span>
+            </div>
 
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none font-semibold cursor-pointer text-[11px]"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 hover:text-blue-600 disabled:opacity-30 disabled:pointer-events-none font-semibold cursor-pointer text-[11px] sm:text-xs shadow-2xs transition-all active:scale-95"
+              title="Lihat halaman berikutnya"
             >
-              <span>Selanjutnya</span>
+              <span>{isDesktop ? `${itemsPerPage} Selanjutnya` : 'Selanjutnya'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
-        {/* GALLERY GRID: Langsung bisa dipilih, tanpa prompt email, nomor urut 1, 2, 3... */}
+        {/* GALLERY WRAPPER (dengan tombol panah melayang yang keren di sisi kiri & kanan) */}
         <div
-          className="flex-1 overflow-y-auto p-2 sm:p-3 min-h-[260px] max-h-[62vh]"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          className="relative flex-1 flex flex-col min-h-0 overflow-hidden"
+          onMouseDown={handleMouseDownSwipe}
+          onMouseUp={handleMouseUpSwipe}
         >
-          {filteredAndSortedItems.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center py-12 px-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
-                <FileImage className="w-7 h-7 stroke-[1.5]" />
-              </div>
-              <p className="text-xs text-slate-500">
-                {searchQuery ? 'Tidak ada gambar yang cocok' : 'Belum ada gambar'}
-              </p>
-            </div>
-          ) : (
-            <div
-              className={`grid ${
-                gridCols === 2
-                  ? 'grid-cols-2 gap-2 sm:gap-3'
-                  : gridCols === 3
-                  ? 'grid-cols-3 gap-1.5 sm:gap-2.5'
-                  : 'grid-cols-4 gap-1 sm:gap-2'
-              }`}
+          {/* Tombol Panah Kiri Melayang (Desktop) */}
+          {totalPages > 1 && currentPage > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentPage((p) => Math.max(1, p - 1));
+              }}
+              className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 shadow-xl hover:shadow-2xl border border-slate-200/90 backdrop-blur-md items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer group"
+              title={`Lihat ${itemsPerPage} gambar sebelumnya (Halaman ${currentPage - 1})`}
+              aria-label="Halaman Sebelumnya"
             >
-              {pagedItems.map((item) => {
-                const selectedIdx = selectedItems.findIndex(
-                  (i) => (i.fileId && i.fileId === item.fileId) || i.fileUrl === item.fileUrl
-                );
-                const isSelected = selectedIdx !== -1;
-                const orderNumber = selectedIdx + 1;
+              <ChevronLeft className="w-6 h-6 -ml-0.5 text-slate-700 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-all" />
+            </button>
+          )}
 
-                return (
-                  <div
-                    key={item.fileId || item.fileUrl}
-                    onClick={() => handleItemClick(item)}
-                    onDoubleClick={() => handleDoubleClick(item)}
-                    onTouchStart={(e) =>
-                      startLongPress(item, e.touches[0].clientX, e.touches[0].clientY)
-                    }
-                    onTouchMove={(e) =>
-                      checkMoveCancel(e.touches[0].clientX, e.touches[0].clientY)
-                    }
-                    onTouchEnd={cancelLongPress}
-                    onMouseDown={(e) => startLongPress(item, e.clientX, e.clientY)}
-                    onMouseMove={(e) => checkMoveCancel(e.clientX, e.clientY)}
-                    onMouseUp={cancelLongPress}
-                    onMouseLeave={cancelLongPress}
-                    onContextMenu={(e) => e.preventDefault()}
-                    className={`group relative bg-white rounded-xl border transition-all cursor-pointer overflow-hidden flex flex-col select-none touch-manipulation ${
-                      isSelected
-                        ? 'border-blue-600 ring-2 ring-blue-600/40 shadow-sm scale-[0.99]'
-                        : 'border-slate-200 hover:border-blue-400 hover:shadow-2xs'
-                    }`}
-                    style={{ WebkitTouchCallout: 'none' }}
-                  >
-                    {/* THUMBNAIL */}
-                    <div className="relative aspect-4/3 bg-slate-100 overflow-hidden flex items-center justify-center pointer-events-none">
-                      <img
-                        src={item.fileUrl}
-                        alt={item.fileName}
-                        loading="lazy"
-                        draggable={false}
-                        className="w-full h-full object-cover transition-transform duration-200 pointer-events-none select-none"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
+          {/* Tombol Panah Kanan Melayang (Desktop) */}
+          {totalPages > 1 && currentPage < totalPages && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentPage((p) => Math.min(totalPages, p + 1));
+              }}
+              className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 shadow-xl hover:shadow-2xl border border-slate-200/90 backdrop-blur-md items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer group"
+              title={`Lihat ${itemsPerPage} gambar berikutnya (Halaman ${currentPage + 1})`}
+              aria-label="Halaman Berikutnya"
+            >
+              <ChevronRight className="w-6 h-6 -mr-0.5 text-slate-700 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+            </button>
+          )}
 
-                      {/* BADGE URUTAN PEMILIHAN (1, 2, 3...) - Minimalis & Jelas */}
-                      {isSelected && (
-                        <div
-                          className="absolute top-1.5 left-1.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md ring-2 ring-white z-20 pointer-events-none"
-                        >
-                          {orderNumber}
+          {/* GALLERY GRID SCROLL AREA */}
+          <div
+            className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 min-h-[280px]"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {filteredAndSortedItems.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center py-12 px-4">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                  <FileImage className="w-7 h-7 stroke-[1.5]" />
+                </div>
+                <p className="text-xs text-slate-500">
+                  {searchQuery ? 'Tidak ada gambar yang cocok' : 'Belum ada gambar'}
+                </p>
+              </div>
+            ) : (
+              <div
+                className="grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${effectiveGridCols}, minmax(0, 1fr))`,
+                  gap: effectiveGridCols >= 8 ? '6px' : effectiveGridCols >= 6 ? '8px' : '10px',
+                }}
+              >
+                {pagedItems.map((item) => {
+                  const selectedIdx = selectedItems.findIndex(
+                    (i) => (i.fileId && i.fileId === item.fileId) || i.fileUrl === item.fileUrl
+                  );
+                  const isSelected = selectedIdx !== -1;
+                  const orderNumber = selectedIdx + 1;
+
+                  return (
+                    <div
+                      key={item.fileId || item.fileUrl}
+                      onClick={() => handleItemClick(item)}
+                      onDoubleClick={() => handleDoubleClick(item)}
+                      onTouchStart={(e) =>
+                        startLongPress(item, e.touches[0].clientX, e.touches[0].clientY)
+                      }
+                      onTouchMove={(e) =>
+                        checkMoveCancel(e.touches[0].clientX, e.touches[0].clientY)
+                      }
+                      onTouchEnd={cancelLongPress}
+                      onMouseDown={(e) => startLongPress(item, e.clientX, e.clientY)}
+                      onMouseMove={(e) => checkMoveCancel(e.clientX, e.clientY)}
+                      onMouseUp={cancelLongPress}
+                      onMouseLeave={cancelLongPress}
+                      onContextMenu={(e) => e.preventDefault()}
+                      className={`group relative bg-white rounded-xl border transition-all cursor-pointer overflow-hidden flex flex-col select-none touch-manipulation ${
+                        isSelected
+                          ? 'border-blue-600 ring-2 ring-blue-600/40 shadow-sm scale-[0.99]'
+                          : 'border-slate-200 hover:border-blue-400 hover:shadow-2xs'
+                      }`}
+                      style={{ WebkitTouchCallout: 'none' }}
+                    >
+                      {/* THUMBNAIL */}
+                      <div
+                        className={`relative ${
+                          effectiveGridCols >= 8 ? 'aspect-square' : 'aspect-4/3'
+                        } bg-slate-100 overflow-hidden flex items-center justify-center pointer-events-none`}
+                      >
+                        <img
+                          src={item.fileUrl}
+                          alt={item.fileName}
+                          loading="lazy"
+                          draggable={false}
+                          className="w-full h-full object-cover transition-transform duration-200 pointer-events-none select-none"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+
+                        {/* BADGE URUTAN PEMILIHAN (1, 2, 3...) - Minimalis & Jelas */}
+                        {isSelected && (
+                          <div
+                            className={`absolute ${
+                              effectiveGridCols >= 8
+                                ? 'top-1 left-1 w-5 h-5 text-[10px]'
+                                : 'top-1.5 left-1.5 w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm'
+                            } rounded-full bg-blue-600 text-white font-black flex items-center justify-center shadow-md ring-2 ring-white z-20 pointer-events-none`}
+                          >
+                            {orderNumber}
+                          </div>
+                        )}
+
+                        {/* TOMBOL PREVIEW CEPAT (EYE) & HAPUS PADA HOVER DESKTOP */}
+                        <div className="absolute top-1.5 right-1.5 hidden group-hover:flex items-center gap-1 z-10 pointer-events-auto">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setPreviewItem(item);
+                            }}
+                            className="w-6 h-6 rounded-md bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center shadow-xs cursor-pointer"
+                            title="Lihat"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (deleteConfirmId === item.fileId) {
+                                handleDelete(item, e);
+                              } else {
+                                setDeleteConfirmId(item.fileId);
+                                setTimeout(() => setDeleteConfirmId(null), 3000);
+                              }
+                            }}
+                            className={`w-6 h-6 rounded-md flex items-center justify-center shadow-xs cursor-pointer ${
+                              deleteConfirmId === item.fileId
+                                ? 'bg-red-600 text-white'
+                                : 'bg-white/90 hover:bg-white text-red-600'
+                            }`}
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
-                      )}
+                      </div>
 
-                      {/* TOMBOL PREVIEW CEPAT (EYE) & HAPUS PADA HOVER DESKTOP */}
-                      <div className="absolute top-1.5 right-1.5 hidden group-hover:flex items-center gap-1 z-10 pointer-events-auto">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setPreviewItem(item);
-                          }}
-                          className="w-6 h-6 rounded-md bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center shadow-xs cursor-pointer"
-                          title="Lihat"
-                        >
-                          <Eye className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (deleteConfirmId === item.fileId) {
-                              handleDelete(item, e);
-                            } else {
-                              setDeleteConfirmId(item.fileId);
-                              setTimeout(() => setDeleteConfirmId(null), 3000);
-                            }
-                          }}
-                          className={`w-6 h-6 rounded-md flex items-center justify-center shadow-xs cursor-pointer ${
-                            deleteConfirmId === item.fileId
-                              ? 'bg-red-600 text-white'
-                              : 'bg-white/90 hover:bg-white text-red-600'
-                          }`}
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                      {/* METADATA INFO: Minimalis */}
+                      <div
+                        className={`p-1 ${
+                          effectiveGridCols >= 8 ? 'text-[9px]' : 'sm:p-1.5 text-[10px]'
+                        } flex items-center justify-between bg-white text-slate-500 pointer-events-none`}
+                      >
+                        <span className="truncate font-medium text-slate-700 max-w-[80%]">
+                          {item.fileName}
+                        </span>
+                        {isSelected && (
+                          <span className="font-bold text-blue-600 shrink-0">#{orderNumber}</span>
+                        )}
                       </div>
                     </div>
-
-                    {/* METADATA INFO: Minimalis */}
-                    <div className="p-1 sm:p-1.5 flex items-center justify-between bg-white text-[10px] text-slate-500 pointer-events-none">
-                      <span className="truncate font-medium text-slate-700 max-w-[80%]">
-                        {item.fileName}
-                      </span>
-                      {isSelected && (
-                        <span className="font-bold text-blue-600 shrink-0">#{orderNumber}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* MODAL FOOTER: Minimalis tanpa teks/keterangan panjang, tombol Unggah ke Drive di samping Gunakan Gambar */}
