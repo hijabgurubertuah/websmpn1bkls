@@ -98,14 +98,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
         </div>
       </div>
 
-      {/* Floating 4 Stat Cards: Bottom edge of hero background cuts right through the center of these cards */}
+      {/* Floating 4 Stat Cards */}
       {hasQuickStats && (
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-14 sm:-mt-16 mb-2 sm:mb-4">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 sm:-mt-14 mb-6 sm:mb-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
             {header.highlights.map((stat) => (
               <div
                 key={stat.id}
-                className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-2xl shadow-black/80 ring-1 ring-white/10 hover:border-blue-500/60 hover:shadow-blue-900/20 transition-all duration-300 transform hover:-translate-y-1 group"
+                className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-lg ring-1 ring-white/10 hover:border-blue-500/60 transition-all duration-300 transform hover:-translate-y-1 group"
               >
                 <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
                   <div className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 border border-slate-700/50 group-hover:scale-105 transition-transform">

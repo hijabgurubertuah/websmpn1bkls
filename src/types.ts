@@ -81,6 +81,11 @@ export interface ImportantAnnouncement {
   isMarquee?: boolean;
   isSticky?: boolean;
   dismissible?: boolean;
+  targetArticleId?: string;
+  detailTitle?: string;
+  detailContent?: string;
+  detailImageUrl?: string;
+  popupMode?: 'article' | 'custom' | 'none';
 }
 
 export interface HeaderConfig {

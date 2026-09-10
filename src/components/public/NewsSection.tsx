@@ -120,66 +120,53 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
   }, [articles, selectedCategory, searchQuery]);
 
   return (
-    <section id="berita" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200/60">
+    <section id="berita" className="pt-3 pb-12 sm:pt-8 sm:pb-20 bg-slate-50 border-b border-slate-200/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold uppercase tracking-wider mb-2">
-              <Newspaper className="w-3.5 h-3.5" />
-              <span>Kabar Sekolah</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Berita, Prestasi &amp; Informasi Terkini
-            </h2>
-            <p className="text-slate-500 text-sm sm:text-base mt-1">
-              Ikuti kabar terhangat seputar prestasi siswa, kegiatan kurikuler, dan agenda pengumuman sekolah.
-            </p>
+        {/* Top Controls: Search Bar & Dynamic Layout Button */}
+        <div className="flex items-center justify-between gap-2.5 mb-4 sm:mb-6">
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari berita..."
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-xs"
+            />
           </div>
 
-          {/* Controls: Search Bar & Dynamic Layout Button */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            {/* Search Bar */}
-            <div className="relative flex-1 md:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari berita..."
-                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-xs"
-              />
-            </div>
-
-            {/* Layout Cycler Button (1 Kotak -> 2 Kotak -> 3 Kotak -> 1 Kotak) */}
-            <button
-              type="button"
-              onClick={handleCycleLayout}
-              className="h-10 px-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0 select-none"
-              title={`Layout Tampilan: ${layoutColumns} Kolom (Klik untuk ubah ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom)`}
-              aria-label={`Ubah susunan layout ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom`}
-            >
-              {layoutColumns === 1 && (
-                <div className="w-4 h-4 rounded-xs border-2 border-slate-700 bg-slate-700/30 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-slate-700 rounded-xs" />
-                </div>
-              )}
-              {layoutColumns === 2 && (
-                <div className="flex items-center gap-0.5">
-                  <div className="w-2 h-4 rounded-xs border-1.5 border-slate-700 bg-slate-700/30" />
-                  <div className="w-2 h-4 rounded-xs border-1.5 border-slate-700 bg-slate-700/30" />
-                </div>
-              )}
-              {layoutColumns === 3 && (
-                <div className="flex items-center gap-0.5">
-                  <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
-                  <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
-                  <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
-                </div>
-              )}
-            </button>
-          </div>
+          {/* Layout Cycler Button (1 Kotak -> 2 Kotak -> 3 Kotak -> 1 Kotak) */}
+          <button
+            type="button"
+            onClick={handleCycleLayout}
+            className="h-10 px-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0 select-none"
+            title={`Layout Tampilan: ${layoutColumns} Kolom (Klik untuk ubah ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom)`}
+            aria-label={`Ubah susunan layout ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom`}
+          >
+            {layoutColumns === 1 && (
+              <div className="w-4 h-4 rounded-xs border-2 border-slate-700 bg-slate-700/30 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-slate-700 rounded-xs" />
+              </div>
+            )}
+            {layoutColumns === 2 && (
+              <div className="flex items-center gap-0.5">
+                <div className="w-2 h-4 rounded-xs border-1.5 border-slate-700 bg-slate-700/30" />
+                <div className="w-2 h-4 rounded-xs border-1.5 border-slate-700 bg-slate-700/30" />
+              </div>
+            )}
+            {layoutColumns === 3 && (
+              <div className="flex items-center gap-0.5">
+                <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
+                <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
+                <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
+              </div>
+            )}
+            <span className="text-xs font-bold text-slate-600 hidden sm:inline">
+              {layoutColumns} Kolom
+            </span>
+          </button>
         </div>
 
         {/* Category Pills */}

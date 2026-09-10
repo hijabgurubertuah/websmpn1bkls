@@ -466,25 +466,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Drawer Footer Actions */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/60 space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-400">Status Penyimpanan:</span>
-            {unsavedCount > 0 ? (
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                {unsavedCount} Tab Draf Lokal
-              </span>
-            ) : (
-              <span className="font-bold text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Semua Tab Tersinkron
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Setiap tab memiliki tombol simpan tersendiri agar pengunggahan lebih cepat dan hemat kuota.
-          </p>
-
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => {
@@ -580,25 +562,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             })}
           </div>
 
-          {/* Quick System Info Card */}
-          <div className="bg-slate-900 text-white rounded-2xl p-4 border border-slate-800 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Status Sinkronisasi Tab</span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {unsavedCount > 0
-                ? `${unsavedCount} tab memiliki perubahan lokal yang belum diunggah ke Firebase.`
-                : 'Semua tab konfigurasi telah tersinkron dengan database Firebase.'}
-            </p>
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Status:</span>
-              <span className={`font-semibold ${unsavedCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {unsavedCount > 0 ? 'Ada Draf Lokal' : 'Tersinkron Penuh'}
-              </span>
-            </div>
-          </div>
-
         </aside>
 
         {/* Main Content Workspace */}
@@ -688,7 +651,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {activeTab === 'ticker' && (
-            <AdminTickerTab config={config} onChange={handleConfigUpdate} />
+            <AdminTickerTab config={config} articles={articles} onChange={handleConfigUpdate} />
           )}
 
           {activeTab === 'menus' && (
