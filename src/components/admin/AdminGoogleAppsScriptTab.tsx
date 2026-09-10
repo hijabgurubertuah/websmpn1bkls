@@ -7,6 +7,7 @@ import {
   Folder,
   RefreshCw,
   ExternalLink,
+  FolderHeart,
 } from 'lucide-react';
 import { SchoolConfig, GoogleAppsScriptConfig } from '../../types';
 import {
@@ -18,6 +19,7 @@ import {
   DEFAULT_APPS_SCRIPT_FOLDER_ID,
   AppsScriptUploadResult,
 } from '../../lib/googleAppsScript';
+import { DriveMediaGalleryModal } from './DriveMediaGalleryModal';
 
 interface AdminGoogleAppsScriptTabProps {
   config: SchoolConfig;
@@ -55,6 +57,7 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
   const [testUploading, setTestUploading] = useState(false);
   const [testUploadResult, setTestUploadResult] = useState<AppsScriptUploadResult | null>(null);
   const [testUploadError, setTestUploadError] = useState<string | null>(null);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   useEffect(() => {
     const stored = getStoredAppsScriptConfig();
@@ -276,6 +279,16 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
                 className="hidden"
               />
             </label>
+
+            <button
+              type="button"
+              onClick={() => setIsGalleryOpen(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-xs"
+              title="Buka galeri gambar yang pernah diunggah dengan thumbnail rapi"
+            >
+              <FolderHeart className="w-3.5 h-3.5" />
+              <span>Buka Galeri Foto Drive</span>
+            </button>
           </div>
         </div>
       </div>
@@ -324,6 +337,17 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
           </div>
         </div>
       )}
+
+      {/* Drive Media Gallery Modal */}
+      <DriveMediaGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        onSelect={(selectedUrl) => {
+          // If selected in tester tab, we can show it as a selected preview
+          setIsGalleryOpen(false);
+        }}
+        title="Penyimpanan Gambar Google Drive (Galeri Apps Script)"
+      />
     </div>
   );
 };

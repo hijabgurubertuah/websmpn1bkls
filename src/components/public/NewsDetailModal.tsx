@@ -27,24 +27,31 @@ import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
 interface NewsDetailModalProps {
   article: NewsArticle | null;
   onClose: () => void;
+  onCloseParent?: () => void;
+  isSecondLayer?: boolean;
   zIndexClass?: string;
 }
 
-export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
+interface SingleNewsModalViewProps {
+  article: NewsArticle;
+  onClose: () => void;
+  onOpenInternalArticle: (target: NewsArticle) => void;
+  isSecondLayer?: boolean;
+  zIndexClass?: string;
+}
+
+const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   article,
   onClose,
+  onOpenInternalArticle,
+  isSecondLayer = false,
   zIndexClass = 'z-50',
 }) => {
-  // Prevent background scrolling while the news modal or lightbox is open
-  useBodyScrollLock(!!article);
-
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
   const [isEmbedExpanded, setIsEmbedExpanded] = useState(false);
   const [iframeKey, setIframeKey] = useState(1);
   const [copiedNotice, setCopiedNotice] = useState(false);
   const [actionConfirmUrl, setActionConfirmUrl] = useState<string | null>(null);
-
-  if (!article) return null;
 
   const parsedEmbed = article.embedUrl ? parseEmbedUrl(article.embedUrl) : null;
   const gallery = article.galleryImages || [];
@@ -69,52 +76,15 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
     setActiveGalleryIndex((activeGalleryIndex + 1) % gallery.length);
   };
 
-  // Helper to render content with clickable links
-  const renderFormattedContent = (text: string) => {
-    // Regex matches markdown links [text](url) or standalone URLs http(s)://...
-    const parts = text.split(/(https?:\/\/[^\s]+|\[[^\]]+\]\([^\)]+\))/g);
-
-    return parts.map((part, i) => {
-      // Markdown link [Label](url)
-      const mdMatch = part.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
-      if (mdMatch) {
-        return (
-          <a
-            key={i}
-            href={mdMatch[2]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline font-semibold inline-flex items-center gap-0.5"
-          >
-            <span>{mdMatch[1]}</span>
-            <ExternalLink className="w-3 h-3 inline-block" />
-          </a>
-        );
-      }
-
-      // Standalone URL
-      if (part.startsWith('http://') || part.startsWith('https://')) {
-        return (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline font-medium break-all inline-flex items-center gap-0.5"
-          >
-            <span>{part}</span>
-            <ExternalLink className="w-3 h-3 inline-block" />
-          </a>
-        );
-      }
-
-      return part;
-    });
-  };
-
   return (
-    <div className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overscroll-contain touch-none animate-in fade-in duration-200`}>
+    <div
+      onClick={onClose}
+      className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-2 sm:p-4 ${
+        isSecondLayer ? 'bg-slate-950/70 backdrop-blur-xs' : 'bg-slate-950/75 backdrop-blur-xs'
+      } overscroll-contain touch-none animate-in fade-in duration-200`}
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         className={`relative w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col overscroll-contain transition-all duration-300 ${
           isEmbedExpanded ? 'max-w-6xl h-[96vh]' : 'max-w-4xl max-h-[92vh]'
         }`}
@@ -134,6 +104,11 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
               <Tag className="w-3 h-3" />
               {article.category}
             </span>
+            {isSecondLayer && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">
+                Lapis 2
+              </span>
+            )}
             {article.isPinned && (
               <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
                 <BookmarkCheck className="w-3 h-3 text-amber-600" />
@@ -222,7 +197,11 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
 
           {/* Body Content */}
           <div className="text-slate-800 text-base leading-relaxed">
-            <FormattedContentRenderer content={article.content} />
+            <FormattedContentRenderer
+              content={article.content}
+              onOpenInternalArticle={onOpenInternalArticle}
+              isSecondLayer={isSecondLayer}
+            />
           </div>
 
           {/* Custom Action Link Button / Link Tertentu */}
@@ -536,4 +515,76 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
     </div>
   );
 };
+
+export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
+  article,
+  onClose,
+  zIndexClass = 'z-50',
+}) => {
+  const [baseArticle, setBaseArticle] = useState<NewsArticle | null>(article);
+  const [topArticle, setTopArticle] = useState<NewsArticle | null>(null);
+
+  // Sync state if initial article prop changes
+  React.useEffect(() => {
+    setBaseArticle(article);
+    setTopArticle(null);
+  }, [article]);
+
+  // Prevent background scrolling while any modal layer is open
+  useBodyScrollLock(!!baseArticle || !!topArticle);
+
+  if (!baseArticle) return null;
+
+  // Called when user opens an internal article from Layer 1
+  const handleOpenFromBase = (target: NewsArticle) => {
+    setTopArticle(target);
+  };
+
+  // Called when user opens an internal article from Layer 2
+  const handleOpenFromTop = (target: NewsArticle) => {
+    // When opening an internal article (target), the first popup (baseArticle) automatically closes!
+    // The previous topArticle becomes the base, and target becomes the new topArticle.
+    // (If it's an external link or opens a new tab, popup pertama tetap ada dan tidak tertutup otomatis,
+    // which is handled inside FormattedContentRenderer/SingleNewsModalView without closing modals).
+    if (topArticle) {
+      setBaseArticle(topArticle);
+    }
+    setTopArticle(target);
+  };
+
+  const handleCloseTop = () => {
+    setTopArticle(null);
+  };
+
+  const handleCloseBase = () => {
+    setBaseArticle(null);
+    setTopArticle(null);
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Layer 1: Popup Pertama */}
+      <SingleNewsModalView
+        article={baseArticle}
+        onClose={handleCloseBase}
+        onOpenInternalArticle={handleOpenFromBase}
+        zIndexClass={zIndexClass}
+        isSecondLayer={false}
+      />
+
+      {/* Layer 2: Popup Kedua (Maksimal 2 Lapis) */}
+      {topArticle && (
+        <SingleNewsModalView
+          article={topArticle}
+          onClose={handleCloseTop}
+          onOpenInternalArticle={handleOpenFromTop}
+          zIndexClass="z-[75]"
+          isSecondLayer={true}
+        />
+      )}
+    </>
+  );
+};
+
 

@@ -176,6 +176,47 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3. DAFTAR GAMBAR/FILE DI FOLDER GOOGLE DRIVE (GALERI TAMPILAN SENDIRI)
+    if (action === 'listFiles' || action === 'getFiles') {
+      var listFolderId = requestData.folderId;
+      var listTargetFolder;
+      if (listFolderId && listFolderId.trim() !== '') {
+        try {
+          listTargetFolder = DriveApp.getFolderById(listFolderId.trim());
+        } catch (fErr) {
+          listTargetFolder = getOrCreateDefaultFolder();
+        }
+      } else {
+        listTargetFolder = getOrCreateDefaultFolder();
+      }
+
+      var driveFiles = listTargetFolder.getFiles();
+      var fileItems = [];
+      while (driveFiles.hasNext() && fileItems.length < 150) {
+        var dFile = driveFiles.next();
+        var dMime = dFile.getMimeType();
+        var dId = dFile.getId();
+        // Sertakan file gambar untuk galeri
+        if (dMime.indexOf('image/') === 0 || dMime === 'application/octet-stream') {
+          fileItems.push({
+            fileId: dId,
+            fileName: dFile.getName(),
+            fileUrl: "https://lh3.googleusercontent.com/d/" + dId,
+            viewUrl: dFile.getUrl(),
+            size: dFile.getSize(),
+            mimeType: dMime,
+            uploadedAt: dFile.getDateCreated().toISOString()
+          });
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        folderName: listTargetFolder.getName(),
+        files: fileItems
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     throw new Error("Aksi tidak dikenali: " + action);
 
   } catch (error) {
@@ -310,6 +351,7 @@ export interface AppsScriptUploadResult {
   mimeType: string;
   folderName?: string;
   sheetLogged?: boolean;
+  uploadedAt?: string;
   message?: string;
 }
 
@@ -376,8 +418,74 @@ export async function uploadFileViaAppsScript(
     throw new Error(data.message || 'Terjadi kesalahan saat memproses file di Google Apps Script.');
   }
 
+  // Record this newly uploaded file to persistent Drive Media storage
+  try {
+    const { recordUploadedDriveMedia } = await import('./driveMediaStorage');
+    recordUploadedDriveMedia({
+      fileId: data.fileId,
+      fileName: data.fileName || file.name,
+      fileUrl: data.fileUrl,
+      viewUrl: data.viewUrl,
+      size: data.size || file.size,
+      mimeType: data.mimeType || file.type,
+      folderName: data.folderName,
+      source: 'upload',
+    });
+  } catch (recErr) {
+    console.warn('Gagal mencatat file ke riwayat galeri:', recErr);
+  }
+
   return data as AppsScriptUploadResult;
 }
+
+/**
+ * List files in the Google Drive folder via Google Apps Script Web App
+ */
+export async function listDriveFilesViaAppsScript(options?: {
+  webAppUrl?: string;
+  folderId?: string;
+}): Promise<AppsScriptUploadResult[]> {
+  const storedConfig = getStoredAppsScriptConfig();
+  const webAppUrl = options?.webAppUrl || storedConfig?.webAppUrl;
+  if (!webAppUrl || !webAppUrl.trim() || !webAppUrl.startsWith('https://script.google.com/')) {
+    return [];
+  }
+
+  const payload = {
+    action: 'listFiles',
+    folderId: (options?.folderId ?? storedConfig?.folderId ?? '').trim(),
+  };
+
+  const response = await fetch(webAppUrl.trim(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify(payload),
+    redirect: 'follow',
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'success' && Array.isArray(data.files)) {
+    return data.files.map((f: any) => ({
+      status: 'success' as const,
+      fileId: f.fileId || '',
+      fileName: f.fileName || 'Foto Google Drive',
+      fileUrl: f.fileUrl || `https://lh3.googleusercontent.com/d/${f.fileId}`,
+      viewUrl: f.viewUrl || (f.fileId ? `https://drive.google.com/file/d/${f.fileId}/view` : ''),
+      size: typeof f.size === 'number' ? f.size : 0,
+      mimeType: f.mimeType || 'image/jpeg',
+      uploadedAt: f.uploadedAt || new Date().toISOString(),
+      folderName: data.folderName,
+    }));
+  }
+  return [];
+}
+
 
 /**
  * Test ping connection to Google Apps Script Web App

@@ -9,6 +9,9 @@ import { NewsDetailModal } from '../public/NewsDetailModal';
 interface FormattedContentRendererProps {
   content: string;
   className?: string;
+  onOpenInternalArticle?: (article: NewsArticle) => void;
+  onCloseParent?: () => void;
+  isSecondLayer?: boolean;
 }
 
 interface ParsedImageShortcode {
@@ -155,6 +158,9 @@ async function resolveInternalArticle(
 export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> = ({
   content,
   className = '',
+  onOpenInternalArticle,
+  onCloseParent,
+  isSecondLayer = false,
 }) => {
   const [lightboxIndex, setLightboxIndex] = useState<{ urls: string[]; index: number } | null>(null);
   const [pendingLink, setPendingLink] = useState<{
@@ -765,25 +771,14 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
             {pendingLink.matchedArticle ? (
               /* Internal Article Confirmation Card */
               <>
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-blue-100 text-blue-700 rounded-xl shrink-0">
-                    <Newspaper className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1 pr-6">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md inline-block">
-                      Postingan Terkait Web
-                    </span>
-                    <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
-                      Konfirmasi Buka Postingan
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Tautan ini mengarah ke postingan di dalam website ini. Apakah Anda ingin membacanya di dalam popup?
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between pr-8 relative">
+                  <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                    Ingin Membuka Postingan Ini?
+                  </h3>
                   <button
                     type="button"
                     onClick={() => setPendingLink(null)}
-                    className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="absolute -top-1 right-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -823,13 +818,19 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                       const targetArt = pendingLink.matchedArticle;
                       setPendingLink(null);
                       if (targetArt) {
-                        setNestedArticle(targetArt);
+                        if (onOpenInternalArticle) {
+                          onOpenInternalArticle(targetArt);
+                        } else {
+                          if (isSecondLayer && onCloseParent) {
+                            onCloseParent();
+                          }
+                          setNestedArticle(targetArt);
+                        }
                       }
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                   >
-                    <span>Buka Postingan</span>
-                    <Newspaper className="w-4 h-4" />
+                    Buka
                   </button>
                 </div>
               </>
@@ -865,7 +866,7 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                 </div>
 
                 <p className="text-xs text-slate-500">
-                  Tautan ini akan dibuka pada tab baru di browser Anda.
+                  Tautan ini akan dibuka pada tab baru di browser Anda. Popup saat ini akan tetap terbuka.
                 </p>
 
                 <div className="pt-2 flex items-center justify-end gap-2.5">
@@ -894,11 +895,13 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
         </div>
       )}
 
-      {/* Layer 2: Nested Post Detail Modal Popup (Popup di atas Popup) */}
-      {nestedArticle && (
+      {/* Fallback Layer 2 when onOpenInternalArticle is not provided */}
+      {!onOpenInternalArticle && nestedArticle && (
         <NewsDetailModal
           article={nestedArticle}
           onClose={() => setNestedArticle(null)}
+          onCloseParent={onCloseParent}
+          isSecondLayer={true}
           zIndexClass="z-[75]"
         />
       )}

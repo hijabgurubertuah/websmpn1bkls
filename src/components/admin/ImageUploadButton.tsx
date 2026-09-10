@@ -10,6 +10,7 @@ import {
   Zap,
   X,
   Clipboard,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   compressAndResizeImage,
@@ -21,6 +22,12 @@ import {
   uploadFileViaAppsScript,
   getStoredAppsScriptConfig,
 } from '../../lib/googleAppsScript';
+import {
+  DriveMediaItem,
+  getStoredDriveMedia,
+  subscribeDriveMedia,
+} from '../../lib/driveMediaStorage';
+import { DriveMediaGalleryModal } from './DriveMediaGalleryModal';
 
 interface ImageUploadButtonProps {
   label: string;
@@ -49,8 +56,8 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   const [gasConfig, setGasConfig] = useState(getStoredAppsScriptConfig());
   const isGasAvailable = Boolean(gasConfig?.webAppUrl && gasConfig?.webAppUrl.trim().length > 15 && gasConfig.enabled !== false);
 
-  // 3 Tabs: 'gas' (Drive), 'local' (WebP), 'url' (Link)
-  const [uploadMode, setUploadMode] = useState<'gas' | 'local' | 'url'>('gas');
+  // 4 Tabs: 'gas' (Drive), 'gallery' (Galeri Drive), 'local' (WebP), 'url' (Link)
+  const [uploadMode, setUploadMode] = useState<'gas' | 'gallery' | 'local' | 'url'>('gas');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -58,12 +65,23 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [successInfo, setSuccessInfo] = useState<string | null>(null);
 
+  // Drive Gallery state
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [galleryMedia, setGalleryMedia] = useState<DriveMediaItem[]>([]);
+
   useEffect(() => {
     const current = getStoredAppsScriptConfig();
     setGasConfig(current);
     if (!current?.webAppUrl) {
       setUploadMode('local');
     }
+
+    // Load stored drive media
+    setGalleryMedia(getStoredDriveMedia());
+    const unsub = subscribeDriveMedia((items) => {
+      setGalleryMedia(items);
+    });
+    return () => unsub();
   }, []);
 
   const getPresetOptions = (): CompressionOptions => {
@@ -230,49 +248,69 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
 
         {/* Upload Controls */}
         <div className="flex-1 w-full space-y-2">
-          {/* 3 Method Tabs: Drive, WebP, Link */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200">
+          {/* 4 Method Tabs: Drive, Galeri, WebP, Link */}
+          <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200">
             <button
               type="button"
               onClick={() => setUploadMode('gas')}
-              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-1.5 px-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer truncate ${
                 uploadMode === 'gas'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Unggah baru ke Google Drive via Apps Script"
             >
-              <Zap className="w-3 h-3 text-amber-300" />
-              <span>Drive</span>
+              <Zap className="w-3 h-3 text-amber-300 shrink-0" />
+              <span className="truncate">Drive</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setUploadMode('gallery');
+                setIsGalleryModalOpen(true);
+              }}
+              className={`py-1.5 px-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer truncate ${
+                uploadMode === 'gallery'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Buka galeri gambar Google Drive"
+            >
+              <ImageIcon className={`w-3 h-3 shrink-0 ${uploadMode === 'gallery' ? 'text-amber-300' : 'text-blue-500'}`} />
+              <span className="truncate">Galeri</span>
             </button>
 
             <button
               type="button"
               onClick={() => setUploadMode('local')}
-              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-1.5 px-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer truncate ${
                 uploadMode === 'local'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Kompresi WebP lokal super cepat"
             >
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>WebP</span>
+              <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+              <span className="truncate">WebP</span>
             </button>
 
             <button
               type="button"
               onClick={() => setUploadMode('url')}
-              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`py-1.5 px-1.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer truncate ${
                 uploadMode === 'url'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Tempel URL tautan gambar atau Google Drive"
             >
-              <LinkIcon className="w-3 h-3 text-blue-500" />
-              <span>Link</span>
+              <LinkIcon className="w-3 h-3 text-blue-500 shrink-0" />
+              <span className="truncate">Link</span>
             </button>
           </div>
 
-          {/* Hidden File Input for Drag / Click */}
+          {/* Hidden File Input for Drag / Click (Drive & WebP) */}
           <input
             ref={fileInputRef}
             type="file"
@@ -281,8 +319,8 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
             onChange={onFileInputChange}
           />
 
-          {/* Mode 1 & 2: Dropzone */}
-          {uploadMode !== 'url' && (
+          {/* Mode 1 & 3: Dropzone for Drive or WebP upload */}
+          {(uploadMode === 'gas' || uploadMode === 'local') && (
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -325,7 +363,59 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
             </div>
           )}
 
-          {/* Mode 3: Direct URL Input with Paste Button */}
+          {/* Mode 2: Custom Gallery View */}
+          {uploadMode === 'gallery' && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setIsGalleryModalOpen(true)}
+                className="w-full py-2.5 px-3 border border-blue-200 hover:border-blue-400 bg-blue-50/60 hover:bg-blue-50 text-blue-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs"
+              >
+                <ImageIcon className="w-4 h-4 text-blue-600" />
+                <span>Pilih dari Galeri Google Drive</span>
+              </button>
+
+              {/* Quick thumbnail selector row if items exist */}
+              {galleryMedia.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5">
+                  {galleryMedia.slice(0, 6).map((media) => (
+                    <button
+                      key={media.fileId || media.fileUrl}
+                      type="button"
+                      onClick={() => {
+                        onChange(media.fileUrl);
+                        setSuccessInfo(`Gambar dipilih: ${media.fileName}`);
+                      }}
+                      className={`relative w-11 h-9 rounded-lg overflow-hidden border shrink-0 transition-all cursor-pointer hover:scale-105 ${
+                        value === media.fileUrl
+                          ? 'border-blue-600 ring-2 ring-blue-600/40 shadow-xs'
+                          : 'border-slate-200 hover:border-blue-400'
+                      }`}
+                      title={`Pilih ${media.fileName}`}
+                    >
+                      <img
+                        src={media.fileUrl}
+                        alt={media.fileName}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+                  ))}
+                  {galleryMedia.length > 6 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsGalleryModalOpen(true)}
+                      className="h-9 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold shrink-0 border border-slate-200 cursor-pointer flex items-center justify-center"
+                    >
+                      +{galleryMedia.length - 6}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mode 4: Direct URL Input with Paste Button */}
           {uploadMode === 'url' && (
             <div className="flex items-center gap-2">
               <input
@@ -373,6 +463,20 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
           )}
         </div>
       </div>
+
+      {/* Drive Media Gallery Modal (Tampilan Sendiri untuk Penyimpanan Google Drive) */}
+      <DriveMediaGalleryModal
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        onSelect={(selectedUrl, item) => {
+          onChange(selectedUrl);
+          setSuccessInfo(`Gambar dipilih: ${item.fileName}`);
+          setIsGalleryModalOpen(false);
+        }}
+        currentValue={value}
+        title={`Penyimpanan Gambar Google Drive — ${label || 'Media'}`}
+      />
     </div>
   );
 };
+

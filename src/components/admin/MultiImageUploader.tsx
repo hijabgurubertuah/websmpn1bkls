@@ -7,12 +7,14 @@ import {
   Zap,
   X,
   Clipboard,
+  FolderHeart,
 } from 'lucide-react';
 import { convertGoogleDriveUrl } from '../../lib/imageOptimizer';
 import {
   uploadFileViaAppsScript,
   getStoredAppsScriptConfig,
 } from '../../lib/googleAppsScript';
+import { DriveMediaGalleryModal } from './DriveMediaGalleryModal';
 
 interface MultiImageUploaderProps {
   label?: string;
@@ -34,6 +36,7 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploaderNotice, setUploaderNotice] = useState<string | null>(null);
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
 
   const [gasConfig, setGasConfig] = useState(getStoredAppsScriptConfig());
   const isGasAvailable = Boolean(gasConfig?.webAppUrl && gasConfig.webAppUrl.trim().length > 15 && gasConfig.enabled !== false);
@@ -127,6 +130,15 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsGalleryModalOpen(true)}
+            className="text-[11px] text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 font-semibold flex items-center gap-1 cursor-pointer px-2.5 py-1 rounded-md border border-blue-200 transition-colors"
+            title="Pilih gambar yang pernah diunggah dari Google Drive"
+          >
+            <FolderHeart className="w-3 h-3 text-blue-600" />
+            <span>Galeri Drive</span>
+          </button>
           <button
             type="button"
             onClick={() => setShowUrlInput(!showUrlInput)}
@@ -262,6 +274,26 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
           ))}
         </div>
       )}
+
+      {/* Drive Media Gallery Modal */}
+      <DriveMediaGalleryModal
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        onSelect={(selectedUrl, _item, allSelected) => {
+          if (allSelected && allSelected.length > 0) {
+            const urls = allSelected.map((i) => i.fileUrl);
+            onChange([...images, ...urls]);
+          } else {
+            onChange([...images, selectedUrl]);
+          }
+          setIsGalleryModalOpen(false);
+        }}
+        onSelectMultiple={(urls) => {
+          onChange([...images, ...urls]);
+          setIsGalleryModalOpen(false);
+        }}
+        title="Pilih Gambar dari Google Drive"
+      />
     </div>
   );
 };
