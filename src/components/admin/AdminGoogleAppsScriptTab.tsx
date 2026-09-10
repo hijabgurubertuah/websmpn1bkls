@@ -8,6 +8,11 @@ import {
   RefreshCw,
   ExternalLink,
   FolderHeart,
+  Code2,
+  Copy,
+  Check,
+  X,
+  BookOpen,
 } from 'lucide-react';
 import { SchoolConfig, GoogleAppsScriptConfig } from '../../types';
 import {
@@ -18,6 +23,7 @@ import {
   DEFAULT_APPS_SCRIPT_WEB_APP_URL,
   DEFAULT_APPS_SCRIPT_FOLDER_ID,
   AppsScriptUploadResult,
+  SAMPLE_APPS_SCRIPT_CODE,
 } from '../../lib/googleAppsScript';
 import { DriveMediaGalleryModal } from './DriveMediaGalleryModal';
 
@@ -58,6 +64,31 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
   const [testUploadResult, setTestUploadResult] = useState<AppsScriptUploadResult | null>(null);
   const [testUploadError, setTestUploadError] = useState<string | null>(null);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyCode = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(SAMPLE_APPS_SCRIPT_CODE);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = SAMPLE_APPS_SCRIPT_CODE;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-999999px';
+        textarea.style.top = '-999999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy code: ', err);
+    }
+  };
 
   useEffect(() => {
     const stored = getStoredAppsScriptConfig();
@@ -289,6 +320,102 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
               <FolderHeart className="w-3.5 h-3.5" />
               <span>Buka Galeri Foto Drive</span>
             </button>
+
+            {/* Tombol Kode Apps Script */}
+            <button
+              type="button"
+              onClick={() => setShowCodeModal(true)}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 shadow-xs ring-1 ring-slate-700 hover:ring-slate-500"
+              title="Buka dan salin kode Google Apps Script (Code.gs)"
+            >
+              <Code2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>Kode Apps Script</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Kartu Panduan & Akses Cepat Kode Sumber Google Apps Script */}
+      <div className="bg-slate-900 text-white rounded-xl p-5 border border-slate-800 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center shrink-0">
+              <Code2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                <span>Kode Sumber Google Apps Script (Code.gs)</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold border border-emerald-500/30">
+                  Versi Lengkap + Galeri Drive
+                </span>
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                Mendukung upload otomatis, direct link CDN berkecepatan tinggi, dan penarikan file folder Drive ke galeri.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowCodeModal(true)}
+              className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Buka &amp; Salin Kode</span>
+            </button>
+            <a
+              href="https://script.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg border border-slate-700 transition-all flex items-center gap-1"
+            >
+              <span>script.google.com</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </a>
+          </div>
+        </div>
+
+        {/* 4 Langkah Praktis Deploy */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+          <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-1">
+            <div className="text-amber-400 font-bold flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] flex items-center justify-center font-bold">1</span>
+              <span>Buka Apps Script</span>
+            </div>
+            <p className="text-slate-300 text-[10px] leading-relaxed">
+              Buka <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline font-mono">script.google.com</a> dan buat project baru.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-1">
+            <div className="text-amber-400 font-bold flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] flex items-center justify-center font-bold">2</span>
+              <span>Tempel Kode</span>
+            </div>
+            <p className="text-slate-300 text-[10px] leading-relaxed">
+              Klik tombol <strong className="text-amber-300">Kode Apps Script</strong>, salin kodenya, dan gantikan isi <span className="font-mono text-white">Code.gs</span>.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-1">
+            <div className="text-amber-400 font-bold flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] flex items-center justify-center font-bold">3</span>
+              <span>Deploy Web App</span>
+            </div>
+            <p className="text-slate-300 text-[10px] leading-relaxed">
+              Deploy &gt; New deployment &gt; Jenis: Web app &gt; Akses: <strong className="text-white">Anyone (Siapa saja)</strong>.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-1">
+            <div className="text-amber-400 font-bold flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-amber-400/20 text-amber-300 text-[10px] flex items-center justify-center font-bold">4</span>
+              <span>Salin URL Web App</span>
+            </div>
+            <p className="text-slate-300 text-[10px] leading-relaxed">
+              Salin URL akhiran <span className="font-mono text-white">/exec</span> lalu simpan ke input URL di atas.
+            </p>
           </div>
         </div>
       </div>
@@ -348,6 +475,137 @@ export const AdminGoogleAppsScriptTab: React.FC<AdminGoogleAppsScriptTabProps> =
         }}
         title="Penyimpanan Gambar Google Drive (Galeri Apps Script)"
       />
+
+      {/* Modal Kode Sumber Google Apps Script */}
+      {showCodeModal && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCodeModal(false);
+          }}
+        >
+          <div className="relative w-full max-w-4xl max-h-[92vh] bg-slate-900 text-slate-100 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden">
+            {/* Header Modal */}
+            <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <Code2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white truncate flex items-center gap-2">
+                    <span>Kode Google Apps Script</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
+                      Code.gs
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Salin seluruh kode ini ke project Google Apps Script (script.google.com)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Tombol Salin */}
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                    isCopied
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+                  }`}
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin Semua Kode</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Tombol Tutup */}
+                <button
+                  type="button"
+                  onClick={() => setShowCodeModal(false)}
+                  className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Tutup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick guide banner */}
+            <div className="px-5 py-2.5 bg-slate-950/60 border-b border-slate-800 text-xs text-slate-300 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 text-[11px]">
+                <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  Buka <strong>script.google.com</strong> ➔ Ganti seluruh isi <code>Code.gs</code> ➔ Klik <strong>Deploy</strong> ➔ Pilih <strong>Web App</strong> ➔ Siapa saja (Anyone).
+                </span>
+              </div>
+              <a
+                href="https://script.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 border border-slate-700 flex items-center gap-1 shrink-0"
+              >
+                <span>script.google.com</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            </div>
+
+            {/* Code container */}
+            <div className="flex-1 overflow-auto p-4 bg-slate-950/90 select-all">
+              <pre className="text-[11px] sm:text-xs font-mono text-slate-200 leading-relaxed whitespace-pre font-normal">
+                {SAMPLE_APPS_SCRIPT_CODE}
+              </pre>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between gap-3 shrink-0">
+              <span className="text-[11px] text-slate-400">
+                {SAMPLE_APPS_SCRIPT_CODE.split('\n').length} baris kode siap pakai (Upload + Live listFiles)
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCodeModal(false)}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                    isCopied
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+                  }`}
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>Tersalin ke Clipboard!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin Semua Kode</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
