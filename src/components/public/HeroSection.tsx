@@ -61,7 +61,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center transform scale-105 duration-1000 ease-out"
           />
-          {/* Configurable Gradients Overlay */}
+          {/* Pelindung Kontras Teks: Latar tetap gelap pekat di area teks agar selalu tajam & mudah dibaca */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-transparent max-w-4xl" />
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent" />
+
+          {/* Configurable Gradients Overlay dari Pengaturan Tema Admin */}
           <div
             className="absolute inset-0 pointer-events-none transition-all duration-300"
             style={{
@@ -76,8 +80,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
           />
         </div>
 
-        {/* Hero Content Area */}
-        <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 ${hasQuickStats ? 'pb-20 sm:pb-28' : 'pb-12 sm:pb-16'}`}>
+        {/* Hero Content Area: Di layar HP diberi pb-36 sm:pb-40 agar tombol Profil & Prestasi Sekolah tidak tertimpa oleh kartu */}
+        <div className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 ${hasQuickStats ? 'pb-36 sm:pb-40 md:pb-24 lg:pb-28' : 'pb-12 sm:pb-16'}`}>
           <div className="max-w-3xl space-y-4">
             
             {/* Main Title */}
@@ -91,7 +95,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
             </p>
 
             {/* CTA Buttons */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 mb-2 flex flex-wrap items-center gap-3 relative z-10">
               {header.heroCtaText && (
                 <button
                   type="button"
@@ -124,23 +128,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
 
       {/* Floating 4 Stat Cards: Batas bawah banner tepat di tengah kartu (separuh atas di dalam banner, separuh bawah di luar banner) */}
       {hasQuickStats && (
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -translate-y-1/2 -mb-8 sm:-mb-12">
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -translate-y-1/2 -mb-14 sm:-mb-16 md:-mb-8 lg:-mb-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
             {header.highlights.map((stat) => (
               <div
                 key={stat.id}
-                className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-2xl ring-1 ring-white/10 hover:border-blue-500/60 transition-all duration-300 transform hover:-translate-y-1 group"
+                className="group relative rounded-2xl p-[2.5px] sm:p-[3px] bg-gradient-to-br from-yellow-300 via-amber-400 to-amber-600 shadow-[0_8px_14px_-2px_rgba(0,0,0,0.85),0_4px_6px_-1px_rgba(0,0,0,0.7)] transition-all duration-300 transform hover:-translate-y-1"
               >
-                <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 border border-slate-700/50 group-hover:scale-105 transition-transform">
-                    {getStatIcon(stat.icon)}
+                <div className="h-full w-full bg-slate-900/95 backdrop-blur-xl rounded-[13.5px] p-3 sm:p-4.5 flex flex-col justify-between">
+                  <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5 sm:mb-2">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/95 border border-amber-400/40 text-amber-400 group-hover:scale-105 transition-transform shrink-0">
+                      {getStatIcon(stat.icon)}
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 line-clamp-1">
+                      {stat.label}
+                    </span>
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 line-clamp-1">
-                    {stat.label}
-                  </span>
-                </div>
-                <div className="text-lg sm:text-2xl font-black text-white tracking-tight pl-0.5">
-                  {stat.value}
+                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight pl-0.5">
+                    {stat.value}
+                  </div>
                 </div>
               </div>
             ))}
