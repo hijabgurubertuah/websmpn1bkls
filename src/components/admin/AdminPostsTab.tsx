@@ -358,10 +358,36 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   };
 
   const handleTogglePin = async (art: NewsArticle) => {
-    await onSaveArticle({
-      ...art,
-      isPinned: !art.isPinned,
-    });
+    // If currently NOT pinned, check how many are already pinned
+    if (!art.isPinned) {
+      const currentlyPinned = articles.filter((a) => Boolean(a.isPinned));
+      if (currentlyPinned.length >= 3) {
+        setFeedbackToast({
+          type: 'error',
+          message: 'Maksimal 3 postingan yang dapat disematkan (pin). Lepas pin dari postingan lain terlebih dahulu.',
+        });
+        setTimeout(() => setFeedbackToast(null), 4000);
+        return;
+      }
+    }
+
+    try {
+      await onSaveArticle({
+        ...art,
+        isPinned: !art.isPinned,
+      });
+      setFeedbackToast({
+        type: 'success',
+        message: !art.isPinned ? 'Berita berhasil disematkan (Pin)' : 'Pin berita dilepas',
+      });
+      setTimeout(() => setFeedbackToast(null), 2000);
+    } catch {
+      setFeedbackToast({
+        type: 'error',
+        message: 'Gagal mengubah status pin berita.',
+      });
+      setTimeout(() => setFeedbackToast(null), 3000);
+    }
   };
 
   const localDrafts = articles.filter((a) => Boolean(a.isLocalDraft));
@@ -860,65 +886,40 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
               </div>
             )}
 
-            {/* Toggles & Action Buttons */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
-              {/* Mobile: Row 1 (Sematkan + Simpan Draft sejajar) / Desktop: Left Side */}
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3">
-                <label className="inline-flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm font-bold text-slate-700 cursor-pointer select-none bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-2xs hover:bg-slate-50 transition-colors w-full sm:w-auto">
-                  <input
-                    type="checkbox"
-                    checked={isPinned}
-                    onChange={(e) => setIsPinned(e.target.checked)}
-                    className="rounded text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer"
-                  />
-                  <Pin className={`w-3.5 h-3.5 ${isPinned ? 'text-amber-600 fill-amber-500' : 'text-slate-400'}`} />
-                  <span>Sematkan</span>
-                </label>
-
-                {/* Simpan Draft (Tampil sejajar dengan Sematkan di Mobile) */}
+            {/* Action Buttons: Simpan Draft & Publikasi (Sejajar) */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {editingArticleId ? (
                 <button
                   type="button"
-                  onClick={handleSaveLocal}
-                  disabled={saving || savingLocal}
-                  className="sm:hidden px-3 py-2.5 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-2xs w-full"
-                  title="Simpan sebagai draft di perangkat ini"
+                  onClick={() => {
+                    const currentArt = articles.find((a) => a.id === editingArticleId);
+                    if (currentArt) setArticleToDelete(currentArt);
+                  }}
+                  className="px-3.5 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <HardDrive className={`w-3.5 h-3.5 text-amber-700 ${savingLocal ? 'animate-pulse' : ''}`} />
-                  <span>{savingLocal ? 'Menyimpan...' : 'Simpan Draft'}</span>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Berita Ini</span>
                 </button>
+              ) : (
+                <div />
+              )}
 
-                {editingArticleId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentArt = articles.find((a) => a.id === editingArticleId);
-                      if (currentArt) setArticleToDelete(currentArt);
-                    }}
-                    className="col-span-2 sm:col-span-1 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Hapus Berita Ini</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Desktop Right Side & Mobile Row 2 (Publikasi Tombol Posting leluasa & rata tengah) */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:flex sm:items-center sm:gap-3 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={handleSaveLocal}
                   disabled={saving || savingLocal}
-                  className="hidden sm:inline-flex px-5 py-2.5 text-xs sm:text-sm font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all cursor-pointer items-center justify-center gap-2 disabled:opacity-50 shadow-2xs"
+                  className="px-4 py-2.5 text-xs sm:text-sm font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 shadow-2xs w-full"
                   title="Simpan sebagai draft di perangkat ini"
                 >
                   <HardDrive className={`w-4 h-4 text-amber-700 ${savingLocal ? 'animate-pulse' : ''}`} />
-                  <span>{savingLocal ? 'Menyimpan Draft...' : 'Simpan Draft'}</span>
+                  <span>{savingLocal ? 'Menyimpan...' : 'Simpan Draft'}</span>
                 </button>
 
                 <button
                   type="submit"
                   disabled={saving || savingLocal}
-                  className="w-full sm:w-auto px-6 py-3 sm:py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-all shadow-sm hover:shadow cursor-pointer flex items-center justify-center text-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-all shadow-sm hover:shadow cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto"
                   title="Publikasikan postingan"
                 >
                   <CloudUpload className={`w-4 h-4 ${saving ? 'animate-bounce' : ''}`} />

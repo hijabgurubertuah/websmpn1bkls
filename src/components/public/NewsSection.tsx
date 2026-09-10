@@ -18,12 +18,40 @@ interface NewsSectionProps {
   articles: NewsArticle[];
 }
 
+// Helper to parse date string or timestamp for accurate sorting
+const parseDateToTime = (dateStr?: string, id?: string): number => {
+  if (!dateStr) return 0;
+  const isoTime = Date.parse(dateStr);
+  if (!isNaN(isoTime)) return isoTime;
+
+  const indoMonths: Record<string, number> = {
+    januari: 0, februari: 1, maret: 2, april: 3, mei: 4, juni: 5,
+    juli: 6, agustus: 7, september: 8, oktober: 9, november: 10, desember: 11,
+  };
+  const parts = dateStr.trim().toLowerCase().split(/\s+/);
+  if (parts.length >= 3) {
+    const day = parseInt(parts[0], 10);
+    const month = indoMonths[parts[1]];
+    const year = parseInt(parts[2], 10);
+    if (!isNaN(day) && month !== undefined && !isNaN(year)) {
+      return new Date(year, month, day).getTime();
+    }
+  }
+
+  if (id) {
+    const numMatch = id.match(/\d{10,}/);
+    if (numMatch) return parseInt(numMatch[0], 10);
+  }
+
+  return 0;
+};
+
 export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
-  // Layout Columns state (1, 2, or 3 columns cycle)
+  // Layout Columns state (1, 2, or 3 columns cycle on mobile/desktop)
   const [layoutColumns, setLayoutColumns] = useState<1 | 2 | 3>(() => {
     try {
       const saved = localStorage.getItem('public_news_layout_cols');
@@ -57,9 +85,9 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
     return ['Semua', ...Array.from(set)];
   }, [articles]);
 
-  // Filter articles
+  // Filter and Sort articles: Pinned (max 3) first, then newest published first
   const filteredArticles = useMemo(() => {
-    return articles
+    const published = articles
       .filter((a) => a.status === 'published' && !a.isLocalDraft)
       .filter((a) => {
         if (selectedCategory === 'Semua') return true;
@@ -74,6 +102,21 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
           a.content.toLowerCase().includes(q)
         );
       });
+
+    // Pinned articles (maximum 3, sorted newest first)
+    const pinned = published
+      .filter((a) => Boolean(a.isPinned))
+      .sort((a, b) => parseDateToTime(b.date, b.id) - parseDateToTime(a.date, a.id))
+      .slice(0, 3);
+
+    const pinnedIds = new Set(pinned.map((a) => a.id));
+
+    // Non-pinned articles (all remaining, sorted newest first)
+    const nonPinned = published
+      .filter((a) => !pinnedIds.has(a.id))
+      .sort((a, b) => parseDateToTime(b.date, b.id) - parseDateToTime(a.date, a.id));
+
+    return [...pinned, ...nonPinned];
   }, [articles, selectedCategory, searchQuery]);
 
   return (
@@ -198,13 +241,12 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-wrap gap-1 sm:gap-2">
+                  {/* Category & Pinned Badges (Hidden in 2-column grid mode) */}
+                  <div className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-wrap gap-1 sm:gap-2 ${layoutColumns === 2 ? 'hidden' : 'flex'}`}>
                     <span
                       className={`bg-blue-700/90 backdrop-blur-md text-white font-bold rounded uppercase tracking-wider ${
                         layoutColumns === 3
                           ? 'text-[8px] sm:text-[11px] px-1 py-0.5 sm:px-2.5 sm:py-1'
-                          : layoutColumns === 2
-                          ? 'text-[9px] sm:text-[11px] px-1.5 py-0.5 sm:px-2.5 sm:py-1'
                           : 'text-[10px] sm:text-[11px] px-2 py-0.5 sm:px-2.5 sm:py-1'
                       }`}
                     >
@@ -215,9 +257,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
                         className={`bg-amber-500/95 backdrop-blur-md text-slate-950 font-bold rounded flex items-center gap-0.5 sm:gap-1 shadow-2xs ${
                           layoutColumns === 3
                             ? 'text-[8px] sm:text-[11px] px-1 py-0.5 sm:px-2 sm:py-1'
-                            : layoutColumns === 2
-                            ? 'text-[9px] sm:text-[11px] px-1.5 py-0.5 sm:px-2 sm:py-1'
-                            : 'text-[10px] sm:text-[11px] px-2 py-0.5 sm:px-2 sm:py-1'
+                            : 'text-[10px] sm:text-[11px] px-2 py-0.5 sm:px-2.5 sm:py-1'
                         }`}
                       >
                         <BookmarkCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-950" />
@@ -226,8 +266,8 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
                     )}
                   </div>
 
-                  {/* Badges for gallery and embed */}
-                  <div className="absolute bottom-1.5 right-1.5 sm:bottom-3 sm:right-3 flex items-center gap-1 sm:gap-1.5">
+                  {/* Badges for gallery and embed (Hidden in 2-column grid mode) */}
+                  <div className={`absolute bottom-1.5 right-1.5 sm:bottom-3 sm:right-3 flex items-center gap-1 sm:gap-1.5 ${layoutColumns === 2 ? 'hidden' : 'flex'}`}>
                     {article.galleryImages && article.galleryImages.length > 0 && (
                       <span
                         className={`bg-slate-900/80 backdrop-blur-md text-white font-bold rounded-full flex items-center gap-0.5 sm:gap-1 ${
@@ -263,80 +303,82 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
                     layoutColumns === 3
                       ? 'p-2 sm:p-5'
                       : layoutColumns === 2
-                      ? 'p-3 sm:p-5'
+                      ? 'p-2.5 sm:p-4'
                       : 'p-4 sm:p-6'
                   }`}
                 >
                   <div>
-                    {/* Meta */}
-                    <div
-                      className={`flex items-center gap-1.5 sm:gap-3 text-slate-400 mb-1.5 sm:mb-2.5 ${
-                        layoutColumns === 3
-                          ? 'text-[9px] sm:text-xs'
-                          : layoutColumns === 2
-                          ? 'text-[10px] sm:text-xs'
-                          : 'text-xs'
-                      }`}
-                    >
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        {article.date}
-                      </span>
-                      <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>•</span>
-                      <span className={`items-center gap-1 ${layoutColumns === 3 ? 'hidden sm:flex' : 'flex'}`}>
-                        <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        {article.views} views
-                      </span>
-                    </div>
+                    {/* Meta (Date & Views - Hidden in 2-column grid mode) */}
+                    {layoutColumns !== 2 && (
+                      <div
+                        className={`flex items-center gap-1.5 sm:gap-3 text-slate-400 mb-1.5 sm:mb-2.5 ${
+                          layoutColumns === 3
+                            ? 'text-[9px] sm:text-xs'
+                            : 'text-xs'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          {article.date}
+                        </span>
+                        <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>•</span>
+                        <span className={`items-center gap-1 ${layoutColumns === 3 ? 'hidden sm:flex' : 'flex'}`}>
+                          <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          {article.views} views
+                        </span>
+                      </div>
+                    )}
 
                     {/* Title */}
                     <h3
-                      className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors mb-1 sm:mb-2 line-clamp-2 ${
+                      className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 ${
                         layoutColumns === 3
-                          ? 'text-xs sm:text-lg'
+                          ? 'text-xs sm:text-lg mb-1 sm:mb-2'
                           : layoutColumns === 2
-                          ? 'text-sm sm:text-lg'
-                          : 'text-base sm:text-lg'
+                          ? 'text-xs sm:text-base'
+                          : 'text-base sm:text-lg mb-1 sm:mb-2'
                       }`}
                     >
                       {article.title}
                     </h3>
 
-                    {/* Summary (Hidden on 3-column mobile to avoid cramping, visible on normal/desktop) */}
-                    <p
-                      className={`text-slate-600 text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3 ${
-                        layoutColumns === 3
-                          ? 'hidden md:block'
-                          : layoutColumns === 2
-                          ? 'hidden sm:block'
-                          : 'block'
-                      }`}
-                    >
-                      {article.summary}
-                    </p>
+                    {/* Summary (Hidden in 2-column and 3-column mobile) */}
+                    {layoutColumns !== 2 && (
+                      <p
+                        className={`text-slate-600 text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3 ${
+                          layoutColumns === 3
+                            ? 'hidden md:block'
+                            : 'block'
+                        }`}
+                      >
+                        {article.summary}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Author & Read More */}
-                  <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span
-                      className={`text-slate-500 font-medium items-center gap-1 truncate ${
-                        layoutColumns === 3
-                          ? 'hidden sm:flex max-w-[150px]'
-                          : 'flex max-w-[120px] sm:max-w-[180px]'
-                      }`}
-                    >
-                      <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
-                      {article.author}
-                    </span>
-                    <span
-                      className={`text-blue-600 font-bold items-center gap-0.5 sm:gap-1 group-hover:translate-x-1 transition-transform ml-auto sm:ml-0 ${
-                        layoutColumns === 3 ? 'text-[10px] sm:text-xs' : 'text-xs'
-                      }`}
-                    >
-                      <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>Baca</span>
-                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </span>
-                  </div>
+                  {/* Author & Read More (Hidden in 2-column grid mode) */}
+                  {layoutColumns !== 2 && (
+                    <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <span
+                        className={`text-slate-500 font-medium items-center gap-1 truncate ${
+                          layoutColumns === 3
+                            ? 'hidden sm:flex max-w-[150px]'
+                            : 'flex max-w-[120px] sm:max-w-[180px]'
+                        }`}
+                      >
+                        <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
+                        {article.author}
+                      </span>
+                      <span
+                        className={`text-blue-600 font-bold items-center gap-0.5 sm:gap-1 group-hover:translate-x-1 transition-transform ml-auto sm:ml-0 ${
+                          layoutColumns === 3 ? 'text-[10px] sm:text-xs' : 'text-xs'
+                        }`}
+                      >
+                        <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>Baca</span>
+                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

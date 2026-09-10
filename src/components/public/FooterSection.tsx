@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SchoolConfig } from '../../types';
 import {
   School,
@@ -12,7 +12,9 @@ import {
   Twitter,
   ArrowUp,
   Shield,
+  Eye,
 } from 'lucide-react';
+import { initRealtimeVisitorCounter } from '../../lib/analytics';
 
 interface FooterSectionProps {
   config: SchoolConfig;
@@ -21,6 +23,21 @@ interface FooterSectionProps {
 export const FooterSection: React.FC<FooterSectionProps> = ({ config }) => {
   const { identity, footer, navMenus, themeConfig } = config;
   const footerBg = themeConfig?.footerBgColor || themeConfig?.headerBgColor;
+
+  // Real-time Visitor counter & active online users synced via Firebase Firestore
+  const [totalVisits, setTotalVisits] = useState<number>(15420);
+  const [onlineUsers, setOnlineUsers] = useState<number>(1);
+
+  useEffect(() => {
+    const unsubscribe = initRealtimeVisitorCounter(({ totalVisits: visits, onlineUsers: online }) => {
+      setTotalVisits(visits);
+      setOnlineUsers(online);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -172,9 +189,25 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ config }) => {
 
         </div>
 
-        {/* Bottom copyright & back to top */}
+        {/* Bottom copyright, stats counter (symbols + numbers only), & back to top */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>{footer.copyright}</p>
+
+          {/* Visitor & Online Stats Counter (Symbols + Numbers only without text labels) */}
+          <div className="flex items-center gap-3.5 bg-slate-900/90 border border-slate-800/90 px-3.5 py-1.5 rounded-full text-slate-300 font-mono text-xs shadow-inner">
+            <div className="flex items-center gap-1.5" title="Total Kunjungan">
+              <Eye className="w-3.5 h-3.5 text-blue-400" />
+              <span>{totalVisits.toLocaleString('id-ID')}</span>
+            </div>
+            <span className="text-slate-700">|</span>
+            <div className="flex items-center gap-1.5" title="Pengunjung Online Saat Ini">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>{onlineUsers}</span>
+            </div>
+          </div>
 
           <div className="flex items-center gap-4">
             <button
