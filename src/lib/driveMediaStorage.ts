@@ -3,6 +3,8 @@ import {
   getStoredAppsScriptConfig,
   listDriveFilesViaAppsScript,
 } from './googleAppsScript';
+import { db, withTimeout } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export interface DriveMediaItem {
   fileId: string;
@@ -74,7 +76,73 @@ export function getStoredDriveMedia(): DriveMediaItem[] {
 }
 
 /**
- * Save drive media items to localStorage
+ * Fetch Drive Media catalog from Firestore Cloud Database
+ */
+export async function fetchFirestoreDriveMedia(): Promise<DriveMediaItem[]> {
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return [];
+  }
+  try {
+    const docRef = doc(db, 'school_portal', 'drive_media');
+    const snap = await withTimeout(getDoc(docRef), 3500);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (Array.isArray(data?.items)) {
+        return data.items as DriveMediaItem[];
+      }
+    }
+  } catch (err) {
+    console.info('Firestore media fetch skipped/offline:', err);
+  }
+  return [];
+}
+
+let saveFirestoreTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Persist Drive Media catalog to Firestore Cloud Database
+ */
+export async function saveToFirestoreDriveMedia(items: DriveMediaItem[]): Promise<void> {
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return;
+  }
+  if (saveFirestoreTimeout) clearTimeout(saveFirestoreTimeout);
+  saveFirestoreTimeout = setTimeout(async () => {
+    try {
+      // Limit to latest 300 items to keep doc under 60KB
+      const toSave = items.slice(0, 300).map((i) => ({
+        fileId: i.fileId,
+        fileName: i.fileName,
+        fileUrl: i.fileUrl,
+        viewUrl: i.viewUrl || '',
+        size: i.size || 0,
+        mimeType: i.mimeType || 'image/jpeg',
+        uploadedAt: i.uploadedAt || new Date().toISOString(),
+        folderName: i.folderName || '',
+        source: i.source || 'synced',
+      }));
+
+      const docRef = doc(db, 'school_portal', 'drive_media');
+      await withTimeout(
+        setDoc(
+          docRef,
+          {
+            items: toSave,
+            updatedAt: new Date().toISOString(),
+            count: toSave.length,
+          },
+          { merge: true }
+        ),
+        4500
+      );
+    } catch (err) {
+      console.info('Firestore media sync skipped:', err);
+    }
+  }, 1200);
+}
+
+/**
+ * Save drive media items to localStorage and Firestore
  */
 export function saveStoredDriveMedia(items: DriveMediaItem[]): void {
   try {
@@ -88,6 +156,9 @@ export function saveStoredDriveMedia(items: DriveMediaItem[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
     localStorage.setItem(LEGACY_KEY, JSON.stringify(sorted));
     notifyListeners(sorted);
+
+    // Synchronize to Firestore so all browsers (Browser 1, Browser 2, mobile) have identical media
+    saveToFirestoreDriveMedia(sorted);
   } catch (err) {
     console.error('Gagal menyimpan riwayat media Google Drive:', err);
   }
@@ -223,12 +294,33 @@ export async function syncDriveMediaFiles(options?: {
   const current = getStoredDriveMedia();
   const fileMap = new Map<string, DriveMediaItem>();
 
-  // 1. Put current items in map
+  // 1. Put current local storage items in map
   current.forEach((item) => {
     fileMap.set(item.fileId, item);
   });
 
-  // 2. Scan app for any Drive images
+  // 2. Fetch shared cloud media from Firestore (bridges Browser 1, Browser 2, and mobile devices)
+  try {
+    const cloudItems = await fetchFirestoreDriveMedia();
+    cloudItems.forEach((item) => {
+      const existing = fileMap.get(item.fileId);
+      if (!existing) {
+        fileMap.set(item.fileId, item);
+      } else {
+        // Keep the richest metadata
+        fileMap.set(item.fileId, {
+          ...item,
+          ...existing,
+          fileName: existing.fileName || item.fileName,
+          size: existing.size || item.size,
+        });
+      }
+    });
+  } catch (cloudErr) {
+    console.info('Firestore media merge skipped:', cloudErr);
+  }
+
+  // 3. Scan app for any Drive images in articles or layout configs
   const scanned = scanAppForDriveImages();
   scanned.forEach((item) => {
     if (!fileMap.has(item.fileId)) {
@@ -236,7 +328,7 @@ export async function syncDriveMediaFiles(options?: {
     }
   });
 
-  // 3. Query Google Apps Script Web App for folder contents
+  // 4. Query Google Apps Script Web App for live folder contents directly from Google Drive
   const config = getStoredAppsScriptConfig();
   const webAppUrl = options?.webAppUrl || config.webAppUrl;
   const folderId = options?.folderId ?? config.folderId;
