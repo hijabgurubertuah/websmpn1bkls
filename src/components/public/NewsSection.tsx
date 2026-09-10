@@ -23,6 +23,31 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
 
+  // Layout Columns state (1, 2, or 3 columns cycle)
+  const [layoutColumns, setLayoutColumns] = useState<1 | 2 | 3>(() => {
+    try {
+      const saved = localStorage.getItem('public_news_layout_cols');
+      if (saved === '1' || saved === '2' || saved === '3') {
+        return Number(saved) as 1 | 2 | 3;
+      }
+    } catch {
+      // ignore
+    }
+    return 3;
+  });
+
+  const handleCycleLayout = () => {
+    setLayoutColumns((prev) => {
+      const next: 1 | 2 | 3 = prev === 1 ? 2 : prev === 2 ? 3 : 1;
+      try {
+        localStorage.setItem('public_news_layout_cols', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   // Available categories
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -70,16 +95,47 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
             </p>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari berita..."
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-xs"
-            />
+          {/* Controls: Search Bar & Dynamic Layout Button */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* Search Bar */}
+            <div className="relative flex-1 md:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari berita..."
+                className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent shadow-xs"
+              />
+            </div>
+
+            {/* Layout Cycler Button (1 Kotak -> 2 Kotak -> 3 Kotak -> 1 Kotak) */}
+            <button
+              type="button"
+              onClick={handleCycleLayout}
+              className="h-10 px-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0 select-none"
+              title={`Layout Tampilan: ${layoutColumns} Kolom (Klik untuk ubah ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom)`}
+              aria-label={`Ubah susunan layout ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom`}
+            >
+              {layoutColumns === 1 && (
+                <div className="w-4 h-4 rounded-xs border-2 border-slate-700 bg-slate-700/30 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-slate-700 rounded-xs" />
+                </div>
+              )}
+              {layoutColumns === 2 && (
+                <div className="flex items-center gap-0.5">
+                  <div className="w-2 h-4 rounded-xs border-1.5 border-slate-700 bg-slate-700/30" />
+                  <div className="w-2 h-4 rounded-xs border-1.5 border-slate-700 bg-slate-700/30" />
+                </div>
+              )}
+              {layoutColumns === 3 && (
+                <div className="flex items-center gap-0.5">
+                  <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
+                  <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
+                  <div className="w-1.5 h-4 rounded-xs border border-slate-700 bg-slate-700/30" />
+                </div>
+              )}
+            </button>
           </div>
         </div>
 
@@ -110,15 +166,29 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div
+            className={
+              layoutColumns === 1
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 lg:gap-8'
+                : layoutColumns === 2
+                ? 'grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8'
+                : 'grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 md:gap-6 lg:gap-8'
+            }
+          >
             {filteredArticles.map((article) => (
               <div
                 key={article.id}
                 onClick={() => setSelectedArticle(article)}
-                className="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer transform hover:-translate-y-1"
+                className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer transform hover:-translate-y-1"
               >
                 {/* Thumbnail Image */}
-                <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-100">
+                <div
+                  className={`relative overflow-hidden bg-slate-100 shrink-0 w-full ${
+                    layoutColumns === 3
+                      ? 'aspect-4/3 sm:aspect-16/10'
+                      : 'aspect-16/10'
+                  }`}
+                >
                   <img
                     src={
                       article.coverImage ||
@@ -128,69 +198,143 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-                    <span className="bg-blue-700/90 backdrop-blur-md text-white font-bold text-[11px] px-2.5 py-1 rounded-md uppercase tracking-wider">
+                  <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-wrap gap-1 sm:gap-2">
+                    <span
+                      className={`bg-blue-700/90 backdrop-blur-md text-white font-bold rounded uppercase tracking-wider ${
+                        layoutColumns === 3
+                          ? 'text-[8px] sm:text-[11px] px-1 py-0.5 sm:px-2.5 sm:py-1'
+                          : layoutColumns === 2
+                          ? 'text-[9px] sm:text-[11px] px-1.5 py-0.5 sm:px-2.5 sm:py-1'
+                          : 'text-[10px] sm:text-[11px] px-2 py-0.5 sm:px-2.5 sm:py-1'
+                      }`}
+                    >
                       {article.category}
                     </span>
                     {article.isPinned && (
-                      <span className="bg-amber-500/95 backdrop-blur-md text-slate-950 font-bold text-[11px] px-2 py-1 rounded-md flex items-center gap-1 shadow-xs">
-                        <BookmarkCheck className="w-3 h-3 text-slate-950" />
-                        Unggulan
+                      <span
+                        className={`bg-amber-500/95 backdrop-blur-md text-slate-950 font-bold rounded flex items-center gap-0.5 sm:gap-1 shadow-2xs ${
+                          layoutColumns === 3
+                            ? 'text-[8px] sm:text-[11px] px-1 py-0.5 sm:px-2 sm:py-1'
+                            : layoutColumns === 2
+                            ? 'text-[9px] sm:text-[11px] px-1.5 py-0.5 sm:px-2 sm:py-1'
+                            : 'text-[10px] sm:text-[11px] px-2 py-0.5 sm:px-2 sm:py-1'
+                        }`}
+                      >
+                        <BookmarkCheck className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-950" />
+                        <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>Unggulan</span>
                       </span>
                     )}
                   </div>
 
                   {/* Badges for gallery and embed */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                  <div className="absolute bottom-1.5 right-1.5 sm:bottom-3 sm:right-3 flex items-center gap-1 sm:gap-1.5">
                     {article.galleryImages && article.galleryImages.length > 0 && (
-                      <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <ImageIcon className="w-3 h-3" />
-                        {article.galleryImages.length} Foto
+                      <span
+                        className={`bg-slate-900/80 backdrop-blur-md text-white font-bold rounded-full flex items-center gap-0.5 sm:gap-1 ${
+                          layoutColumns === 3
+                            ? 'text-[8px] sm:text-[10px] px-1 sm:px-2 py-0.5'
+                            : 'text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5'
+                        }`}
+                      >
+                        <ImageIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>
+                          {article.galleryImages.length}
+                        </span>
                       </span>
                     )}
                     {article.embedUrl && (
-                      <span className="bg-purple-900/80 backdrop-blur-md text-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Code2 className="w-3 h-3" />
-                        Interaktif
+                      <span
+                        className={`bg-purple-900/80 backdrop-blur-md text-purple-200 font-bold rounded-full flex items-center gap-0.5 sm:gap-1 ${
+                          layoutColumns === 3
+                            ? 'text-[8px] sm:text-[10px] px-1 sm:px-2 py-0.5'
+                            : 'text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5'
+                        }`}
+                      >
+                        <Code2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>Interaktif</span>
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-5 sm:p-6 flex flex-col flex-1">
-                  {/* Meta */}
-                  <div className="flex items-center gap-3 text-xs text-slate-400 mb-3">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {article.date}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5" />
-                      {article.views} views
-                    </span>
+                <div
+                  className={`flex flex-col flex-1 justify-between ${
+                    layoutColumns === 3
+                      ? 'p-2 sm:p-5'
+                      : layoutColumns === 2
+                      ? 'p-3 sm:p-5'
+                      : 'p-4 sm:p-6'
+                  }`}
+                >
+                  <div>
+                    {/* Meta */}
+                    <div
+                      className={`flex items-center gap-1.5 sm:gap-3 text-slate-400 mb-1.5 sm:mb-2.5 ${
+                        layoutColumns === 3
+                          ? 'text-[9px] sm:text-xs'
+                          : layoutColumns === 2
+                          ? 'text-[10px] sm:text-xs'
+                          : 'text-xs'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        {article.date}
+                      </span>
+                      <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>•</span>
+                      <span className={`items-center gap-1 ${layoutColumns === 3 ? 'hidden sm:flex' : 'flex'}`}>
+                        <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        {article.views} views
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3
+                      className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors mb-1 sm:mb-2 line-clamp-2 ${
+                        layoutColumns === 3
+                          ? 'text-xs sm:text-lg'
+                          : layoutColumns === 2
+                          ? 'text-sm sm:text-lg'
+                          : 'text-base sm:text-lg'
+                      }`}
+                    >
+                      {article.title}
+                    </h3>
+
+                    {/* Summary (Hidden on 3-column mobile to avoid cramping, visible on normal/desktop) */}
+                    <p
+                      className={`text-slate-600 text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3 ${
+                        layoutColumns === 3
+                          ? 'hidden md:block'
+                          : layoutColumns === 2
+                          ? 'hidden sm:block'
+                          : 'block'
+                      }`}
+                    >
+                      {article.summary}
+                    </p>
                   </div>
 
-                  {/* Title */}
-                  <h3 className="font-bold text-slate-900 text-lg leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
-                    {article.title}
-                  </h3>
-
-                  {/* Summary */}
-                  <p className="text-slate-600 text-sm line-clamp-3 leading-relaxed mb-4 flex-1">
-                    {article.summary}
-                  </p>
-
                   {/* Author & Read More */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 font-medium flex items-center gap-1 truncate max-w-[150px]">
-                      <User className="w-3.5 h-3.5 text-blue-500" />
+                  <div className="pt-2 sm:pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span
+                      className={`text-slate-500 font-medium items-center gap-1 truncate ${
+                        layoutColumns === 3
+                          ? 'hidden sm:flex max-w-[150px]'
+                          : 'flex max-w-[120px] sm:max-w-[180px]'
+                      }`}
+                    >
+                      <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
                       {article.author}
                     </span>
-                    <span className="text-blue-600 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      Baca Berita
-                      <ChevronRight className="w-4 h-4" />
+                    <span
+                      className={`text-blue-600 font-bold items-center gap-0.5 sm:gap-1 group-hover:translate-x-1 transition-transform ml-auto sm:ml-0 ${
+                        layoutColumns === 3 ? 'text-[10px] sm:text-xs' : 'text-xs'
+                      }`}
+                    >
+                      <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>Baca</span>
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </span>
                   </div>
                 </div>
