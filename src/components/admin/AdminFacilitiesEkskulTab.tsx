@@ -296,7 +296,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
       {subTab === 'facilities' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-slate-800 text-sm">Daftar Fasilitas Sekolah</h4>
+            <h4 className="font-bold text-slate-800 text-sm">Daftar Fasilitas Instansi</h4>
             <button
               type="button"
               onClick={handleOpenAddFacility}

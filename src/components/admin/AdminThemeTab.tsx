@@ -376,7 +376,7 @@ export const AdminThemeTab: React.FC<AdminThemeTabProps> = ({ config, onChange }
           {/* Warna Teks Bilah Menu */}
           <ColorItemControl
             label="2. Warna Teks & Menu Navigasi"
-            description="Warna tulisan nama sekolah dan menu navigasi agar kontras dengan warna bilah menu."
+            description="Warna tulisan nama instansi dan menu navigasi agar kontras dengan warna bilah menu."
             colorValue={activeNavbarText}
             onColorChange={(newHex) => updateTheme({ navbarTextColor: newHex, presetId: 'custom' })}
             quickSwatches={['#0f172a', '#1e293b', '#064e3b', '#881337', '#134e4a', '#581c87', '#ffffff', '#f8fafc']}
@@ -476,10 +476,10 @@ export const AdminThemeTab: React.FC<AdminThemeTabProps> = ({ config, onChange }
               className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-2xs"
               style={{ backgroundColor: activePrimary, color: '#ffffff' }}
             >
-              Portal Resmi Sekolah
+              Portal Resmi Instansi
             </span>
             <h4 className="font-extrabold text-base tracking-tight max-w-sm mx-auto leading-tight">
-              {config.header.heroTitle || 'Selamat Datang di Portal Sekolah'}
+              {config.header.heroTitle || 'Selamat Datang di Portal Instansi'}
             </h4>
             <div className="pt-1 flex justify-center gap-2">
               <button
@@ -487,13 +487,13 @@ export const AdminThemeTab: React.FC<AdminThemeTabProps> = ({ config, onChange }
                 className="px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm"
                 style={{ backgroundColor: activeBtnBg, color: activeBtnText }}
               >
-                Info PPDB
+                Layanan
               </button>
               <button
                 type="button"
                 className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20"
               >
-                Profil Sekolah
+                Profil Instansi
               </button>
             </div>
           </div>

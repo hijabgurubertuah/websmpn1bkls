@@ -11,11 +11,12 @@ interface ParsedImageShortcode {
   layout: 'full' | 'left' | 'right' | 'grid-2' | 'grid-3' | 'grid-4' | 'flex';
   urls: string[];
   caption?: string;
+  captions?: string[];
 }
 
 /**
  * Parses image shortcode like:
- * [img layout="grid-2" urls="url1 | url2" caption="some caption"]
+ * [img layout="grid-2" urls="url1 | url2" captions="cap1 | cap2"]
  * or [img layout="full" urls="url1" caption="caption"]
  */
 function parseImageShortcode(tagStr: string): ParsedImageShortcode | null {
@@ -23,6 +24,7 @@ function parseImageShortcode(tagStr: string): ParsedImageShortcode | null {
   const urlsMatch = tagStr.match(/urls=["']([^"']+)["']/i);
   const srcMatch = tagStr.match(/src=["']([^"']+)["']/i);
   const captionMatch = tagStr.match(/caption=["']([^"']+)["']/i);
+  const captionsMatch = tagStr.match(/captions=["']([^"']+)["']/i);
 
   let layout: ParsedImageShortcode['layout'] = 'full';
   if (layoutMatch) {
@@ -54,10 +56,16 @@ function parseImageShortcode(tagStr: string): ParsedImageShortcode | null {
 
   if (urls.length === 0) return null;
 
+  let captions: string[] | undefined = undefined;
+  if (captionsMatch) {
+    captions = captionsMatch[1].split(' | ').map((c) => c.trim());
+  }
+
   return {
     layout,
     urls,
-    caption: captionMatch ? captionMatch[1] : undefined,
+    caption: captionMatch ? captionMatch[1] : (captions && captions.length === 1 ? captions[0] : undefined),
+    captions,
   };
 }
 
@@ -172,31 +180,38 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
     }
 
     if (layout === 'grid-2') {
+      const { captions } = parsed;
       return (
-        <div key={key} className="clear-both my-4 space-y-1.5">
+        <div key={key} className="clear-both my-4 space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {urls.map((u, i) => (
-              <div
-                key={i}
-                onClick={() => openLightbox(i)}
-                className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3 cursor-pointer shadow-xs hover:shadow-md transition-all"
-              >
-                <img
-                  src={u}
-                  alt={`Foto ${i + 1}`}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Perbesar</span>
-                  </span>
+              <div key={i} className="flex flex-col space-y-1">
+                <div
+                  onClick={() => openLightbox(i)}
+                  className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3 cursor-pointer shadow-xs hover:shadow-md transition-all"
+                >
+                  <img
+                    src={u}
+                    alt={captions?.[i] || caption || `Foto ${i + 1}`}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Perbesar</span>
+                    </span>
+                  </div>
                 </div>
+                {captions && captions[i] && (
+                  <p className="text-[11px] text-slate-600 font-medium text-center bg-slate-50 py-1 px-2 rounded-lg border border-slate-200/60">
+                    {captions[i]}
+                  </p>
+                )}
               </div>
             ))}
           </div>
-          {caption && (
+          {caption && !captions?.length && (
             <p className="text-[11px] text-slate-500 font-medium text-center italic">
               {caption}
             </p>
@@ -206,31 +221,38 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
     }
 
     if (layout === 'grid-3') {
+      const { captions } = parsed;
       return (
-        <div key={key} className="clear-both my-4 space-y-1.5">
+        <div key={key} className="clear-both my-4 space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {urls.map((u, i) => (
-              <div
-                key={i}
-                onClick={() => openLightbox(i)}
-                className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3 cursor-pointer shadow-xs hover:shadow-md transition-all"
-              >
-                <img
-                  src={u}
-                  alt={`Foto ${i + 1}`}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Perbesar</span>
-                  </span>
+              <div key={i} className="flex flex-col space-y-1">
+                <div
+                  onClick={() => openLightbox(i)}
+                  className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3 cursor-pointer shadow-xs hover:shadow-md transition-all"
+                >
+                  <img
+                    src={u}
+                    alt={captions?.[i] || caption || `Foto ${i + 1}`}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Perbesar</span>
+                    </span>
+                  </div>
                 </div>
+                {captions && captions[i] && (
+                  <p className="text-[11px] text-slate-600 font-medium text-center bg-slate-50 py-1 px-2 rounded-lg border border-slate-200/60">
+                    {captions[i]}
+                  </p>
+                )}
               </div>
             ))}
           </div>
-          {caption && (
+          {caption && !captions?.length && (
             <p className="text-[11px] text-slate-500 font-medium text-center italic">
               {caption}
             </p>

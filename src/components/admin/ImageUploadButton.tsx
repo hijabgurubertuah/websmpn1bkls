@@ -5,11 +5,11 @@ import {
   Link as LinkIcon,
   Sparkles,
   RefreshCw,
-  HardDrive,
   CloudUpload,
-  ExternalLink,
   AlertTriangle,
   Zap,
+  X,
+  Clipboard,
 } from 'lucide-react';
 import {
   compressAndResizeImage,
@@ -49,18 +49,16 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   const [gasConfig, setGasConfig] = useState(getStoredAppsScriptConfig());
   const isGasAvailable = Boolean(gasConfig?.webAppUrl && gasConfig?.webAppUrl.trim().length > 15 && gasConfig.enabled !== false);
 
-  // Default to Google Drive (Apps Script) if configured, else local compression
-  const [uploadMode, setUploadMode] = useState<'gas' | 'local'>('gas');
+  // 3 Tabs: 'gas' (Drive), 'local' (WebP), 'url' (Link)
+  const [uploadMode, setUploadMode] = useState<'gas' | 'local' | 'url'>('gas');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const [successInfo, setSuccessInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    // Refresh configuration from storage
     const current = getStoredAppsScriptConfig();
     setGasConfig(current);
     if (!current?.webAppUrl) {
@@ -85,7 +83,7 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   };
 
   /**
-   * Handle Upload via Google Apps Script (NO POPUP, NO OAUTH LOGIN NEEDED)
+   * Handle Upload via Google Apps Script (Direct to Google Drive)
    */
   const handleGasUpload = async (file: File) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -104,7 +102,7 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     setIsProcessing(true);
     setUploadError(null);
     setSuccessInfo(null);
-    setProcessingStatus('Mengunggah ke Google Drive via Apps Script...');
+    setProcessingStatus('Mengunggah ke Google Drive...');
 
     try {
       const result = await uploadFileViaAppsScript(file, {
@@ -115,10 +113,10 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
       });
 
       onChange(result.fileUrl);
-      setSuccessInfo(`Tersimpan di Google Drive (${formatFileSize(result.size)}) - Bebas Login`);
+      setSuccessInfo(`Tersimpan di Google Drive (${formatFileSize(result.size)})`);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      setUploadError(`Gagal ke Google Drive via Apps Script: ${errorMsg}`);
+      setUploadError(`Gagal ke Google Drive: ${errorMsg}`);
     } finally {
       setIsProcessing(false);
       setProcessingStatus('');
@@ -157,9 +155,8 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
       if (isGasAvailable) {
         handleGasUpload(file);
       } else {
-        // If user tries gas upload but it's not set up, prompt and fallback
         setUploadError(
-          'Google Apps Script belum dikonfigurasi. Atur di tab "Google Drive & Sheets", atau gunakan Kompresi Cepat Lokal.'
+          'Google Apps Script belum dikonfigurasi. Atur di tab "Google Drive & Sheets", atau gunakan WebP.'
         );
       }
     } else {
@@ -200,34 +197,21 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
     return isVerticalLayout ? 'w-full h-40 sm:h-48 rounded-xl' : 'w-full sm:w-44 h-28 rounded-xl';
   };
 
-  const isGoogleDriveUrl = value?.includes('googleusercontent.com') || value?.includes('drive.google.com');
-
   return (
-    <div className="space-y-2.5">
-      {/* Label & Quick Actions */}
-      <div className="flex items-center justify-between">
-        <label className="block text-xs font-bold text-slate-700 uppercase">
-          {label}
-        </label>
-        <div className="flex items-center gap-3">
-          <a
-            href="https://drive.google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
-          >
-            <HardDrive className="w-3 h-3" />
-            <span>Google Drive ↗</span>
-          </a>
-          <button
-            type="button"
-            onClick={() => setShowUrlInput(!showUrlInput)}
-            className="text-[11px] text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1 cursor-pointer"
-          >
-            <LinkIcon className="w-3 h-3" />
-            <span>{showUrlInput ? 'Tutup URL' : 'Tempel Link'}</span>
-          </button>
-          {value && (
+    <div className="space-y-2">
+      {/* Label */}
+      <label className="block text-xs font-bold text-slate-700 uppercase">
+        {label}
+      </label>
+
+      {/* Main Container */}
+      <div className={isVerticalLayout ? "flex flex-col gap-3 items-stretch w-full" : "flex flex-col sm:flex-row gap-3 items-start"}>
+        {/* Preview Thumbnail with Top-Right Red X Delete Button */}
+        {value && (
+          <div className={`relative overflow-hidden border border-slate-200 bg-slate-100 shrink-0 ${getPreviewClasses()}`}>
+            <img src={value} alt="Preview" className="w-full h-full object-cover" />
+            
+            {/* Red X Button at top-right corner */}
             <button
               type="button"
               onClick={() => {
@@ -235,61 +219,60 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
                 setSuccessInfo(null);
                 setUploadError(null);
               }}
-              className="text-[11px] text-red-600 hover:text-red-700 font-semibold cursor-pointer"
+              className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer z-10"
+              title="Hapus gambar"
+              aria-label="Hapus gambar"
             >
-              Hapus
+              <X className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className={isVerticalLayout ? "flex flex-col gap-3.5 items-stretch w-full" : "flex flex-col sm:flex-row gap-3 items-start"}>
-        {/* Preview Thumbnail */}
-        {value && (
-          <div className={`relative overflow-hidden border border-slate-200 bg-slate-100 shrink-0 ${getPreviewClasses()}`}>
-            <img src={value} alt="Preview" className="w-full h-full object-cover" />
-            <span className="absolute bottom-2 right-2 text-white text-[10px] px-2 py-0.5 rounded-md font-bold bg-slate-900/85 backdrop-blur-xs border border-white/20 shadow-xs">
-              {isGoogleDriveUrl ? 'Google Drive' : value.startsWith('data:') ? 'WebP Lokal' : 'URL'}
-            </span>
           </div>
         )}
 
         {/* Upload Controls */}
         <div className="flex-1 w-full space-y-2">
-          {/* Method Tabs */}
+          {/* 3 Method Tabs: Drive, WebP, Link */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200">
             <button
               type="button"
               onClick={() => setUploadMode('gas')}
-              className={`flex-1 py-1 px-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 uploadMode === 'gas'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Zap className="w-3 h-3 text-amber-300" />
-              <span>Drive (Apps Script)</span>
-              {isGasAvailable && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Apps Script Siap" />
-              )}
+              <span>Drive</span>
             </button>
 
             <button
               type="button"
               onClick={() => setUploadMode('local')}
-              className={`flex-1 py-1 px-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 uploadMode === 'local'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Kompresi WebP</span>
+              <span>WebP</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUploadMode('url')}
+              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                uploadMode === 'url'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <LinkIcon className="w-3 h-3 text-blue-500" />
+              <span>Link</span>
             </button>
           </div>
 
-          {/* Hidden Input */}
+          {/* Hidden File Input for Drag / Click */}
           <input
             ref={fileInputRef}
             type="file"
@@ -298,117 +281,94 @@ export const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
             onChange={onFileInputChange}
           />
 
-          {/* Upload Dropzone */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => {
-              if (isProcessing) return;
-              fileInputRef.current?.click();
-            }}
-            className={`border-2 border-dashed rounded-xl p-3.5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
-              isDragging
-                ? 'border-blue-500 bg-blue-50'
-                : uploadMode === 'gas'
-                ? 'border-blue-200 bg-blue-50/40 hover:bg-blue-50'
-                : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
-            }`}
-          >
-            {isProcessing ? (
-              <div className="flex items-center gap-2 text-blue-600 font-bold text-xs py-1">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>{processingStatus || 'Memproses...'}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-xs">
-                {uploadMode === 'gas' ? (
-                  <CloudUpload className="w-4 h-4 text-blue-600" />
-                ) : (
-                  <Upload className="w-4 h-4 text-slate-600" />
-                )}
-                <span className="font-bold text-slate-800">
-                  {uploadMode === 'gas'
-                    ? 'Pilih Gambar ke Google Drive (Tanpa Login)'
-                    : 'Pilih Gambar untuk Kompresi Cepat'}
-                </span>
-                <span className="text-slate-400">atau seret ke sini</span>
-              </div>
-            )}
-          </div>
-
-          {/* Apps Script Status Banner */}
-          {uploadMode === 'gas' && (
-            <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px]">
-              <div className="flex items-center gap-1.5 truncate">
-                <div
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    isGasAvailable ? 'bg-emerald-500' : 'bg-amber-400'
-                  }`}
-                />
-                <span className="text-slate-600 truncate">
-                  {isGasAvailable
-                    ? 'Apps Script Terhubung: Unggah langsung ke Google Drive'
-                    : 'Apps Script belum diatur (Buka tab "Google Drive & Sheets")'}
-                </span>
-              </div>
-
-              <span className="text-[10px] font-bold text-blue-600 shrink-0 ml-2">
-                {isGasAvailable ? 'Bebas Pop-up' : 'Perlu Setup'}
-              </span>
-            </div>
-          )}
-
-          {/* Feedback messages */}
-          {uploadError && (
-            <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-[11px] text-red-700 flex items-start gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <div className="flex-1 space-y-1">
-                <span>{uploadError}</span>
-                <div className="flex items-center gap-2 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadMode('local');
-                      fileInputRef.current?.click();
-                    }}
-                    className="underline font-bold text-red-800 cursor-pointer"
-                  >
-                    Gunakan Kompresi Cepat WebP
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlInput(true)}
-                    className="underline font-bold text-red-800 cursor-pointer"
-                  >
-                    Tempel Link URL
-                  </button>
+          {/* Mode 1 & 2: Dropzone */}
+          {uploadMode !== 'url' && (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => {
+                if (isProcessing) return;
+                fileInputRef.current?.click();
+              }}
+              className={`border-2 border-dashed rounded-xl p-3.5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
+                isDragging
+                  ? 'border-blue-500 bg-blue-50'
+                  : uploadMode === 'gas'
+                  ? 'border-blue-200 bg-blue-50/40 hover:bg-blue-50'
+                  : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+              }`}
+            >
+              {isProcessing ? (
+                <div className="flex items-center gap-2 text-blue-600 font-bold text-xs py-1">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>{processingStatus || 'Memproses...'}</span>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs">
+                  {uploadMode === 'gas' ? (
+                    <CloudUpload className="w-4 h-4 text-blue-600" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-slate-600" />
+                  )}
+                  <span className="font-bold text-slate-800">
+                    {uploadMode === 'gas'
+                      ? 'Pilih Gambar ke Google Drive'
+                      : 'Pilih Gambar untuk WebP'}
+                  </span>
+                  <span className="text-slate-400">atau seret ke sini</span>
+                </div>
+              )}
             </div>
           )}
 
-          {successInfo && (
-            <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>{successInfo}</span>
-            </div>
-          )}
-
-          {/* Optional Direct URL Input */}
-          {showUrlInput && (
-            <div className="pt-1">
+          {/* Mode 3: Direct URL Input with Paste Button */}
+          {uploadMode === 'url' && (
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={value.startsWith('data:') ? '' : value}
                 onChange={(e) => handleUrlChange(e.target.value)}
-                placeholder="Tempel link Google Drive atau URL gambar..."
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none font-mono"
+                placeholder={placeholder || 'Tempel link Google Drive atau URL gambar...'}
+                className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:bg-white focus:outline-none font-mono"
               />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const clipboardText = await navigator.clipboard.readText();
+                    if (clipboardText) {
+                      handleUrlChange(clipboardText.trim());
+                    }
+                  } catch (err) {
+                    console.error('Gagal membaca clipboard:', err);
+                  }
+                }}
+                className="p-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 border border-slate-300 text-slate-700 hover:text-slate-900 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs flex items-center justify-center"
+                title="Tempel dari Clipboard (Paste)"
+                aria-label="Tempel dari Clipboard"
+              >
+                <Clipboard className="w-4 h-4 text-blue-600" />
+              </button>
+            </div>
+          )}
+
+          {/* Error messages */}
+          {uploadError && (
+            <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-[11px] text-red-700 flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          {/* Success message */}
+          {successInfo && (
+            <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>{successInfo}</span>
             </div>
           )}
         </div>

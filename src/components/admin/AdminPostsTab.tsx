@@ -24,12 +24,25 @@ import {
   Maximize2,
   HardDrive,
   CloudUpload,
+  Pin,
+  Clipboard,
 } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
-import { MultiImageUploader } from './MultiImageUploader';
 import { RichTextEditorWithImages } from '../common/RichTextEditorWithImages';
 import { parseEmbedUrl } from '../../lib/embedHelper';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
+
+const getTodayDateIndo = (): string => {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  return `${day} ${month} ${year}`;
+};
 
 interface AdminPostsTabProps {
   articles: NewsArticle[];
@@ -48,6 +61,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   const [filterTab, setFilterTab] = useState<'all' | 'drafts' | 'cloud'>('all');
   const [isEditing, setIsEditing] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  const [postEditorTab, setPostEditorTab] = useState<'content' | 'embed'>('content');
 
   // Form states
   const [title, setTitle] = useState('');
@@ -55,21 +69,23 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
   const [coverImage, setCoverImage] = useState('');
-  const [author, setAuthor] = useState('Humas Sekolah');
-  const [date, setDate] = useState('06 September 2026');
+  const [author, setAuthor] = useState('Humas Instansi');
+  const [date, setDate] = useState(() => getTodayDateIndo());
   const [isPinned, setIsPinned] = useState(false);
   const [status, setStatus] = useState<'published' | 'draft'>('published');
   const [saving, setSaving] = useState(false);
   const [savingLocal, setSavingLocal] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Multi-image, link, & embed states
+  // Embed states
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [actionLinkLabel, setActionLinkLabel] = useState('');
   const [actionLinkUrl, setActionLinkUrl] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
   const [embedTitle, setEmbedTitle] = useState('');
-  const [showEmbedPreview, setShowEmbedPreview] = useState(false);
+  const [embedSourceType, setEmbedSourceType] = useState<'url' | 'iframe'>('url');
+  const [rawIframeInput, setRawIframeInput] = useState('');
+  const [showEmbedPreview, setShowEmbedPreview] = useState(true);
 
   // Delete modal states
   const [articleToDelete, setArticleToDelete] = useState<NewsArticle | null>(null);
@@ -83,14 +99,26 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     message: string;
   } | null>(null);
 
+  const handleIframeInputChange = (rawHtml: string) => {
+    setRawIframeInput(rawHtml);
+    const iframeMatch = rawHtml.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+    if (iframeMatch && iframeMatch[1]) {
+      setEmbedUrl(iframeMatch[1]);
+    } else if (rawHtml.trim().startsWith('http://') || rawHtml.trim().startsWith('https://')) {
+      setEmbedUrl(rawHtml.trim());
+    } else {
+      setEmbedUrl(rawHtml.trim());
+    }
+  };
+
   const resetForm = () => {
     setTitle('');
     setCategory('Prestasi');
     setSummary('');
     setContent('');
     setCoverImage('');
-    setAuthor('Humas Sekolah');
-    setDate('06 September 2026');
+    setAuthor('Humas Instansi');
+    setDate(getTodayDateIndo());
     setIsPinned(false);
     setStatus('published');
     setGalleryImages([]);
@@ -98,9 +126,12 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     setActionLinkUrl('');
     setEmbedUrl('');
     setEmbedTitle('');
-    setShowEmbedPreview(false);
+    setEmbedSourceType('url');
+    setRawIframeInput('');
+    setShowEmbedPreview(true);
     setEditingArticleId(null);
     setIsEditing(false);
+    setPostEditorTab('content');
     setFormError(null);
   };
 
@@ -117,15 +148,23 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     setContent(art.content);
     setCoverImage(art.coverImage);
     setAuthor(art.author);
-    setDate(art.date);
+    setDate(art.date || getTodayDateIndo());
     setIsPinned(art.isPinned);
-    setStatus(art.status);
+    setStatus(art.status || 'published');
     setGalleryImages(art.galleryImages || []);
     setActionLinkLabel(art.actionLink?.label || '');
     setActionLinkUrl(art.actionLink?.url || '');
     setEmbedUrl(art.embedUrl || '');
     setEmbedTitle(art.embedTitle || '');
+    if (art.embedUrl && art.embedUrl.includes('<iframe')) {
+      setEmbedSourceType('iframe');
+      setRawIframeInput(art.embedUrl);
+    } else {
+      setEmbedSourceType('url');
+      setRawIframeInput('');
+    }
     setShowEmbedPreview(Boolean(art.embedUrl));
+    setPostEditorTab(art.embedUrl ? 'embed' : 'content');
     setFormError(null);
     setIsEditing(true);
   };
@@ -157,8 +196,8 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       return;
     }
     const cleanContentText = sanitizeArticleContent(content);
-    if (!cleanContentText) {
-      setFormError('Konten lengkap berita tidak boleh kosong.');
+    if (!cleanContentText && !embedUrl.trim()) {
+      setFormError('Konten lengkap berita atau URL embed tidak boleh kosong.');
       return;
     }
 
@@ -173,15 +212,15 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         .replace(/(^-|-$)+/g, ''),
       category,
       summary: summary.trim().replace(/<[^>]*>/g, ''),
-      content: cleanContentText,
+      content: cleanContentText || '<p>Silakan akses aplikasi interaktif di bawah ini.</p>',
       coverImage:
         coverImage.trim() ||
         'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
-      author: author.trim() || 'Humas Sekolah',
-      date: date.trim() || '06 September 2026',
+      author: author.trim() || 'Humas Instansi',
+      date: date.trim() || getTodayDateIndo(),
       isPinned,
       views: editingArticleId ? articles.find((a) => a.id === editingArticleId)?.views || 10 : 1,
-      status,
+      status: 'draft',
       galleryImages: galleryImages.filter(Boolean),
       actionLink: actionLinkUrl.trim()
         ? {
@@ -203,13 +242,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       resetForm();
       setFeedbackToast({
         type: 'success',
-        message: 'Tersimpan di DRAF LOKAL (0 kuota Firebase terpakai). Anda bisa mengeditnya kapan saja di perangkat ini.',
+        message: 'Draft berhasil disimpan.',
       });
-      setTimeout(() => setFeedbackToast(null), 5000);
+      setTimeout(() => setFeedbackToast(null), 3000);
     } catch (err) {
       setFeedbackToast({
         type: 'error',
-        message: 'Gagal menyimpan draf lokal: ' + String(err),
+        message: 'Gagal menyimpan draft: ' + String(err),
       });
     } finally {
       setSavingLocal(false);
@@ -224,8 +263,8 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       return;
     }
     const cleanContentText = sanitizeArticleContent(content);
-    if (!cleanContentText) {
-      setFormError('Konten lengkap berita tidak boleh kosong.');
+    if (!cleanContentText && !embedUrl.trim()) {
+      setFormError('Konten lengkap berita atau URL embed tidak boleh kosong.');
       return;
     }
 
@@ -240,15 +279,15 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         .replace(/(^-|-$)+/g, ''),
       category,
       summary: summary.trim().replace(/<[^>]*>/g, ''),
-      content: cleanContentText,
+      content: cleanContentText || '<p>Silakan akses aplikasi interaktif di bawah ini.</p>',
       coverImage:
         coverImage.trim() ||
         'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
-      author: author.trim() || 'Humas Sekolah',
-      date: date.trim() || '06 September 2026',
+      author: author.trim() || 'Humas Instansi',
+      date: date.trim() || getTodayDateIndo(),
       isPinned,
       views: editingArticleId ? articles.find((a) => a.id === editingArticleId)?.views || 10 : 1,
-      status,
+      status: 'published',
       galleryImages: galleryImages.filter(Boolean),
       actionLink: actionLinkUrl.trim()
         ? {
@@ -266,9 +305,9 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     resetForm();
     setFeedbackToast({
       type: 'success',
-      message: 'Berita disimpan',
+      message: 'Postingan berhasil dipublikasikan.',
     });
-    setTimeout(() => setFeedbackToast(null), 1000);
+    setTimeout(() => setFeedbackToast(null), 3000);
   };
 
   // Quick 1-click upload from table for any local draft
@@ -325,13 +364,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     });
   };
 
-  const sampleImages = [
-    { label: 'Prestasi Sains', url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop&q=80' },
-    { label: 'PPDB & Ujian', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80' },
-    { label: 'Kegiatan Belajar', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80' },
-    { label: 'Seni Musik & Choir', url: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80' },
-  ];
-
   const localDrafts = articles.filter((a) => Boolean(a.isLocalDraft));
   const cloudArticles = articles.filter((a) => !a.isLocalDraft);
 
@@ -381,70 +413,79 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         </div>
       )}
 
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              <span>Manajemen Postingan &amp; Berita Sekolah</span>
-            </h3>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              Tersinkron ke Cloud
-            </span>
-            {localDrafts.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                <HardDrive className="w-3.5 h-3.5 text-amber-600" />
-                {localDrafts.length} Draf Lokal
-              </span>
-            )}
-          </div>
-        </div>
-
-        {!isEditing && (
-          <button
-            type="button"
-            onClick={handleStartCreate}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition-all text-sm cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tulis Berita Baru</span>
-          </button>
-        )}
-      </div>
+      {/* Top Action: Wide Tulis Berita Baru Button */}
+      {!isEditing && (
+        <button
+          type="button"
+          onClick={handleStartCreate}
+          className="w-full inline-flex items-center justify-center gap-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3.5 px-6 rounded-2xl shadow-sm hover:shadow-md transition-all text-sm sm:text-base cursor-pointer"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Tulis Berita Baru</span>
+        </button>
+      )}
 
       {/* Editor Modal / Inline Form */}
       {isEditing && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-blue-600 shadow-lg space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <Edit2 className="w-4 h-4 text-blue-600" />
-                  <span>{editingArticleId ? 'Edit Postingan Berita' : 'Tulis Postingan Berita Baru'}</span>
-                </h4>
-                {editingArticleId && (
-                  isCurrentDraftLocal ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                      <HardDrive className="w-3 h-3 text-amber-600" />
-                      Status: Draf Lokal
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      Status: Tersimpan di Cloud
-                    </span>
-                  )
+        <div className="bg-white rounded-2xl p-5 sm:p-7 border-2 border-blue-600 shadow-lg space-y-5">
+          {/* Top Bar with Big Tabs & Close Button */}
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex-1 flex bg-slate-100 p-1 rounded-2xl gap-1 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setPostEditorTab('content')}
+                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  postEditorTab === 'content'
+                    ? 'bg-white text-blue-700 shadow-xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}
+              >
+                <FileText className={`w-4 h-4 ${postEditorTab === 'content' ? 'text-blue-600' : 'text-slate-400'}`} />
+                <span>Berita</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPostEditorTab('embed')}
+                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  postEditorTab === 'embed'
+                    ? 'bg-white text-purple-700 shadow-xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                }`}
+              >
+                <Code2 className={`w-4 h-4 ${postEditorTab === 'embed' ? 'text-purple-600' : 'text-slate-400'}`} />
+                <span>Embed</span>
+                {embedUrl.trim() && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    Aktif
+                  </span>
                 )}
-              </div>
+              </button>
             </div>
-            <button
-              onClick={resetForm}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {editingArticleId && (
+                isCurrentDraftLocal ? (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300">
+                    <HardDrive className="w-3 h-3 text-amber-600" />
+                    Draf Lokal
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    Cloud
+                  </span>
+                )
+              )}
+              <button
+                type="button"
+                onClick={resetForm}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer border border-slate-200 transition-colors"
+                title="Tutup Form Editor"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {formError && (
@@ -455,320 +496,397 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Judul Berita *
-              </label>
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Masukkan judul berita yang jelas dan menarik..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold"
-              />
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Kategori Berita
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                >
-                  <option value="Prestasi">Prestasi</option>
-                  <option value="Pengumuman">Pengumuman</option>
-                  <option value="Kegiatan">Kegiatan</option>
-                  <option value="Akademik">Akademik</option>
-                  <option value="Ekstrakurikuler">Ekstrakurikuler</option>
-                  <option value="Alumni">Alumni</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Penulis / Sumber
-                </label>
-                <input
-                  type="text"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Humas Sekolah"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Tanggal Publikasi
-                </label>
-                <input
-                  type="text"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  placeholder="06 September 2026"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Cover Image Upload / Google Drive Converter */}
-            <div className="space-y-2">
-              <ImageUploadButton
-                label="Gambar Sampul Berita (Cover Image / Google Drive)"
-                value={coverImage}
-                onChange={(url) => setCoverImage(url)}
-                preset="post"
-                aspectRatio="wide"
-                placeholder="https://... atau tempel link Google Drive"
-                allowDriveConverter={true}
-              />
-
-              {/* Sample Quick Picker */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                <span className="text-slate-400">Pilihan cepat:</span>
-                {sampleImages.map((s, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setCoverImage(s.url)}
-                    className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors cursor-pointer"
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Ringkasan Berita (Excerpt / Lead Paragraph)
-              </label>
-              <textarea
-                rows={2}
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="Ringkasan singkat 1-2 kalimat yang tampil di kartu berita..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-            </div>
-
-            {/* Full Content with Formatting & Drive Image Inserter */}
-            <RichTextEditorWithImages
-              value={content}
-              onChange={setContent}
-              label="Konten / Isi Lengkap Berita *"
-              placeholder="Tuliskan berita lengkap di sini. Gunakan toolbar di atas untuk format teks (bold, miring, rata kanan-kiri, dll.) dan tombol 'Sisipkan Gambar' untuk menambahkan foto dari Drive dengan susunan layout fleksibel..."
-              minRows={10}
-            />
-
-            {/* Multiple Gallery Images */}
-            <MultiImageUploader
-              images={galleryImages}
-              onChange={setGalleryImages}
-              label="Galeri Foto Tambahan (Bisa Unggah Banyak Sekaligus)"
-            />
-
-            {/* Action Link / Tautan Halaman Tertentu */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <LinkIcon className="w-4 h-4 text-blue-600" />
-                  <span>Tautan Khusus / Tombol Halaman Tertentu (Opsional)</span>
-                </label>
-                {actionLinkUrl && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionLinkLabel('');
-                      setActionLinkUrl('');
-                    }}
-                    className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold border border-red-200 transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Hapus Tautan</span>
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* TAB 1: STANDARD POST */}
+            {postEditorTab === 'content' && (
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    Label Tombol Tautan:
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Judul Berita *
                   </label>
                   <input
                     type="text"
-                    value={actionLinkLabel}
-                    onChange={(e) => setActionLinkLabel(e.target.value)}
-                    placeholder="Contoh: Unduh Formulir PPDB / Link Pengumuman"
-                    className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Masukkan judul berita yang jelas dan menarik..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold"
                   />
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Kategori Berita
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+                    >
+                      <option value="Prestasi">Prestasi</option>
+                      <option value="Pengumuman">Pengumuman</option>
+                      <option value="Kegiatan">Kegiatan</option>
+                      <option value="Akademik">Akademik</option>
+                      <option value="Ekstrakurikuler">Ekstrakurikuler</option>
+                      <option value="Alumni">Alumni</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Penulis / Sumber
+                    </label>
+                    <input
+                      type="text"
+                      value={author}
+                      onChange={(e) => setAuthor(e.target.value)}
+                      placeholder="Humas Instansi"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Tanggal Publikasi
+                    </label>
+                    <input
+                      type="text"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      placeholder={getTodayDateIndo()}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Cover Image Upload / Google Drive Converter */}
+                <div className="space-y-2">
+                  <ImageUploadButton
+                    label="Cover Image"
+                    value={coverImage}
+                    onChange={(url) => setCoverImage(url)}
+                    preset="post"
+                    aspectRatio="wide"
+                    placeholder="https://... atau tempel link Google Drive"
+                    allowDriveConverter={true}
+                  />
+                </div>
+
+                {/* Summary */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    URL Tautan Tujuan:
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Ringkasan Berita
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="Ringkasan singkat 1-2 kalimat yang tampil di kartu berita..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                {/* Full Content with Formatting & Drive Image Inserter */}
+                <RichTextEditorWithImages
+                  value={content}
+                  onChange={setContent}
+                  label="Isi Postingan"
+                  placeholder="Tuliskan berita lengkap di sini..."
+                  minRows={10}
+                  articles={articles}
+                />
+              </div>
+            )}
+
+            {/* TAB 2: INTERACTIVE EMBED & GOOGLE APPS SCRIPT */}
+            {postEditorTab === 'embed' && (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Judul Postingan / Halaman Embed *
                   </label>
                   <input
                     type="text"
-                    value={actionLinkUrl}
-                    onChange={(e) => setActionLinkUrl(e.target.value)}
-                    placeholder="https://... atau #agenda"
-                    className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Contoh: Aplikasi Kelulusan Siswa / Formulir PPDB / Sistem Informasi..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none font-semibold"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Interactive Embed (Google Apps Script, YouTube, Google Forms/Docs, etc.) */}
-            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Code2 className="w-4 h-4 text-purple-700" />
-                  <span className="text-xs font-bold text-purple-950 uppercase tracking-wider">
-                    Embed Konten Interaktif &amp; Google Apps Script (Opsional)
-                  </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Kategori
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none bg-white"
+                    >
+                      <option value="Pengumuman">Pengumuman</option>
+                      <option value="Kegiatan">Kegiatan</option>
+                      <option value="Prestasi">Prestasi</option>
+                      <option value="Akademik">Akademik</option>
+                      <option value="Ekstrakurikuler">Ekstrakurikuler</option>
+                      <option value="Alumni">Alumni</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Tanggal
+                    </label>
+                    <input
+                      type="text"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      placeholder={getTodayDateIndo()}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {embedUrl && (
-                    <>
+
+                <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/40 space-y-3">
+                  {/* Top Sub-tabs (Url vs Kode Iframe) & Delete Button */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {/* Embed Sub-Tabs: URL vs Kode Iframe */}
+                    <div className="flex bg-white p-1 rounded-xl border border-purple-200 gap-1 w-full sm:w-64 shadow-2xs">
                       <button
                         type="button"
-                        onClick={() => setShowEmbedPreview(!showEmbedPreview)}
-                        className="px-2.5 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-xs font-semibold border border-purple-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        onClick={() => setEmbedSourceType('url')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          embedSourceType === 'url'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{showEmbedPreview ? 'Tutup Pratinjau' : 'Pratinjau Embed'}</span>
+                        <LinkIcon className="w-3.5 h-3.5" />
+                        <span>Url</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setEmbedSourceType('iframe')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          embedSourceType === 'iframe'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Code2 className="w-3.5 h-3.5" />
+                        <span>Kode Iframe</span>
+                      </button>
+                    </div>
+
+                    {embedUrl && (
                       <button
                         type="button"
                         onClick={() => {
                           setEmbedUrl('');
                           setEmbedTitle('');
-                          setShowEmbedPreview(false);
+                          setRawIframeInput('');
                         }}
-                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold border border-red-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold border border-red-200 transition-colors flex items-center gap-1 cursor-pointer ml-auto"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-3.5 h-3.5" />
                         <span>Hapus Embed</span>
                       </button>
-                    </>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-1">
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Label / Nama Embed:
+                      </label>
+                      <input
+                        type="text"
+                        value={embedTitle}
+                        onChange={(e) => setEmbedTitle(e.target.value)}
+                        placeholder="Contoh: Aplikasi Kelulusan"
+                        className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-600 focus:outline-none"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      {embedSourceType === 'url' ? (
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            Url
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={embedUrl}
+                              onChange={(e) => setEmbedUrl(e.target.value)}
+                              placeholder="https://script.google.com/macros/s/.../exec atau https://youtube.com/..."
+                              className="flex-1 px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-600 focus:outline-none font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const text = await navigator.clipboard.readText();
+                                  if (text) setEmbedUrl(text.trim());
+                                } catch (err) {
+                                  console.error('Gagal membaca clipboard:', err);
+                                }
+                              }}
+                              className="p-2 bg-white hover:bg-purple-50 active:bg-purple-100 border border-slate-300 text-slate-700 hover:text-purple-700 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs flex items-center justify-center"
+                              title="Tempel dari Clipboard"
+                              aria-label="Tempel dari Clipboard"
+                            >
+                              <Clipboard className="w-4 h-4 text-purple-600" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            Kode Iframe
+                          </label>
+                          <div className="flex items-start gap-2">
+                            <textarea
+                              rows={2}
+                              value={rawIframeInput || (embedUrl.includes('<iframe') ? embedUrl : '')}
+                              onChange={(e) => handleIframeInputChange(e.target.value)}
+                              placeholder='<iframe src="https://..." width="100%" height="600"></iframe>'
+                              className="flex-1 px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-600 focus:outline-none font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const text = await navigator.clipboard.readText();
+                                  if (text) handleIframeInputChange(text.trim());
+                                } catch (err) {
+                                  console.error('Gagal membaca clipboard:', err);
+                                }
+                              }}
+                              className="p-2 bg-white hover:bg-purple-50 active:bg-purple-100 border border-slate-300 text-slate-700 hover:text-purple-700 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs flex items-center justify-center mt-0.5"
+                              title="Tempel dari Clipboard"
+                              aria-label="Tempel dari Clipboard"
+                            >
+                              <Clipboard className="w-4 h-4 text-purple-600" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Format supported */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-500">
+                    <span className="font-semibold">Format didukung:</span>
+                    <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium">
+                      Google Apps Script (/exec)
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 font-medium">
+                      YouTube Video / Shorts
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-medium">
+                      Google Forms / Docs / Sheets
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-medium">
+                      Kode &lt;iframe&gt; HTML
+                    </span>
+                  </div>
+
+                  {/* Live Embed Preview */}
+                  {embedUrl && (
+                    <div className="mt-3 border border-purple-200 rounded-xl bg-white overflow-hidden shadow-xs">
+                      {(() => {
+                        const parsed = parseEmbedUrl(embedUrl);
+                        if (!parsed) return <div className="p-3 text-xs text-red-600">Format URL tidak valid.</div>;
+
+                        return (
+                          <div>
+                            <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between text-xs font-bold">
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                {embedTitle || parsed.label}
+                              </span>
+                              <a
+                                href={parsed.originalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-[11px]"
+                              >
+                                <span>Uji Buka di Tab Baru</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                            <div className="h-80 w-full bg-slate-100">
+                              <iframe
+                                src={parsed.embedUrl}
+                                title="Pratinjau Embed Admin"
+                                className="w-full h-full border-0"
+                                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1">
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    Judul Embed (Opsional):
-                  </label>
-                  <input
-                    type="text"
-                    value={embedTitle}
-                    onChange={(e) => setEmbedTitle(e.target.value)}
-                    placeholder="Contoh: Aplikasi Kelulusan Siswa / Formulir PPDB"
-                    className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-600 focus:outline-none"
+                {/* Optional Cover & Intro for Embed Post */}
+                <div className="space-y-3 pt-2">
+                  <ImageUploadButton
+                    label="Cover Image (Opsional)"
+                    value={coverImage}
+                    onChange={(url) => setCoverImage(url)}
+                    preset="post"
+                    aspectRatio="wide"
+                    placeholder="https://... atau tempel link Google Drive"
+                    allowDriveConverter={true}
                   />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    URL Embed / Link Deploy Apps Script:
-                  </label>
-                  <input
-                    type="text"
-                    value={embedUrl}
-                    onChange={(e) => setEmbedUrl(e.target.value)}
-                    placeholder="https://script.google.com/macros/s/.../exec atau https://youtube.com/..."
-                    className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-600 focus:outline-none"
-                  />
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Teks Pengantar
+                    </label>
+                    <RichTextEditorWithImages
+                      value={content}
+                      onChange={setContent}
+                      placeholder="Tuliskan teks pengantar atau informasi panduan penggunaan..."
+                      minRows={4}
+                      articles={articles}
+                    />
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Quick Preset Tips */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-500">
-                <span className="font-semibold">Format didukung:</span>
-                <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-medium">
-                  Google Apps Script (/exec)
-                </span>
-                <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 font-medium">
-                  YouTube Video / Shorts
-                </span>
-                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-medium">
-                  Google Forms / Docs / Sheets
-                </span>
-                <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-medium">
-                  Kode &lt;iframe&gt; HTML
-                </span>
-              </div>
-
-              {/* Live Preview Inside Editor */}
-              {showEmbedPreview && embedUrl && (
-                <div className="mt-3 border border-purple-200 rounded-xl bg-white overflow-hidden shadow-xs">
-                  {(() => {
-                    const parsed = parseEmbedUrl(embedUrl);
-                    if (!parsed) return <div className="p-3 text-xs text-red-600">Format URL tidak valid.</div>;
-
-                    return (
-                      <div>
-                        <div className="px-3 py-2 bg-slate-900 text-white flex items-center justify-between text-xs font-bold">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                            {embedTitle || parsed.label}
-                          </span>
-                          <a
-                            href={parsed.originalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-[11px]"
-                          >
-                            <span>Uji Buka di Tab Baru</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </div>
-                        <div className="h-80 w-full bg-slate-100">
-                          <iframe
-                            src={parsed.embedUrl}
-                            title="Pratinjau Embed Admin"
-                            className="w-full h-full border-0"
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-            {/* Toggles */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <div className="flex items-center gap-6">
-                <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+            {/* Toggles & Action Buttons */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
+              {/* Mobile: Row 1 (Sematkan + Simpan Draft sejajar) / Desktop: Left Side */}
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 sm:gap-3">
+                <label className="inline-flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm font-bold text-slate-700 cursor-pointer select-none bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-2xs hover:bg-slate-50 transition-colors w-full sm:w-auto">
                   <input
                     type="checkbox"
                     checked={isPinned}
                     onChange={(e) => setIsPinned(e.target.checked)}
-                    className="rounded text-amber-500 focus:ring-amber-400 w-4 h-4"
+                    className="rounded text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer"
                   />
-                  <span>Pasang sebagai Berita Unggulan (Pinned)</span>
+                  <Pin className={`w-3.5 h-3.5 ${isPinned ? 'text-amber-600 fill-amber-500' : 'text-slate-400'}`} />
+                  <span>Sematkan</span>
                 </label>
 
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <span>Status:</span>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                    className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs"
-                  >
-                    <option value="published">Tayang (Published)</option>
-                    <option value="draft">Draf (Draft)</option>
-                  </select>
-                </div>
-              </div>
+                {/* Simpan Draft (Tampil sejajar dengan Sematkan di Mobile) */}
+                <button
+                  type="button"
+                  onClick={handleSaveLocal}
+                  disabled={saving || savingLocal}
+                  className="sm:hidden px-3 py-2.5 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-2xs w-full"
+                  title="Simpan sebagai draft di perangkat ini"
+                >
+                  <HardDrive className={`w-3.5 h-3.5 text-amber-700 ${savingLocal ? 'animate-pulse' : ''}`} />
+                  <span>{savingLocal ? 'Menyimpan...' : 'Simpan Draft'}</span>
+                </button>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
                 {editingArticleId && (
                   <button
                     type="button"
@@ -776,46 +894,36 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                       const currentArt = articles.find((a) => a.id === editingArticleId);
                       if (currentArt) setArticleToDelete(currentArt);
                     }}
-                    className="px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 mr-auto"
+                    className="col-span-2 sm:col-span-1 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                     <span>Hapus Berita Ini</span>
                   </button>
                 )}
-                <div className="flex items-center gap-2.5 ml-auto flex-wrap">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 bg-white rounded-xl cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveLocal}
-                    disabled={saving || savingLocal}
-                    className="px-4 py-2.5 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 shadow-2xs"
-                    title="Simpan hanya di perangkat ini tanpa koneksi Firebase (0 kuota Firebase terpakai)"
-                  >
-                    <HardDrive className={`w-4 h-4 text-amber-700 ${savingLocal ? 'animate-pulse' : ''}`} />
-                    <span>{savingLocal ? 'Menyimpan Draf...' : 'Simpan ke Draf Lokal'}</span>
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving || savingLocal}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm hover:shadow cursor-pointer flex items-center gap-2 disabled:opacity-50"
-                    title="Kirim dan simpan permanen ke Firebase Cloud Firestore"
-                  >
-                    <CloudUpload className={`w-4 h-4 ${saving ? 'animate-bounce' : ''}`} />
-                    <span>
-                      {saving
-                        ? 'Menyimpan ke Cloud...'
-                        : editingArticleId
-                        ? 'Simpan & Unggah ke Cloud'
-                        : 'Terbitkan & Unggah ke Cloud'}
-                    </span>
-                  </button>
-                </div>
+              </div>
+
+              {/* Desktop Right Side & Mobile Row 2 (Publikasi Tombol Posting leluasa & rata tengah) */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveLocal}
+                  disabled={saving || savingLocal}
+                  className="hidden sm:inline-flex px-5 py-2.5 text-xs sm:text-sm font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl transition-all cursor-pointer items-center justify-center gap-2 disabled:opacity-50 shadow-2xs"
+                  title="Simpan sebagai draft di perangkat ini"
+                >
+                  <HardDrive className={`w-4 h-4 text-amber-700 ${savingLocal ? 'animate-pulse' : ''}`} />
+                  <span>{savingLocal ? 'Menyimpan Draft...' : 'Simpan Draft'}</span>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving || savingLocal}
+                  className="w-full sm:w-auto px-6 py-3 sm:py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-all shadow-sm hover:shadow cursor-pointer flex items-center justify-center text-center gap-2 disabled:opacity-50"
+                  title="Publikasikan postingan"
+                >
+                  <CloudUpload className={`w-4 h-4 ${saving ? 'animate-bounce' : ''}`} />
+                  <span>{saving ? 'Mempublikasikan...' : 'Publikasi'}</span>
+                </button>
               </div>
             </div>
           </form>

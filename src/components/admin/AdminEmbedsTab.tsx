@@ -91,7 +91,7 @@ export const AdminEmbedsTab: React.FC<AdminEmbedsTabProps> = ({ config, onChange
               value={embeds.mapTitle}
               onChange={(e) => updateEmbed('mapTitle', e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-              placeholder="Lokasi Sekolah"
+              placeholder="Lokasi Instansi"
             />
           </div>
 
@@ -156,7 +156,7 @@ export const AdminEmbedsTab: React.FC<AdminEmbedsTabProps> = ({ config, onChange
               value={embeds.youtubeTitle}
               onChange={(e) => updateEmbed('youtubeTitle', e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="Video Profil Sekolah"
+              placeholder="Video Profil Instansi"
             />
           </div>
 

@@ -46,7 +46,7 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, onChange
     });
   };
 
-  const defaultAccreditationText = `[BAN-S/M] Status ${identity.akreditasi || 'Akreditasi A (Unggul)'} — Sertifikasi Resmi BAN-S/M • [NPSN] Nomor Pokok Sekolah Nasional: ${identity.npsn || '10495146'} — Terverifikasi Kemendikbudristek RI • [PRESTASI] Peringkat Akreditasi Tertinggi Standar Mutu Pendidikan Nasional • [KURIKULUM] ${identity.name || 'SMP Negeri 1 Bengkalis'} — Unggul, Berkarakter & Berprestasi`;
+  const defaultAccreditationText = `[AKREDITASI] Status ${identity.akreditasi || 'Terakreditasi A (Unggul)'} — Sertifikasi Resmi • [LEGALITAS] Nomor Pokok / Registrasi: ${identity.npsn || '10495146'} — Terverifikasi Resmi • [KOMITMEN] ${identity.name || 'Portal Instansi'} — Unggul, Profesional & Berintegritas`;
 
   // Quick preset colors for Running Text 1
   const quickColorsAnn = [

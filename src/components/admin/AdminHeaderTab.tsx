@@ -40,24 +40,24 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* 1. Identitas Sekolah */}
+      {/* 1. Identitas Instansi */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-blue-600" />
-          <span>Identitas Sekolah</span>
+          <span>Identitas Instansi</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Nama Sekolah
+              Nama Instansi
             </label>
             <input
               type="text"
               value={identity.name}
               onChange={(e) => updateIdentity('name', e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="SMP Negeri 1 Bengkalis"
+              placeholder="Nama instansi / lembaga..."
             />
           </div>
 
@@ -70,7 +70,7 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
               value={identity.shortName || ''}
               onChange={(e) => updateIdentity('shortName', e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="SMPN 1 Bengkalis"
+              placeholder="Singkatan nama..."
             />
           </div>
 
@@ -83,14 +83,14 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
               value={identity.tagline}
               onChange={(e) => updateIdentity('tagline', e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="Motto sekolah..."
+              placeholder="Motto instansi..."
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                NPSN
+                NPSN / Kode Registrasi
               </label>
               <input
                 type="text"
@@ -102,7 +102,7 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Akreditasi
+                Akreditasi / Status
               </label>
               <input
                 type="text"
@@ -116,7 +116,7 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
 
           <div>
             <ImageUploadButton
-              label="Logo Sekolah"
+              label="Logo Instansi"
               value={identity.logoUrl}
               onChange={(url) => {
                 onChange({

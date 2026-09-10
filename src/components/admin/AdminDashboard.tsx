@@ -194,7 +194,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'agenda', label: 'Agenda & Jadwal', icon: <Calendar className="w-4 h-4" /> },
     { id: 'facilities', label: 'Fasilitas & Ekskul', icon: <Building2 className="w-4 h-4" /> },
     { id: 'layout', label: 'Tata Letak', icon: <Layout className="w-4 h-4" /> },
-    { id: 'principal', label: 'Sambutan Kepsek', icon: <Award className="w-4 h-4" /> },
+    { id: 'principal', label: 'Sambutan Pimpinan', icon: <Award className="w-4 h-4" /> },
     { id: 'embeds', label: 'Embed Video & Peta', icon: <Video className="w-4 h-4" /> },
     { id: 'footer', label: 'Footer & Kontak', icon: <Share2 className="w-4 h-4" /> },
     { id: 'appscript', label: 'Google Drive & Sheets', icon: <FileSpreadsheet className="w-4 h-4" /> },
@@ -274,7 +274,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="hidden sm:flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-white text-base tracking-tight">
-                    CMS Admin Sekolah
+                    Portal Admin
                   </span>
                   <span className="inline-flex items-center gap-1 bg-blue-900/80 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-700">
                     <ShieldCheck className="w-3 h-3" />
@@ -282,7 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </span>
                 </div>
                 <span className="text-xs text-slate-400 font-medium truncate max-w-xs">
-                  {config.identity.name}
+                  {config.identity.name || 'Nama Instansi'}
                 </span>
               </div>
             </div>
@@ -387,10 +387,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div>
               <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
-                CMS Admin Sekolah
+                Portal Admin
               </h2>
               <p className="text-xs text-slate-400 font-medium truncate max-w-[170px]">
-                {config.identity.name}
+                {config.identity.name || 'Nama Instansi'}
               </p>
             </div>
           </div>
@@ -699,14 +699,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <AdminPPDBTab config={config} onChange={handleConfigUpdate} />
           )}
 
-          {activeTab === 'posts' && (
+          {/* Keep AdminPostsTab mounted so in-progress post editing/drafting is preserved when switching tabs */}
+          <div className={activeTab === 'posts' ? 'block' : 'hidden'}>
             <AdminPostsTab
               articles={articles}
               onSaveArticle={onSaveArticle}
               onSaveArticleLocally={onSaveArticleLocally}
               onDeleteArticle={onDeleteArticle}
             />
-          )}
+          </div>
 
           {activeTab === 'agenda' && (
             <AdminAgendaTab config={config} onChange={handleConfigUpdate} />
@@ -748,37 +749,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Granular Quick-Save Bar for Non-Sync and Non-Posts Tabs */}
           {activeTab !== 'sync' && activeTab !== 'posts' && (
-            <div className="mt-8 bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                  <Save className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                      Simpan Perubahan Tab {tabs.find((t) => t.id === activeTab)?.label}
-                    </h4>
-                    {unsavedTabs[activeTab] ? (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
-                        Belum Disinkron
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Tersinkron
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
+            <div className="mt-8 flex items-center justify-end">
               <button
                 type="button"
                 onClick={() => handleSaveTab(activeTab)}
                 disabled={savingTab}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm hover:shadow transition-all text-xs sm:text-sm cursor-pointer disabled:opacity-50 tracking-wider"
               >
                 <Save className={`w-4 h-4 ${savingTab ? 'animate-spin' : ''}`} />
-                <span>{savingTab ? 'Menyimpan...' : `Simpan Tab ${tabs.find((t) => t.id === activeTab)?.label}`}</span>
+                <span>{savingTab ? 'MENYIMPAN...' : 'SIMPAN'}</span>
               </button>
             </div>
           )}

@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
-  Trash2,
   RefreshCw,
-  HardDrive,
   Link as LinkIcon,
   AlertCircle,
   Zap,
+  X,
+  Clipboard,
 } from 'lucide-react';
 import { convertGoogleDriveUrl } from '../../lib/imageOptimizer';
 import {
@@ -57,7 +57,7 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
     const currentConfig = getStoredAppsScriptConfig();
     if (!currentConfig || !currentConfig.webAppUrl) {
       setUploaderNotice(
-        'Google Apps Script belum dikonfigurasi. Silakan buka tab "Google Drive & Sheets" di Admin untuk setup, atau tempel tautan gambar manual di tombol "Tambah Link".'
+        'Google Apps Script belum dikonfigurasi. Silakan buka tab "Google Drive & Sheets" di Admin untuk setup, atau tempel tautan gambar manual di tombol "Link".'
       );
       setShowUrlInput(true);
       return;
@@ -126,29 +126,20 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <a
-            href="https://drive.google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
-          >
-            <HardDrive className="w-3 h-3" />
-            <span>Google Drive ↗</span>
-          </a>
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowUrlInput(!showUrlInput)}
-            className="text-[11px] text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1 cursor-pointer"
+            className="text-[11px] text-slate-600 hover:text-slate-900 font-semibold flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded-md border border-slate-200"
           >
             <LinkIcon className="w-3 h-3" />
-            <span>{showUrlInput ? 'Tutup URL' : 'Tambah Link'}</span>
+            <span>{showUrlInput ? 'Tutup URL' : 'Link'}</span>
           </button>
           {images.length > 0 && (
             <button
               type="button"
               onClick={() => onChange([])}
-              className="text-[11px] text-red-600 hover:text-red-700 font-semibold cursor-pointer"
+              className="text-[11px] text-red-600 hover:text-red-700 font-semibold cursor-pointer px-2 py-1"
             >
               Hapus Semua
             </button>
@@ -172,6 +163,24 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
             placeholder="Tempel tautan gambar atau Google Drive..."
             className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none"
           />
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                  setSingleUrlInput(text.trim());
+                }
+              } catch (err) {
+                console.error('Clipboard paste failed:', err);
+              }
+            }}
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 border border-slate-300 text-slate-700 rounded-lg flex items-center justify-center cursor-pointer shrink-0 transition-colors"
+            title="Tempel dari Clipboard (Paste)"
+            aria-label="Tempel dari Clipboard"
+          >
+            <Clipboard className="w-3.5 h-3.5 text-blue-600" />
+          </button>
           <button
             type="button"
             onClick={handleAddUrl}
@@ -239,13 +248,15 @@ export const MultiImageUploader: React.FC<MultiImageUploaderProps> = ({
           {images.map((img, idx) => (
             <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
               <img src={img} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+              
+              {/* Red X circle delete button on top right */}
               <button
                 type="button"
                 onClick={() => handleRemoveImage(idx)}
-                className="absolute top-1 right-1 p-1 bg-red-600 hover:bg-red-700 text-white rounded-md opacity-90 transition-opacity cursor-pointer"
+                className="absolute top-1 right-1 w-5 h-5 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-md transition-opacity cursor-pointer"
                 title="Hapus foto ini"
               >
-                <Trash2 className="w-3 h-3" />
+                <X className="w-3 h-3 stroke-[2.5]" />
               </button>
             </div>
           ))}
