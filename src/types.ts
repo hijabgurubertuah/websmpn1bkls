@@ -104,17 +104,21 @@ export interface HeaderConfig {
 
 export interface MobileBottomNavConfig {
   enabled: boolean;
+  positionMode?: 'floating' | 'full-bottom'; // Melayang vs Menutupi Area Bawah Penuh
+  presetId?: string; // Preset ID dari koleksi desain
   showHome: boolean;
   showNews: boolean;
   showAchievements: boolean;
   showExtracurriculars: boolean;
   showContact: boolean;
   showProfile?: boolean;
-  styleVariant?: 'floating-dock' | 'glass-bar' | 'minimal-pill' | 'solid-dock';
-  themeColor?: 'dark-slate' | 'deep-navy' | 'royal-indigo' | 'emerald-green' | 'light-modern' | 'custom';
+  styleVariant?: 'floating-dock' | 'glass-bar' | 'minimal-pill' | 'solid-dock' | 'curved-notch';
+  themeColor?: 'dark-slate' | 'deep-navy' | 'royal-indigo' | 'emerald-green' | 'light-modern' | 'pastel-pink' | 'ocean-gradient' | 'sunset-magenta' | 'custom';
   customBgColor?: string;
   accentColor?: 'blue' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'purple' | 'cyan' | 'custom';
   customAccentColor?: string;
+  centerButtonShape?: 'circle' | 'rounded-square' | 'diamond' | 'pill' | 'flat';
+  glowEffect?: boolean;
   showLabels?: boolean;
   elevatedCenterButton?: boolean;
   showActiveIndicator?: boolean;

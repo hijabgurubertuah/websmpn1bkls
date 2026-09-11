@@ -19,6 +19,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 }) => {
   const bottomNavConfig = config.mobileBottomNav || {
     enabled: true,
+    positionMode: 'floating',
     showHome: true,
     showNews: true,
     showAchievements: true,
@@ -27,6 +28,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     styleVariant: 'floating-dock',
     themeColor: 'dark-slate',
     accentColor: 'blue',
+    centerButtonShape: 'circle',
+    glowEffect: true,
     showLabels: false,
     elevatedCenterButton: true,
     showActiveIndicator: true,
@@ -114,64 +117,86 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const theme = bottomNavConfig.themeColor || 'dark-slate';
   const accent = bottomNavConfig.accentColor || 'blue';
   const variant = bottomNavConfig.styleVariant || 'floating-dock';
-  const isLight = theme === 'light-modern';
+  const positionMode = bottomNavConfig.positionMode || (variant === 'glass-bar' || variant === 'curved-notch' ? 'full-bottom' : 'floating');
+  const isFullBottom = positionMode === 'full-bottom';
+  const isLight = theme === 'light-modern' || theme === 'pastel-pink';
+  const centerShape = bottomNavConfig.centerButtonShape || 'circle';
+  const hasGlow = bottomNavConfig.glowEffect !== false;
+  const isElevatedCenter = bottomNavConfig.elevatedCenterButton !== false;
+  const showLabels = Boolean(bottomNavConfig.showLabels);
 
   // Theme container classes
-  let containerBgClass = 'bg-slate-900/94 backdrop-blur-xl border-slate-700/80 text-white shadow-slate-950/70';
+  let containerBgClass = 'bg-slate-900/95 backdrop-blur-xl border-slate-700/80 text-white shadow-slate-950/70';
   if (theme === 'deep-navy') {
-    containerBgClass = 'bg-slate-950/94 backdrop-blur-xl border-blue-900/80 text-blue-50 shadow-blue-950/70';
+    containerBgClass = 'bg-slate-950/96 backdrop-blur-xl border-blue-900/80 text-blue-50 shadow-blue-950/70';
   } else if (theme === 'royal-indigo') {
-    containerBgClass = 'bg-indigo-950/94 backdrop-blur-xl border-indigo-800/80 text-indigo-50 shadow-indigo-950/70';
+    containerBgClass = 'bg-indigo-950/96 backdrop-blur-xl border-indigo-800/80 text-indigo-50 shadow-indigo-950/70';
   } else if (theme === 'emerald-green') {
-    containerBgClass = 'bg-emerald-950/94 backdrop-blur-xl border-emerald-800/80 text-emerald-50 shadow-emerald-950/70';
+    containerBgClass = 'bg-emerald-950/96 backdrop-blur-xl border-emerald-800/80 text-emerald-50 shadow-emerald-950/70';
   } else if (theme === 'light-modern') {
-    containerBgClass = 'bg-white/95 backdrop-blur-xl border-slate-200/90 text-slate-800 shadow-slate-300/80';
+    containerBgClass = 'bg-white/96 backdrop-blur-xl border-slate-200/90 text-slate-800 shadow-slate-300/80';
+  } else if (theme === 'pastel-pink') {
+    containerBgClass = 'bg-pink-50/96 backdrop-blur-xl border-pink-200/90 text-pink-900 shadow-pink-200/60';
+  } else if (theme === 'ocean-gradient') {
+    containerBgClass = 'bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 border-white/20 text-white shadow-blue-900/50';
+  } else if (theme === 'sunset-magenta') {
+    containerBgClass = 'bg-slate-950/96 backdrop-blur-xl border-pink-900/70 text-slate-100 shadow-purple-950/70';
   }
 
-  // Accent color active classes
+  // Accent color active classes (Color change from dark/muted to bright luminous)
   const getAccentTextClass = (isActive: boolean) => {
     if (!isActive) {
-      return isLight ? 'text-slate-500 hover:text-slate-900' : 'text-slate-400 hover:text-slate-200';
+      if (theme === 'ocean-gradient') return 'text-white/60 hover:text-white';
+      return isLight ? 'text-slate-400 hover:text-slate-700' : 'text-slate-400/70 hover:text-slate-200';
     }
+    if (theme === 'ocean-gradient') return 'text-white font-bold drop-shadow-sm';
+    if (isLight) return 'text-white font-bold';
+    
     switch (accent) {
-      case 'indigo': return isLight ? 'text-indigo-600 font-bold' : 'text-indigo-400 font-bold';
-      case 'emerald': return isLight ? 'text-emerald-600 font-bold' : 'text-emerald-400 font-bold';
-      case 'amber': return isLight ? 'text-amber-600 font-bold' : 'text-amber-400 font-bold';
-      case 'rose': return isLight ? 'text-rose-600 font-bold' : 'text-rose-400 font-bold';
-      case 'purple': return isLight ? 'text-purple-600 font-bold' : 'text-purple-400 font-bold';
-      case 'cyan': return isLight ? 'text-cyan-600 font-bold' : 'text-cyan-400 font-bold';
-      default: return isLight ? 'text-blue-600 font-bold' : 'text-blue-400 font-bold';
+      case 'indigo': return 'text-indigo-300 font-bold drop-shadow-[0_0_8px_rgba(165,180,252,0.6)]';
+      case 'emerald': return 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(110,231,183,0.6)]';
+      case 'amber': return 'text-amber-300 font-bold drop-shadow-[0_0_8px_rgba(252,211,77,0.6)]';
+      case 'rose': return 'text-rose-300 font-bold drop-shadow-[0_0_8px_rgba(253,164,175,0.6)]';
+      case 'purple': return 'text-purple-300 font-bold drop-shadow-[0_0_8px_rgba(216,180,254,0.6)]';
+      case 'cyan': return 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(103,232,249,0.6)]';
+      default: return 'text-blue-300 font-bold drop-shadow-[0_0_8px_rgba(147,197,253,0.6)]';
     }
   };
 
   const getAccentBgClass = (isActive: boolean) => {
     if (!isActive) {
-      return isLight ? 'group-hover:bg-slate-100' : 'group-hover:bg-slate-800/60';
+      if (theme === 'ocean-gradient') return 'group-hover:bg-white/10';
+      return isLight ? 'group-hover:bg-slate-100' : 'group-hover:bg-slate-800/50';
     }
-    switch (accent) {
-      case 'indigo': return isLight ? 'bg-indigo-50 shadow-xs' : 'bg-indigo-500/20 shadow-inner';
-      case 'emerald': return isLight ? 'bg-emerald-50 shadow-xs' : 'bg-emerald-500/20 shadow-inner';
-      case 'amber': return isLight ? 'bg-amber-50 shadow-xs' : 'bg-amber-500/20 shadow-inner';
-      case 'rose': return isLight ? 'bg-rose-50 shadow-xs' : 'bg-rose-500/20 shadow-inner';
-      case 'purple': return isLight ? 'bg-purple-50 shadow-xs' : 'bg-purple-500/20 shadow-inner';
-      case 'cyan': return isLight ? 'bg-cyan-50 shadow-xs' : 'bg-cyan-500/20 shadow-inner';
-      default: return isLight ? 'bg-blue-50 shadow-xs' : 'bg-blue-600/20 shadow-inner';
+    if (theme === 'ocean-gradient') return 'bg-white/25 text-white shadow-sm border border-white/30';
+    
+    if (isLight) {
+      switch (accent) {
+        case 'indigo': return 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30';
+        case 'emerald': return 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30';
+        case 'amber': return 'bg-amber-500 text-white shadow-md shadow-amber-500/30';
+        case 'rose': return 'bg-rose-600 text-white shadow-md shadow-rose-600/30';
+        case 'purple': return 'bg-purple-600 text-white shadow-md shadow-purple-600/30';
+        case 'cyan': return 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30';
+        default: return 'bg-blue-600 text-white shadow-md shadow-blue-600/30';
+      }
     }
-  };
 
-  const getAccentDotClass = () => {
     switch (accent) {
-      case 'indigo': return 'bg-indigo-500 shadow-indigo-400';
-      case 'emerald': return 'bg-emerald-500 shadow-emerald-400';
-      case 'amber': return 'bg-amber-500 shadow-amber-400';
-      case 'rose': return 'bg-rose-500 shadow-rose-400';
-      case 'purple': return 'bg-purple-500 shadow-purple-400';
-      case 'cyan': return 'bg-cyan-500 shadow-cyan-400';
-      default: return 'bg-blue-500 shadow-blue-400';
+      case 'indigo': return 'bg-indigo-500/25 border border-indigo-400/40 shadow-inner shadow-indigo-500/20';
+      case 'emerald': return 'bg-emerald-500/25 border border-emerald-400/40 shadow-inner shadow-emerald-500/20';
+      case 'amber': return 'bg-amber-500/25 border border-amber-400/40 shadow-inner shadow-amber-500/20';
+      case 'rose': return 'bg-rose-500/25 border border-rose-400/40 shadow-inner shadow-rose-500/20';
+      case 'purple': return 'bg-purple-500/25 border border-purple-400/40 shadow-inner shadow-purple-500/20';
+      case 'cyan': return 'bg-cyan-500/25 border border-cyan-400/40 shadow-inner shadow-cyan-500/20';
+      default: return 'bg-blue-500/25 border border-blue-400/40 shadow-inner shadow-blue-500/20';
     }
   };
 
   const getHomeCenterBgClass = (isActive: boolean) => {
+    if (theme === 'ocean-gradient') {
+      return 'bg-white text-blue-600 shadow-lg shadow-blue-900/40';
+    }
     if (!isActive) {
       return isLight
         ? 'bg-slate-800 text-white hover:bg-slate-900 shadow-slate-400/40'
@@ -188,216 +213,217 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     }
   };
 
-  const isFloating = variant !== 'glass-bar' && variant !== 'solid-dock';
+  const getGlowShadowStyle = () => {
+    if (!hasGlow) return {};
+    let glowColor = 'rgba(59, 130, 246, 0.55)'; // blue
+    if (accent === 'indigo') glowColor = 'rgba(99, 102, 241, 0.6)';
+    if (accent === 'emerald') glowColor = 'rgba(16, 185, 129, 0.6)';
+    if (accent === 'amber') glowColor = 'rgba(245, 158, 11, 0.65)';
+    if (accent === 'rose') glowColor = 'rgba(244, 63, 94, 0.6)';
+    if (accent === 'purple') glowColor = 'rgba(168, 85, 247, 0.65)';
+    if (accent === 'cyan') glowColor = 'rgba(6, 182, 212, 0.65)';
+
+    return {
+      boxShadow: `0 8px 24px -2px ${glowColor}, 0 2px 8px ${glowColor}`,
+    };
+  };
+
   const isPill = variant === 'minimal-pill';
-  const showLabels = Boolean(bottomNavConfig.showLabels);
-  const isElevatedCenter = bottomNavConfig.elevatedCenterButton !== false;
-  const showIndicator = bottomNavConfig.showActiveIndicator !== false;
+  const isCurvedNotch = variant === 'curved-notch';
 
   const customStyle: React.CSSProperties = {};
   if (theme === 'custom' && bottomNavConfig.customBgColor) {
     customStyle.backgroundColor = bottomNavConfig.customBgColor;
   }
 
+  // Determine shape class for center button
+  let centerShapeClass = 'rounded-2xl';
+  if (centerShape === 'circle') centerShapeClass = 'rounded-full';
+  else if (centerShape === 'diamond') centerShapeClass = 'rounded-xl rotate-45';
+  else if (centerShape === 'pill') centerShapeClass = 'rounded-full px-4';
+  else if (centerShape === 'flat') centerShapeClass = 'rounded-xl';
+
   return (
     <nav
       id="mobile-bottom-nav-dock"
       aria-label="Navigasi Bawah Mobile"
       className={`md:hidden fixed z-40 inset-x-0 ${
-        isFloating
+        !isFullBottom
           ? 'bottom-3 px-3 flex justify-center pointer-events-none'
-          : 'bottom-0 px-3 py-1 bg-slate-900/95 border-t border-slate-800 shadow-2xl'
+          : 'bottom-0 w-full pointer-events-none'
       }`}
     >
+      {/* Main Bar / Dock Wrapper */}
       <div
         style={customStyle}
-        className={`pointer-events-auto flex items-center justify-between w-full transition-all duration-200 border shadow-2xl ${
-          isFloating
-            ? `max-w-md ${isPill ? 'rounded-full px-2 py-1' : 'rounded-2xl p-1.5'} ${containerBgClass} ring-1 ring-white/10`
-            : `max-w-md mx-auto ${containerBgClass}`
+        className={`pointer-events-auto transition-all duration-200 ${
+          isFullBottom
+            ? `w-full border-t shadow-2xl px-4 py-2 ${containerBgClass}`
+            : `max-w-md mx-auto flex items-center justify-between w-full border shadow-2xl ${
+                isPill ? 'rounded-full px-3 py-1.5' : 'rounded-2xl p-2'
+              } ${containerBgClass} ring-1 ring-white/10`
         }`}
       >
-        {/* Item 1: Berita */}
-        {bottomNavConfig.showNews !== false && (
-          <button
-            type="button"
-            id="mobile-nav-btn-news"
-            onClick={handleNewsClick}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
-              activeTab === 'news'
-            )}`}
-            title="Berita & Informasi"
-            aria-label="Berita & Informasi"
-          >
-            <div
-              className={`p-1.5 rounded-lg transition-all ${getAccentBgClass(
+        <div className={`flex items-center justify-between w-full ${isFullBottom ? 'max-w-md mx-auto' : ''}`}>
+          
+          {/* Item 1: Berita */}
+          {bottomNavConfig.showNews !== false && (
+            <button
+              type="button"
+              id="mobile-nav-btn-news"
+              onClick={handleNewsClick}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
                 activeTab === 'news'
               )}`}
+              title="Berita & Informasi"
+              aria-label="Berita & Informasi"
             >
-              <Newspaper className="w-5 h-5 transition-transform group-hover:scale-110" />
-            </div>
-            {showLabels && (
-              <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-                Berita
-              </span>
-            )}
-            {showIndicator && activeTab === 'news' && (
-              <span
-                className={`w-1.5 h-1.5 rounded-full mt-1 shadow-xs animate-pulse ${getAccentDotClass()}`}
-              />
-            )}
-          </button>
-        )}
+              <div
+                className={`p-1.5 rounded-xl transition-all duration-200 ${getAccentBgClass(
+                  activeTab === 'news'
+                )} ${activeTab === 'news' ? 'scale-105' : ''}`}
+              >
+                <Newspaper className={`w-5 h-5 transition-transform group-hover:scale-110 ${activeTab === 'news' ? 'scale-105' : ''}`} />
+              </div>
+              {showLabels && (
+                <span className="text-[10px] font-semibold tracking-tight leading-none mt-1">
+                  Berita
+                </span>
+              )}
+            </button>
+          )}
 
-        {/* Item 2: Prestasi */}
-        {bottomNavConfig.showAchievements !== false && (
-          <button
-            type="button"
-            id="mobile-nav-btn-achievements"
-            onClick={handleAchievementsClick}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
-              activeTab === 'achievements'
-            )}`}
-            title="Prestasi Siswa"
-            aria-label="Prestasi Siswa"
-          >
-            <div
-              className={`p-1.5 rounded-lg transition-all ${getAccentBgClass(
+          {/* Item 2: Prestasi */}
+          {bottomNavConfig.showAchievements !== false && (
+            <button
+              type="button"
+              id="mobile-nav-btn-achievements"
+              onClick={handleAchievementsClick}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
                 activeTab === 'achievements'
               )}`}
+              title="Prestasi Siswa"
+              aria-label="Prestasi Siswa"
             >
-              <Trophy className="w-5 h-5 transition-transform group-hover:scale-110" />
-            </div>
-            {showLabels && (
-              <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-                Prestasi
-              </span>
-            )}
-            {showIndicator && activeTab === 'achievements' && (
-              <span
-                className={`w-1.5 h-1.5 rounded-full mt-1 shadow-xs animate-pulse ${getAccentDotClass()}`}
-              />
-            )}
-          </button>
-        )}
+              <div
+                className={`p-1.5 rounded-xl transition-all duration-200 ${getAccentBgClass(
+                  activeTab === 'achievements'
+                )} ${activeTab === 'achievements' ? 'scale-105' : ''}`}
+              >
+                <Trophy className={`w-5 h-5 transition-transform group-hover:scale-110 ${activeTab === 'achievements' ? 'scale-105' : ''}`} />
+              </div>
+              {showLabels && (
+                <span className="text-[10px] font-semibold tracking-tight leading-none mt-1">
+                  Prestasi
+                </span>
+              )}
+            </button>
+          )}
 
-        {/* CENTER ITEM: Home (Beranda) */}
-        {bottomNavConfig.showHome !== false && (
-          <div className="flex items-center justify-center px-1 shrink-0">
-            {isElevatedCenter ? (
-              <button
-                type="button"
-                id="mobile-nav-btn-home-center"
-                onClick={handleHomeClick}
-                className={`relative -top-3 w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl transition-all duration-200 active:scale-90 cursor-pointer border-2 ${
-                  isLight ? 'border-white' : 'border-slate-900'
-                } group ${getHomeCenterBgClass(activeTab === 'home')} ${
-                  activeTab === 'home' ? 'scale-105' : ''
-                }`}
-                title="Beranda (Home)"
-                aria-label="Beranda"
-              >
-                <Home className="w-5 h-5 transition-transform group-hover:scale-110" />
-                {showIndicator && activeTab === 'home' && (
-                  <span className="absolute -bottom-1 w-2 h-2 rounded-full bg-white shadow-xs" />
-                )}
-              </button>
-            ) : (
-              <button
-                type="button"
-                id="mobile-nav-btn-home"
-                onClick={handleHomeClick}
-                className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
-                  activeTab === 'home'
-                )}`}
-                title="Beranda"
-                aria-label="Beranda"
-              >
-                <div
-                  className={`p-1.5 rounded-lg transition-all ${getAccentBgClass(
+          {/* CENTER ITEM: Home (Beranda) */}
+          {bottomNavConfig.showHome !== false && (
+            <div className="flex items-center justify-center px-1.5 shrink-0">
+              {isElevatedCenter ? (
+                <button
+                  type="button"
+                  id="mobile-nav-btn-home-center"
+                  onClick={handleHomeClick}
+                  style={getGlowShadowStyle()}
+                  className={`relative ${
+                    isFullBottom ? '-top-4' : '-top-3'
+                  } w-12 h-12 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer border border-white/30 shadow-lg group ${centerShapeClass} ${getHomeCenterBgClass(
+                    activeTab === 'home'
+                  )} ${activeTab === 'home' ? 'scale-105' : ''}`}
+                  title="Beranda (Home)"
+                  aria-label="Beranda"
+                >
+                  <div className={centerShape === 'diamond' ? '-rotate-45' : ''}>
+                    <Home className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  </div>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  id="mobile-nav-btn-home"
+                  onClick={handleHomeClick}
+                  className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
                     activeTab === 'home'
                   )}`}
+                  title="Beranda"
+                  aria-label="Beranda"
                 >
-                  <Home className="w-5 h-5 transition-transform group-hover:scale-110" />
-                </div>
-                {showLabels && (
-                  <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-                    Beranda
-                  </span>
-                )}
-                {showIndicator && activeTab === 'home' && (
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full mt-1 shadow-xs animate-pulse ${getAccentDotClass()}`}
-                  />
-                )}
-              </button>
-            )}
-          </div>
-        )}
+                  <div
+                    className={`p-1.5 rounded-xl transition-all duration-200 ${getAccentBgClass(
+                      activeTab === 'home'
+                    )} ${activeTab === 'home' ? 'scale-105' : ''}`}
+                  >
+                    <Home className={`w-5 h-5 transition-transform group-hover:scale-110 ${activeTab === 'home' ? 'scale-105' : ''}`} />
+                  </div>
+                  {showLabels && (
+                    <span className="text-[10px] font-semibold tracking-tight leading-none mt-1">
+                      Beranda
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
 
-        {/* Item 3: Ekstrakurikuler */}
-        {bottomNavConfig.showExtracurriculars !== false && (
-          <button
-            type="button"
-            id="mobile-nav-btn-ekskul"
-            onClick={handleEkskulClick}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
-              activeTab === 'ekskul'
-            )}`}
-            title="Ekstrakurikuler & Fasilitas"
-            aria-label="Ekstrakurikuler & Fasilitas"
-          >
-            <div
-              className={`p-1.5 rounded-lg transition-all ${getAccentBgClass(
+          {/* Item 3: Ekstrakurikuler */}
+          {bottomNavConfig.showExtracurriculars !== false && (
+            <button
+              type="button"
+              id="mobile-nav-btn-ekskul"
+              onClick={handleEkskulClick}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
                 activeTab === 'ekskul'
               )}`}
+              title="Ekstrakurikuler & Fasilitas"
+              aria-label="Ekstrakurikuler & Fasilitas"
             >
-              <Activity className="w-5 h-5 transition-transform group-hover:scale-110" />
-            </div>
-            {showLabels && (
-              <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-                Ekskul
-              </span>
-            )}
-            {showIndicator && activeTab === 'ekskul' && (
-              <span
-                className={`w-1.5 h-1.5 rounded-full mt-1 shadow-xs animate-pulse ${getAccentDotClass()}`}
-              />
-            )}
-          </button>
-        )}
+              <div
+                className={`p-1.5 rounded-xl transition-all duration-200 ${getAccentBgClass(
+                  activeTab === 'ekskul'
+                )} ${activeTab === 'ekskul' ? 'scale-105' : ''}`}
+              >
+                <Activity className={`w-5 h-5 transition-transform group-hover:scale-110 ${activeTab === 'ekskul' ? 'scale-105' : ''}`} />
+              </div>
+              {showLabels && (
+                <span className="text-[10px] font-semibold tracking-tight leading-none mt-1">
+                  Ekskul
+                </span>
+              )}
+            </button>
+          )}
 
-        {/* Item 4: Kontak (Langsung Mengarah ke Footer / Kontak) */}
-        {bottomNavConfig.showContact !== false && (
-          <button
-            type="button"
-            id="mobile-nav-btn-contact"
-            onClick={handleContactClick}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
-              activeTab === 'contact'
-            )}`}
-            title="Kontak & Lokasi Sekolah"
-            aria-label="Kontak & Lokasi Sekolah"
-          >
-            <div
-              className={`p-1.5 rounded-lg transition-all ${getAccentBgClass(
+          {/* Item 4: Kontak (Langsung Mengarah ke Footer / Kontak) */}
+          {bottomNavConfig.showContact !== false && (
+            <button
+              type="button"
+              id="mobile-nav-btn-contact"
+              onClick={handleContactClick}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 cursor-pointer relative group ${getAccentTextClass(
                 activeTab === 'contact'
               )}`}
+              title="Kontak & Lokasi Sekolah"
+              aria-label="Kontak & Lokasi Sekolah"
             >
-              <PhoneCall className="w-5 h-5 transition-transform group-hover:scale-110" />
-            </div>
-            {showLabels && (
-              <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-                Kontak
-              </span>
-            )}
-            {showIndicator && activeTab === 'contact' && (
-              <span
-                className={`w-1.5 h-1.5 rounded-full mt-1 shadow-xs animate-pulse ${getAccentDotClass()}`}
-              />
-            )}
-          </button>
-        )}
+              <div
+                className={`p-1.5 rounded-xl transition-all duration-200 ${getAccentBgClass(
+                  activeTab === 'contact'
+                )} ${activeTab === 'contact' ? 'scale-105' : ''}`}
+              >
+                <PhoneCall className={`w-5 h-5 transition-transform group-hover:scale-110 ${activeTab === 'contact' ? 'scale-105' : ''}`} />
+              </div>
+              {showLabels && (
+                <span className="text-[10px] font-semibold tracking-tight leading-none mt-1">
+                  Kontak
+                </span>
+              )}
+            </button>
+          )}
+
+        </div>
       </div>
     </nav>
   );
