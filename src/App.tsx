@@ -30,6 +30,7 @@ import { AccreditationRibbon } from './components/public/AccreditationRibbon';
 import { OfflineIndicator } from './components/public/OfflineIndicator';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
+import { MobileBottomNav } from './components/public/MobileBottomNav';
 import { ShieldCheck, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
 import { syncPWAManifest } from './lib/usePWAInstall';
 
@@ -272,7 +273,7 @@ export default function App() {
   const { layoutSections } = config;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900 relative">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 relative pb-20 md:pb-0">
       
       {/* Sync Notification Toast */}
       {syncToast && (
@@ -349,6 +350,19 @@ export default function App() {
 
       {/* Footer Section */}
       <FooterSection config={config} />
+
+      {/* Modern Mobile Bottom Navigation Bar (Floating Dock) */}
+      <MobileBottomNav
+        config={config}
+        onOpenContact={() => {
+          const el = document.getElementById('kontak') || document.getElementById('footer');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+          }
+        }}
+      />
 
       {/* Offline Status Notification Indicator for PWA */}
       <OfflineIndicator />

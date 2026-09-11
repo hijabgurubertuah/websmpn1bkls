@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { NewsArticle } from '../../types';
 import {
   Calendar,
@@ -50,6 +50,18 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+
+  useEffect(() => {
+    const handleSelectCategory = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setSelectedCategory(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('select-news-category', handleSelectCategory);
+    return () => window.removeEventListener('select-news-category', handleSelectCategory);
+  }, []);
 
   // Layout Columns state (1, 2, or 3 columns cycle on mobile/desktop)
   const [layoutColumns, setLayoutColumns] = useState<1 | 2 | 3>(() => {
@@ -137,12 +149,12 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles }) => {
             />
           </div>
 
-          {/* Layout Cycler Button (1 Kotak -> 2 Kotak -> 3 Kotak -> 1 Kotak) */}
+          {/* Layout Cycler Button (Cukup di HP saja / md:hidden) */}
           <button
             type="button"
             onClick={handleCycleLayout}
-            className="h-10 px-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0 select-none"
-            title={`Layout Tampilan: ${layoutColumns} Kolom (Klik untuk ubah ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom)`}
+            className="md:hidden h-10 px-3 bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-700 hover:text-blue-600 border border-slate-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0 select-none"
+            title={`Layout Tampilan: ${layoutColumns} Kolom`}
             aria-label={`Ubah susunan layout ke ${layoutColumns === 1 ? '2' : layoutColumns === 2 ? '3' : '1'} kolom`}
           >
             {layoutColumns === 1 && (

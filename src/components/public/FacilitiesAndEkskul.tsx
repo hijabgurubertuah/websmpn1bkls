@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FacilityItem, ExtracurricularItem } from '../../types';
 import {
   Building2,
@@ -28,6 +28,18 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'facilities' | 'ekskul'>('facilities');
 
+  useEffect(() => {
+    const handleSelectTab = (e: Event) => {
+      const customEvent = e as CustomEvent<'facilities' | 'ekskul'>;
+      if (customEvent.detail) {
+        setActiveTab(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('select-facility-tab', handleSelectTab);
+    return () => window.removeEventListener('select-facility-tab', handleSelectTab);
+  }, []);
+
   const getEkskulIcon = (iconName: string) => {
     switch (iconName?.toLowerCase()) {
       case 'cpu':
@@ -55,7 +67,8 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
   };
 
   return (
-    <section id="fasilitas" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200/60">
+    <section id="fasilitas" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200/60 relative">
+      <span id="ekskul" className="absolute -top-16 left-0 pointer-events-none" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header with Switcher Tabs */}

@@ -70,6 +70,7 @@ export const AdminThemeTab: React.FC<AdminThemeTabProps> = ({ config, onChange }
   const activeAccent = theme.accentColor || '#f59e0b';
   const activeBannerColor = theme.bannerOverlayColor || '#0f172a';
   const activeBannerOpacity = typeof theme.bannerOverlayOpacity === 'number' ? theme.bannerOverlayOpacity : 45;
+  const activeCardStroke = theme.cardStrokeColor || '#b45309';
 
   const colorItems: ColorFieldProps[] = [
     {
@@ -95,6 +96,12 @@ export const AdminThemeTab: React.FC<AdminThemeTabProps> = ({ config, onChange }
       label: 'Warna Sorotan / Hover Utama',
       value: activeHover,
       onChange: (val) => updateTheme({ primaryHoverColor: val }),
+    },
+    {
+      id: 'color-card-stroke',
+      label: 'Warna Garis Tepi Kartu (Card Stroke)',
+      value: activeCardStroke,
+      onChange: (val) => updateTheme({ cardStrokeColor: val }),
     },
     {
       id: 'color-btn-bg',
@@ -257,6 +264,23 @@ export const AdminThemeTab: React.FC<AdminThemeTabProps> = ({ config, onChange }
                 >
                   Daftar Sekarang
                 </button>
+              </div>
+            </div>
+
+            {/* Mini Stat Card with Card Stroke */}
+            <div className="relative z-10 hidden sm:flex items-center gap-2">
+              <div
+                className="p-[2px] rounded-xl shadow-md"
+                style={{
+                  background: `linear-gradient(135deg, ${activeCardStroke}, #0f172a)`,
+                }}
+              >
+                <div className="bg-slate-900/95 px-3 py-2 rounded-[10px] text-center">
+                  <div className="text-[10px] font-bold" style={{ color: activeCardStroke }}>
+                    Stroke Kartu
+                  </div>
+                  <div className="text-xs font-extrabold text-white">4 Kartu Hero</div>
+                </div>
               </div>
             </div>
           </div>

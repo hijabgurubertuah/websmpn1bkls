@@ -12,7 +12,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({ principal, s
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <section id="sambutan" className="py-10 sm:py-14 bg-white border-b border-slate-100">
+    <section id="sambutan" className="pt-3 sm:pt-6 lg:pt-10 pb-8 sm:pb-12 lg:pb-14 bg-white border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="bg-gradient-to-br from-slate-50 via-blue-50/40 to-slate-50 border border-slate-200/80 rounded-2xl p-6 sm:p-10 lg:p-12 shadow-sm">
@@ -48,10 +48,6 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({ principal, s
                     </div>
                     <div className="font-bold text-sm leading-tight text-white">
                       {principal.name}
-                    </div>
-                    <div className="text-[10px] text-blue-200 font-medium mt-1 flex items-center gap-1">
-                      <span>Tap untuk membaca sambutan</span>
-                      <ChevronRight className="w-3 h-3" />
                     </div>
                   </div>
                 </div>

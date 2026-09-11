@@ -94,6 +94,7 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   footerBgColor: '#0f172a',
   bannerOverlayColor: '#0f172a',
   bannerOverlayOpacity: 45,
+  cardStrokeColor: '#b45309',
   customPresets: [],
 };
 

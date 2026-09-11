@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SchoolConfig, NewsArticle } from '../../types';
-import { AlertTriangle, Megaphone, Bell, Sparkles, ExternalLink, X, Calendar, FileText, Image as ImageIcon } from 'lucide-react';
+import { AlertTriangle, Megaphone, Bell, Sparkles, X, Calendar, FileText, Image as ImageIcon } from 'lucide-react';
 import { NewsDetailModal } from './NewsDetailModal';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
 import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
@@ -170,7 +170,6 @@ export const ImportantNoticeBanner: React.FC<ImportantNoticeBannerProps> = ({ co
           >
             {themeStyle.icon}
             <span className="font-black">{badgeText}</span>
-            <ExternalLink className="w-3 h-3 opacity-70 group-hover:opacity-100 transition-opacity ml-0.5" />
           </button>
 
           {/* Marquee Running Text Track (Clickable to open popup) */}

@@ -49,6 +49,7 @@ export interface ThemeConfig {
   footerBgColor?: string;
   bannerOverlayColor?: string;
   bannerOverlayOpacity?: number;
+  cardStrokeColor?: string;
   customPresets?: ThemePreset[];
 }
 
@@ -99,6 +100,24 @@ export interface HeaderConfig {
   secondaryCtaText: string;
   secondaryCtaLink: string;
   highlights: HighlightStat[];
+}
+
+export interface MobileBottomNavConfig {
+  enabled: boolean;
+  showHome: boolean;
+  showNews: boolean;
+  showAchievements: boolean;
+  showExtracurriculars: boolean;
+  showContact: boolean;
+  showProfile?: boolean;
+  styleVariant?: 'floating-dock' | 'glass-bar' | 'minimal-pill' | 'solid-dock';
+  themeColor?: 'dark-slate' | 'deep-navy' | 'royal-indigo' | 'emerald-green' | 'light-modern' | 'custom';
+  customBgColor?: string;
+  accentColor?: 'blue' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'purple' | 'cyan' | 'custom';
+  customAccentColor?: string;
+  showLabels?: boolean;
+  elevatedCenterButton?: boolean;
+  showActiveIndicator?: boolean;
 }
 
 export interface LayoutSections {
@@ -205,6 +224,7 @@ export interface SchoolConfig {
   header: HeaderConfig;
   navMenus: NavMenu[];
   layoutSections: LayoutSections;
+  mobileBottomNav?: MobileBottomNavConfig;
   principal: PrincipalConfig;
   ppdb?: PPDBConfig;
   embeds: EmbedsConfig;

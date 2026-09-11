@@ -16,7 +16,6 @@ import {
   Eye,
   ShieldCheck,
   LogOut,
-  PanelLeftOpen,
   X,
   ChevronRight,
   Menu,
@@ -249,18 +248,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             
             {/* Left Actions & Mobile Menu Toggle */}
             <div className="flex items-center gap-2 sm:gap-4">
-              
-              {/* Mobile Sidebar Button in Header */}
-              <button
-                type="button"
-                onClick={() => setIsMobileSidebarOpen(true)}
-                className="md:hidden inline-flex items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 cursor-pointer"
-                title="Buka Menu Tab"
-                aria-label="Buka Menu Tab"
-              >
-                <PanelLeftOpen className="w-5 h-5" />
-              </button>
-
               <button
                 type="button"
                 onClick={onCloseAdmin}
@@ -271,19 +258,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span>Website</span>
               </button>
 
-              <div className="hidden sm:flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-white text-base tracking-tight">
-                    Portal Admin
-                  </span>
-                  <span className="inline-flex items-center gap-1 bg-blue-900/80 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-700">
-                    <ShieldCheck className="w-3 h-3" />
-                    v2.0
+              <div className="hidden sm:flex items-center gap-2.5">
+                {config.identity.logoUrl && (
+                  <img
+                    src={config.identity.logoUrl}
+                    alt={config.identity.name || 'Logo'}
+                    className="w-8 h-8 object-contain rounded-lg bg-white/10 p-0.5 border border-slate-700/70 shrink-0"
+                  />
+                )}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-white text-base tracking-tight">
+                      Portal Admin
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-blue-900/80 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-700">
+                      <ShieldCheck className="w-3 h-3" />
+                      v2.0
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-400 font-medium truncate max-w-xs">
+                    {config.identity.name || 'Nama Instansi'}
                   </span>
                 </div>
-                <span className="text-xs text-slate-400 font-medium truncate max-w-xs">
-                  {config.identity.name || 'Nama Instansi'}
-                </span>
               </div>
             </div>
 
@@ -381,11 +377,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       >
         {/* Drawer Header */}
         <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-inner">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
+          <div className="flex items-center gap-3 min-w-0">
+            {config.identity.logoUrl ? (
+              <img
+                src={config.identity.logoUrl}
+                alt={config.identity.name || 'Logo Instansi'}
+                className="w-10 h-10 object-contain rounded-xl bg-white/10 p-1 border border-slate-700/80 shadow-xs shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-inner shrink-0">
+                <Building2 className="w-5 h-5" />
+              </div>
+            )}
+            <div className="min-w-0">
               <h2 className="font-extrabold text-sm sm:text-base text-white tracking-tight">
                 Portal Admin
               </h2>
@@ -398,7 +402,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <button
             type="button"
             onClick={() => setIsMobileSidebarOpen(false)}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             aria-label="Tutup Menu"
           >
             <X className="w-5 h-5" />
@@ -447,10 +451,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {tab.id === 'posts' ? `${localDraftsCount} Draf` : 'Lokal'}
                       </span>
                     ) : (
-                      <span className="text-[10px] font-medium text-emerald-400 flex items-center gap-0.5">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Cloud</span>
-                      </span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Tersinkron" />
                     )
                   )}
                   {isActive ? (
@@ -546,13 +547,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       ) : (
                         <span
-                          className={`inline-flex items-center text-[10px] font-semibold ${
-                            isActive ? 'text-blue-100' : 'text-emerald-600'
-                          }`}
+                          className="inline-flex items-center"
                           title="Tersinkron dengan Firebase"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span className="hidden xl:inline ml-1">Cloud</span>
+                          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-300' : 'bg-emerald-500'}`} />
                         </span>
                       )
                     )}
@@ -566,51 +564,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Main Content Workspace */}
         <main className="flex-1 min-w-0 w-full">
-
-          {/* Cross-Device Synchronization Alert Banner */}
-          {crossDeviceNotice && (
-            <div
-              className={`mb-6 p-4 rounded-2xl border flex items-start justify-between gap-3 shadow-xs animate-in fade-in duration-200 ${
-                crossDeviceNotice.type === 'updated'
-                  ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                  : crossDeviceNotice.type === 'error'
-                  ? 'bg-red-50/90 border-red-300 text-red-950'
-                  : 'bg-blue-50/90 border-blue-300 text-blue-950'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                    crossDeviceNotice.type === 'updated'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : crossDeviceNotice.type === 'error'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-blue-100 text-blue-700'
-                  }`}
-                >
-                  <CloudDownload className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold">
-                    {crossDeviceNotice.type === 'updated'
-                      ? 'Penyelarasan Antar Perangkat Selesai'
-                      : 'Status Sinkronisasi Cloud'}
-                  </h4>
-                  <p className="text-xs mt-0.5 leading-relaxed text-slate-700">
-                    {crossDeviceNotice.text}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCrossDeviceNotice(null)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-black/5 cursor-pointer shrink-0"
-                title="Tutup pemberitahuan"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
 
           {/* Dedicated Tab Header with Status for Current Tab (Save button is placed ONLY at the bottom) */}
           {activeTab !== 'sync' && activeTab !== 'posts' && (
