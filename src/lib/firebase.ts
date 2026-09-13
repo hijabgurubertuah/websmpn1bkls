@@ -9,6 +9,7 @@ import {
   collection,
   getDocs,
   deleteDoc,
+  onSnapshot,
   Firestore,
 } from 'firebase/firestore';
 import { SchoolConfig, NewsArticle } from '../types';
@@ -61,6 +62,32 @@ export async function withTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Pro
 }
 
 /**
+ * Normalizes SchoolConfig by deep merging with DEFAULT_SCHOOL_CONFIG to ensure all fields are populated
+ */
+export function normalizeSchoolConfig(raw: Partial<SchoolConfig> | null | undefined): SchoolConfig {
+  if (!raw) return DEFAULT_SCHOOL_CONFIG;
+  return {
+    ...DEFAULT_SCHOOL_CONFIG,
+    ...raw,
+    identity: { ...DEFAULT_SCHOOL_CONFIG.identity, ...(raw.identity || {}) },
+    importantAnnouncement: { ...DEFAULT_SCHOOL_CONFIG.importantAnnouncement, ...(raw.importantAnnouncement || {}) },
+    header: { ...DEFAULT_SCHOOL_CONFIG.header, ...(raw.header || {}) },
+    layoutSections: { ...DEFAULT_SCHOOL_CONFIG.layoutSections, ...(raw.layoutSections || {}) },
+    mobileBottomNav: { ...DEFAULT_SCHOOL_CONFIG.mobileBottomNav, ...(raw.mobileBottomNav || {}) },
+    themeConfig: { ...DEFAULT_SCHOOL_CONFIG.themeConfig, ...(raw.themeConfig || {}) },
+    principal: { ...DEFAULT_SCHOOL_CONFIG.principal, ...(raw.principal || {}) },
+    ppdb: { ...DEFAULT_SCHOOL_CONFIG.ppdb, ...(raw.ppdb || {}) },
+    embeds: { ...DEFAULT_SCHOOL_CONFIG.embeds, ...(raw.embeds || {}) },
+    footer: { ...DEFAULT_SCHOOL_CONFIG.footer, ...(raw.footer || {}) },
+    googleAppsScript: { ...DEFAULT_SCHOOL_CONFIG.googleAppsScript, ...(raw.googleAppsScript || {}) },
+    navMenus: Array.isArray(raw.navMenus) ? raw.navMenus : DEFAULT_SCHOOL_CONFIG.navMenus,
+    facilities: Array.isArray(raw.facilities) ? raw.facilities : DEFAULT_SCHOOL_CONFIG.facilities,
+    extracurriculars: Array.isArray(raw.extracurriculars) ? raw.extracurriculars : DEFAULT_SCHOOL_CONFIG.extracurriculars,
+    agendas: Array.isArray(raw.agendas) ? raw.agendas : DEFAULT_SCHOOL_CONFIG.agendas,
+  };
+}
+
+/**
  * Check if the browser currently has an authenticated admin session history
  */
 export function isAdminAuthenticated(): boolean {
@@ -85,14 +112,14 @@ export async function getCachedSchoolConfig(forceScope?: 'public' | 'admin'): Pr
 
   try {
     const idbData = await getOfflineItem<SchoolConfig>(idbKey);
-    if (idbData) return idbData;
+    if (idbData) return normalizeSchoolConfig(idbData);
   } catch {
     // ignore
   }
 
   try {
     const lsData = localStorage.getItem(lsKey);
-    if (lsData) return JSON.parse(lsData) as SchoolConfig;
+    if (lsData) return normalizeSchoolConfig(JSON.parse(lsData) as SchoolConfig);
   } catch {
     // ignore
   }
@@ -100,9 +127,9 @@ export async function getCachedSchoolConfig(forceScope?: 'public' | 'admin'): Pr
   // Fallback to legacy key or global key if newly partitioned cache is not yet seeded
   try {
     const legacy = localStorage.getItem(LEGACY_CONFIG_KEY);
-    if (legacy) return JSON.parse(legacy) as SchoolConfig;
+    if (legacy) return normalizeSchoolConfig(JSON.parse(legacy) as SchoolConfig);
     const globalIdb = await getOfflineItem<SchoolConfig>('school_config');
-    if (globalIdb) return globalIdb;
+    if (globalIdb) return normalizeSchoolConfig(globalIdb);
   } catch {
     // ignore
   }
@@ -343,6 +370,18 @@ export async function saveSchoolTabConfig(tab: string, config: SchoolConfig): Pr
     case 'layout':
       tabPayload = {
         layoutSections: config.layoutSections,
+        mobileBottomNav: config.mobileBottomNav,
+      };
+      break;
+    case 'theme':
+      tabPayload = {
+        themeConfig: config.themeConfig,
+      };
+      break;
+    case 'ticker':
+      tabPayload = {
+        identity: config.identity,
+        importantAnnouncement: config.importantAnnouncement,
       };
       break;
     case 'principal':
@@ -892,14 +931,16 @@ export async function fetchLatestFromFirebase(): Promise<{
         hasCustomDefault: true,
         savedAt: data.savedAt,
       };
-      if (data.config) customDefaultConfig = data.config as SchoolConfig;
+      if (data.config) customDefaultConfig = normalizeSchoolConfig(data.config as SchoolConfig);
       if (Array.isArray(data.articles)) customDefaultArticles = data.articles as NewsArticle[];
     }
 
     if (configSnap && configSnap.exists()) {
-      cloudConfig = configSnap.data() as SchoolConfig;
+      cloudConfig = normalizeSchoolConfig(configSnap.data() as SchoolConfig);
     } else if (customDefaultConfig) {
-      cloudConfig = customDefaultConfig;
+      cloudConfig = normalizeSchoolConfig(customDefaultConfig);
+    } else {
+      cloudConfig = DEFAULT_SCHOOL_CONFIG;
     }
 
     if (articlesSnap && !articlesSnap.empty) {
@@ -909,8 +950,10 @@ export async function fetchLatestFromFirebase(): Promise<{
       });
       arts.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
       cloudArticles = arts;
-    } else if (customDefaultArticles) {
+    } else if (customDefaultArticles && customDefaultArticles.length > 0) {
       cloudArticles = customDefaultArticles;
+    } else {
+      cloudArticles = DEFAULT_NEWS_ARTICLES;
     }
 
     return {
@@ -958,7 +1001,7 @@ export async function fetchAndSyncLatestData(forceScope?: 'public' | 'admin'): P
 
   try {
     const latest = await fetchLatestFromFirebase();
-    if (!latest.success || !latest.config || !latest.articles) {
+    if (!latest.success || !latest.config) {
       return {
         success: false,
         isDifferent: false,
@@ -969,8 +1012,8 @@ export async function fetchAndSyncLatestData(forceScope?: 'public' | 'admin'): P
       };
     }
 
-    const cloudConfig = latest.config;
-    const cloudArticles = latest.articles;
+    const cloudConfig = latest.config || cachedConfig;
+    const cloudArticles = latest.articles || cachedArticles || DEFAULT_NEWS_ARTICLES;
 
     const configDiff = !areConfigsEqual(cachedConfig, cloudConfig);
     const articlesDiff = !areArticlesEqual(cachedArticles, cloudArticles);
@@ -1041,7 +1084,7 @@ export async function syncAdminWithFirebaseIfDifferent(
   localArticles: NewsArticle[]
 ): Promise<DeviceSyncResult> {
   const latest = await fetchLatestFromFirebase();
-  if (!latest.success || !latest.config || !latest.articles) {
+  if (!latest.success || !latest.config) {
     return {
       checked: false,
       isDifferent: false,
@@ -1051,7 +1094,7 @@ export async function syncAdminWithFirebaseIfDifferent(
   }
 
   const cloudConfig = latest.config;
-  const cloudArticles = latest.articles;
+  const cloudArticles = latest.articles || localArticles || DEFAULT_NEWS_ARTICLES;
 
   const configMatches = areConfigsEqual(localConfig, cloudConfig);
   const articlesMatch = areArticlesEqual(localArticles, cloudArticles);
@@ -1111,12 +1154,14 @@ export async function forceRefreshFromFirebase(): Promise<{
   message: string;
 }> {
   const latest = await fetchLatestFromFirebase();
-  if (!latest.success || !latest.config || !latest.articles) {
+  if (!latest.success || !latest.config) {
     return {
       success: false,
       message: 'Gagal mengambil data dari Firebase: ' + (latest.error || 'Koneksi terputus'),
     };
   }
+
+  const finalArticles = latest.articles || DEFAULT_NEWS_ARTICLES;
 
   try {
     await clearOfflineStorage();
@@ -1129,8 +1174,8 @@ export async function forceRefreshFromFirebase(): Promise<{
     localStorage.removeItem(ADMIN_CONFIG_KEY);
     localStorage.removeItem(ADMIN_NEWS_KEY);
 
-    await saveToAdminCache(latest.config, latest.articles);
-    await saveToPublicCache(latest.config, latest.articles);
+    await saveToAdminCache(latest.config, finalArticles);
+    await saveToPublicCache(latest.config, finalArticles);
 
     if (latest.customDefaultConfig && latest.customDefaultArticles) {
       localStorage.setItem(CUSTOM_DEFAULT_CONFIG_KEY, JSON.stringify(latest.customDefaultConfig));
@@ -1155,6 +1200,39 @@ export async function forceRefreshFromFirebase(): Promise<{
       success: false,
       message: 'Gagal menyimpan ke penyimpanan lokal: ' + msg,
     };
+  }
+}
+
+/**
+ * Subscribe to real-time changes of the main school configuration in Firestore.
+ * Automatically triggers callback whenever an admin publishes changes from any device/browser.
+ */
+export function subscribeToCloudConfig(
+  onUpdate: (config: SchoolConfig) => void
+): () => void {
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return () => {};
+  }
+
+  try {
+    const configDocRef = doc(db, 'school_portal', 'main_config');
+    const unsubscribe = onSnapshot(
+      configDocRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const cloudData = snapshot.data();
+          const normalized = normalizeSchoolConfig(cloudData as SchoolConfig);
+          onUpdate(normalized);
+        }
+      },
+      (error) => {
+        console.info('Firestore realtime listener suspended:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.info('Failed to setup realtime cloud subscription:', err);
+    return () => {};
   }
 }
 

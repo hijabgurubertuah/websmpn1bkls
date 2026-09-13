@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { SchoolConfig, LayoutSections, MobileBottomNavConfig } from '../../types';
-import { DOCK_PRESETS, DockPreset } from '../../lib/dockPresets';
 import {
   Layout,
   Smartphone,
@@ -10,13 +9,10 @@ import {
   Activity,
   PhoneCall,
   Sparkles,
-  Palette,
   Check,
   Eye,
-  Sliders,
   Maximize2,
   Minimize2,
-  Zap,
 } from 'lucide-react';
 
 interface AdminLayoutTabProps {
@@ -26,7 +22,6 @@ interface AdminLayoutTabProps {
 
 export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange }) => {
   const { layoutSections } = config;
-  const [presetCategory, setPresetCategory] = useState<'all' | 'full-bottom' | 'floating'>('all');
 
   const bottomNavConfig: MobileBottomNavConfig = config.mobileBottomNav || {
     enabled: true,
@@ -62,17 +57,6 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
       mobileBottomNav: {
         ...bottomNavConfig,
         ...partial,
-      },
-    });
-  };
-
-  const applyPreset = (preset: DockPreset) => {
-    onChange({
-      ...config,
-      mobileBottomNav: {
-        ...bottomNavConfig,
-        ...preset.config,
-        presetId: preset.id,
       },
     });
   };
@@ -123,11 +107,6 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
     { id: 'flat', label: 'Datar', icon: '▬' },
   ];
 
-  const filteredPresets = DOCK_PRESETS.filter((p) => {
-    if (presetCategory === 'all') return true;
-    return p.category === presetCategory;
-  });
-
   const isFullBottom = bottomNavConfig.positionMode === 'full-bottom';
 
   return (
@@ -139,20 +118,10 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
         {/* Header Toggle */}
         <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600 shrink-0">
-              <Smartphone className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600 shrink-0">
+              <Smartphone className="w-4.5 h-4.5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">Navigasi Mobile (Docker)</h3>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                  bottomNavConfig.enabled !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {bottomNavConfig.enabled !== false ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Bilah menu navigasi responsif khusus smartphone</p>
-            </div>
+            <h3 className="text-sm font-bold text-slate-900">Docker</h3>
           </div>
 
           <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -170,288 +139,12 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
         {bottomNavConfig.enabled !== false && (
           <div className="space-y-5">
             
-            {/* Quick Preset Selector */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                  Preset Desain
-                </span>
-                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px]">
-                  {(['all', 'full-bottom', 'floating'] as const).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setPresetCategory(cat)}
-                      className={`px-2 py-0.5 rounded-md font-medium transition-all ${
-                        presetCategory === cat ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      {cat === 'all' ? 'Semua' : cat === 'full-bottom' ? 'Bawah Penuh' : 'Melayang'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preset Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                {filteredPresets.map((preset) => {
-                  const isCurrent =
-                    bottomNavConfig.presetId === preset.id ||
-                    (bottomNavConfig.themeColor === preset.config.themeColor &&
-                      bottomNavConfig.positionMode === preset.config.positionMode &&
-                      bottomNavConfig.accentColor === preset.config.accentColor);
-
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => applyPreset(preset)}
-                      className={`p-2.5 rounded-xl border text-left transition-all relative group flex flex-col justify-between ${
-                        isCurrent
-                          ? 'border-blue-600 bg-blue-50/50 shadow-2xs ring-1 ring-blue-500/20'
-                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-100 hover:border-slate-300'
-                      }`}
-                    >
-                      {/* Mini Preview Bar */}
-                      <div className="h-6 w-full rounded-lg bg-slate-900/10 mb-2 flex items-center justify-center px-2">
-                        <div
-                          className={`w-full h-4.5 px-2 flex items-center justify-between ${
-                            preset.preview.bgClass
-                          } ${preset.preview.borderClass} ${
-                            preset.category === 'full-bottom' ? 'rounded-none' : 'rounded-full'
-                          }`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${preset.preview.iconColor.replace('text-', 'bg-')}`} />
-                          <div
-                            className={`w-3.5 h-3.5 flex items-center justify-center shadow-xs ${
-                              preset.preview.centerButtonClass
-                            } ${
-                              preset.preview.centerShape === 'diamond'
-                                ? 'rotate-45 rounded-xs'
-                                : preset.preview.centerShape === 'rounded-square'
-                                ? 'rounded-xs'
-                                : 'rounded-full'
-                            }`}
-                          />
-                          <span className={`w-1.5 h-1.5 rounded-full ${preset.preview.iconColor.replace('text-', 'bg-')}`} />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between w-full">
-                        <span className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600">
-                          {preset.name.split(' (')[0]}
-                        </span>
-                        {isCurrent && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Position Mode & Center Button Shape (Compact Segmented) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              
-              {/* Position Mode */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-700">Mode Posisi</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateBottomNav({ positionMode: 'full-bottom', styleVariant: 'glass-bar' })}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                      isFullBottom
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                    <span>Bawah Penuh</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateBottomNav({ positionMode: 'floating', styleVariant: 'floating-dock' })}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                      !isFullBottom
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Minimize2 className="w-4 h-4" />
-                    <span>Melayang (Floating)</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Center Button Shape */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-700">Bentuk Tombol Utama</span>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {buttonShapes.map((shape) => {
-                    const isSelected = (bottomNavConfig.centerButtonShape || 'circle') === shape.id;
-                    return (
-                      <button
-                        key={shape.id}
-                        type="button"
-                        onClick={() => updateBottomNav({ centerButtonShape: shape.id as any })}
-                        className={`p-2 rounded-xl border text-center transition-all ${
-                          isSelected
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}
-                        title={shape.label}
-                      >
-                        <div className="text-sm leading-none mb-1">{shape.icon}</div>
-                        <div className="text-[10px] truncate">{shape.label}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Colors (Theme Background & Accent Tint) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              
-              {/* Background Theme */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-700">Tema Warna Latar</span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {themePresets.map((tp) => {
-                    const isSelected = (bottomNavConfig.themeColor || 'dark-slate') === tp.id;
-                    return (
-                      <button
-                        key={tp.id}
-                        type="button"
-                        onClick={() => updateBottomNav({ themeColor: tp.id as any })}
-                        className={`w-7 h-7 rounded-full border-2 transition-transform relative flex items-center justify-center ${tp.bg} ${tp.border} ${
-                          isSelected ? 'scale-115 ring-2 ring-blue-500 ring-offset-2' : 'hover:scale-105 opacity-85 hover:opacity-100'
-                        }`}
-                        title={tp.name}
-                      >
-                        {isSelected && <Check className={`w-3.5 h-3.5 ${tp.id === 'light-modern' || tp.id === 'pastel-pink' ? 'text-slate-900' : 'text-white'}`} />}
-                      </button>
-                    );
-                  })}
-
-                  {bottomNavConfig.themeColor === 'custom' && (
-                    <input
-                      type="color"
-                      value={bottomNavConfig.customBgColor || '#0f172a'}
-                      onChange={(e) => updateBottomNav({ customBgColor: e.target.value })}
-                      className="w-7 h-7 rounded-full cursor-pointer border border-slate-300 p-0 ml-1"
-                      title="Pilih Warna Hex"
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Accent Color */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-700">Warna Aksen Aktif</span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {accentColors.map((ac) => {
-                    const isSelected = (bottomNavConfig.accentColor || 'blue') === ac.id;
-                    return (
-                      <button
-                        key={ac.id}
-                        type="button"
-                        onClick={() => updateBottomNav({ accentColor: ac.id as any })}
-                        className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center ${ac.class} ${
-                          isSelected ? 'scale-115 ring-2 ring-slate-800 ring-offset-2 shadow-xs' : 'hover:scale-105 opacity-85 hover:opacity-100'
-                        }`}
-                        title={ac.name}
-                      >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Menu Items & Extra Effects (Compact Pills) */}
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700">Ikon Menu &amp; Efek Visual</span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {/* Menu items */}
-                {[
-                  { key: 'showNews', label: 'Berita', icon: Newspaper, checked: bottomNavConfig.showNews !== false },
-                  { key: 'showAchievements', label: 'Prestasi', icon: Trophy, checked: bottomNavConfig.showAchievements !== false },
-                  { key: 'showHome', label: 'Beranda', icon: Home, checked: bottomNavConfig.showHome !== false },
-                  { key: 'showExtracurriculars', label: 'Ekskul', icon: Activity, checked: bottomNavConfig.showExtracurriculars !== false },
-                  { key: 'showContact', label: 'Kontak', icon: PhoneCall, checked: bottomNavConfig.showContact !== false },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => updateBottomNav({ [item.key]: !item.checked })}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
-                        item.checked
-                          ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold'
-                          : 'bg-slate-50 border-slate-200 text-slate-400 opacity-60'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-
-                {/* Effect options */}
-                <button
-                  type="button"
-                  onClick={() => updateBottomNav({ glowEffect: bottomNavConfig.glowEffect === false })}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
-                    bottomNavConfig.glowEffect !== false
-                      ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
-                      : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Efek Glow</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => updateBottomNav({ elevatedCenterButton: bottomNavConfig.elevatedCenterButton === false })}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
-                    bottomNavConfig.elevatedCenterButton !== false
-                      ? 'bg-purple-50 border-purple-300 text-purple-900 font-bold'
-                      : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}
-                >
-                  <span>Tombol Menonjol</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => updateBottomNav({ showLabels: !bottomNavConfig.showLabels })}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
-                    bottomNavConfig.showLabels
-                      ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold'
-                      : 'bg-slate-50 border-slate-200 text-slate-400'
-                  }`}
-                >
-                  <span>Label Teks</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Live Visual Preview Mockup */}
+            {/* 1. Live Visual Preview Mockup (Placed at top) */}
             <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-sm space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span className="flex items-center gap-1.5 font-bold text-slate-300">
                   <Eye className="w-3.5 h-3.5 text-blue-400" />
-                  Pratinjau Navigasi
+                  Pratinjau Docker
                 </span>
                 <span className="font-mono text-[11px]">
                   {isFullBottom ? 'Bawah Penuh' : 'Melayang'} • {bottomNavConfig.centerButtonShape || 'circle'}
@@ -595,6 +288,195 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
               </div>
             </div>
 
+            {/* 2. Mode Posisi */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-700">Mode Posisi</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateBottomNav({ positionMode: 'full-bottom', styleVariant: 'glass-bar' })}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    isFullBottom
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Maximize2 className="w-4 h-4" />
+                  <span>Bawah Penuh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateBottomNav({ positionMode: 'floating', styleVariant: 'floating-dock' })}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    !isFullBottom
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Minimize2 className="w-4 h-4" />
+                  <span>Melayang (Floating)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Bentuk Tombol Utama */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-700">Bentuk Tombol Utama</span>
+              <div className="grid grid-cols-5 gap-1.5">
+                {buttonShapes.map((shape) => {
+                  const isSelected = (bottomNavConfig.centerButtonShape || 'circle') === shape.id;
+                  return (
+                    <button
+                      key={shape.id}
+                      type="button"
+                      onClick={() => updateBottomNav({ centerButtonShape: shape.id as any })}
+                      className={`p-2 rounded-xl border text-center transition-all ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                      title={shape.label}
+                    >
+                      <div className="text-sm leading-none mb-1">{shape.icon}</div>
+                      <div className="text-[10px] truncate">{shape.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Warna Latar dan Aksen */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Tema Latar */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-700">Warna Latar</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {themePresets.map((tp) => {
+                    const isSelected = (bottomNavConfig.themeColor || 'dark-slate') === tp.id;
+                    return (
+                      <button
+                        key={tp.id}
+                        type="button"
+                        onClick={() => updateBottomNav({ themeColor: tp.id as any })}
+                        className={`w-7 h-7 rounded-full border-2 transition-transform relative flex items-center justify-center ${tp.bg} ${tp.border} ${
+                          isSelected ? 'scale-115 ring-2 ring-blue-500 ring-offset-2' : 'hover:scale-105 opacity-85 hover:opacity-100'
+                        }`}
+                        title={tp.name}
+                      >
+                        {isSelected && <Check className={`w-3.5 h-3.5 ${tp.id === 'light-modern' || tp.id === 'pastel-pink' ? 'text-slate-900' : 'text-white'}`} />}
+                      </button>
+                    );
+                  })}
+
+                  {bottomNavConfig.themeColor === 'custom' && (
+                    <input
+                      type="color"
+                      value={bottomNavConfig.customBgColor || '#0f172a'}
+                      onChange={(e) => updateBottomNav({ customBgColor: e.target.value })}
+                      className="w-7 h-7 rounded-full cursor-pointer border border-slate-300 p-0 ml-1"
+                      title="Pilih Warna Hex"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Warna Aksen */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-slate-700">Warna Aksen</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {accentColors.map((ac) => {
+                    const isSelected = (bottomNavConfig.accentColor || 'blue') === ac.id;
+                    return (
+                      <button
+                        key={ac.id}
+                        type="button"
+                        onClick={() => updateBottomNav({ accentColor: ac.id as any })}
+                        className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center ${ac.class} ${
+                          isSelected ? 'scale-115 ring-2 ring-slate-800 ring-offset-2 shadow-xs' : 'hover:scale-105 opacity-85 hover:opacity-100'
+                        }`}
+                        title={ac.name}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* 5. Ikon */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-slate-700">Ikon</span>
+
+              <div className="flex flex-wrap gap-2">
+                {/* Menu items */}
+                {[
+                  { key: 'showNews', label: 'Berita', icon: Newspaper, checked: bottomNavConfig.showNews !== false },
+                  { key: 'showAchievements', label: 'Prestasi', icon: Trophy, checked: bottomNavConfig.showAchievements !== false },
+                  { key: 'showHome', label: 'Beranda', icon: Home, checked: bottomNavConfig.showHome !== false },
+                  { key: 'showExtracurriculars', label: 'Ekskul', icon: Activity, checked: bottomNavConfig.showExtracurriculars !== false },
+                  { key: 'showContact', label: 'Kontak', icon: PhoneCall, checked: bottomNavConfig.showContact !== false },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => updateBottomNav({ [item.key]: !item.checked })}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                        item.checked
+                          ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold'
+                          : 'bg-slate-50 border-slate-200 text-slate-400 opacity-60'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Effect options */}
+                <button
+                  type="button"
+                  onClick={() => updateBottomNav({ glowEffect: bottomNavConfig.glowEffect === false })}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                    bottomNavConfig.glowEffect !== false
+                      ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Efek Glow</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateBottomNav({ elevatedCenterButton: bottomNavConfig.elevatedCenterButton === false })}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                    bottomNavConfig.elevatedCenterButton !== false
+                      ? 'bg-purple-50 border-purple-300 text-purple-900 font-bold'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}
+                >
+                  <span>Tombol Menonjol</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateBottomNav({ showLabels: !bottomNavConfig.showLabels })}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                    bottomNavConfig.showLabels
+                      ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
+                  }`}
+                >
+                  <span>Label Teks</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         )}
       </div>
@@ -630,3 +512,4 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
     </div>
   );
 };
+

@@ -15,6 +15,7 @@ import {
   saveNewsArticleLocally,
   deleteNewsArticle,
   fetchAndSyncLatestData,
+  subscribeToCloudConfig,
 } from './lib/firebase';
 import { TopBar } from './components/public/TopBar';
 import { Navbar } from './components/public/Navbar';
@@ -43,7 +44,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
-  // Initialize data: Fast render from offline partition, followed immediately by live Firebase sync on refresh
+  // Initialize data: Fast render from offline partition, followed immediately by live Firebase sync and realtime subscription
   useEffect(() => {
     let isMounted = true;
 
@@ -69,9 +70,11 @@ export default function App() {
         const syncRes = await fetchAndSyncLatestData();
         if (!isMounted) return;
 
-        if (syncRes.success) {
+        if (syncRes.success && syncRes.config) {
           setConfig(syncRes.config);
-          setArticles(syncRes.articles);
+          if (syncRes.articles) {
+            setArticles(syncRes.articles);
+          }
 
           if (syncRes.isDifferent) {
             setSyncToast({
@@ -90,10 +93,18 @@ export default function App() {
 
     initAndSyncData();
 
+    // 3. Realtime Firestore listener (updates public pages immediately when admin saves on any device)
+    const unsubscribeCloud = subscribeToCloudConfig((newCloudConfig) => {
+      if (isMounted && !isAdminMode) {
+        setConfig(newCloudConfig);
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribeCloud();
     };
-  }, []);
+  }, [isAdminMode]);
 
   // Synchronize document title, favicon, and PWA Manifest
   useEffect(() => {
