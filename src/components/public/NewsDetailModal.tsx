@@ -56,13 +56,90 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   const parsedEmbed = article.embedUrl ? parseEmbedUrl(article.embedUrl) : null;
   const gallery = article.galleryImages || [];
 
-  const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedNotice(true);
-      setTimeout(() => setCopiedNotice(false), 3000);
+  const handleShare = async () => {
+    try {
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set('post', article.id);
+      const shareUrl = url.toString();
+
+      // Formatted text for WhatsApp and Clipboard
+      const shareMessage = `*${article.title}*\n\nBaca berita lengkapnya di:\n${shareUrl}`;
+
+      // 1. Copy to clipboard automatically
+      if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(shareMessage);
+          setCopiedNotice(true);
+          setTimeout(() => setCopiedNotice(false), 3500);
+        } catch {}
+      }
+
+      // 2. Open WhatsApp with pre-filled message
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`;
+      window.open(waUrl, '_blank');
+    } catch (e) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href);
+        setCopiedNotice(true);
+        setTimeout(() => setCopiedNotice(false), 3000);
+      }
     }
   };
+
+  // Sync active article ID to URL and update Open Graph meta tags (cover image & title)
+  React.useEffect(() => {
+    if (!article?.id) return;
+
+    // 1. Sync URL parameter ?post=
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('post', article.id);
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+
+    // 2. Dynamic OpenGraph / Title / Image meta tags
+    const originalTitle = document.title;
+    document.title = `${article.title} - SMP Negeri 1 Bengkalis`;
+
+    const setMetaTag = (selector: string, attr: string, value: string) => {
+      let tag = document.querySelector(selector);
+      if (!tag) {
+        tag = document.createElement('meta');
+        const parts = selector.replace(/[\[\]"']/g, '').split('=');
+        if (parts.length === 2) {
+          tag.setAttribute(parts[0], parts[1]);
+        }
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute(attr, value);
+    };
+
+    if (article.coverImage) {
+      setMetaTag('meta[property="og:image"]', 'content', article.coverImage);
+      setMetaTag('meta[name="twitter:image"]', 'content', article.coverImage);
+      let linkImg = document.querySelector('link[rel="image_src"]') as HTMLLinkElement;
+      if (!linkImg) {
+        linkImg = document.createElement('link');
+        linkImg.rel = 'image_src';
+        document.head.appendChild(linkImg);
+      }
+      linkImg.href = article.coverImage;
+    }
+
+    setMetaTag('meta[property="og:title"]', 'content', article.title);
+    setMetaTag('meta[name="twitter:title"]', 'content', article.title);
+
+    return () => {
+      document.title = originalTitle;
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('post') === article.id) {
+          url.searchParams.delete('post');
+          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+        }
+      } catch {}
+    };
+  }, [article]);
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,9 +168,9 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
       >
         {/* Toast Share Notification */}
         {copiedNotice && (
-          <div className="absolute top-16 right-6 z-50 bg-slate-900 text-white text-xs px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Tautan artikel berhasil disalin!</span>
+          <div className="absolute top-16 right-4 sm:right-6 z-50 bg-slate-900/95 text-white text-xs px-3.5 py-2.5 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Tautan disalin & membuka WhatsApp...</span>
           </div>
         )}
 
@@ -172,24 +249,8 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
             {article.title}
           </h1>
 
-          {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-500 pb-3 sm:pb-4 border-b border-slate-100">
-            <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
-              <User className="w-4 h-4 text-blue-600" />
-              {article.author}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              {article.date}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Eye className="w-4 h-4 text-slate-400" />
-              {article.views + 1} dibaca
-            </span>
-          </div>
-
-          {/* Body Content */}
-          <div className="text-slate-800 text-base leading-relaxed">
+          {/* Body Content - Langsung tanpa baris Humas/author agar tampilan lebih leluasa */}
+          <div className="text-slate-800 text-base leading-relaxed pt-1">
             <FormattedContentRenderer
               content={article.content}
               onOpenInternalArticle={onOpenInternalArticle}
@@ -350,27 +411,36 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-400 font-medium truncate mr-2">
-            Kategori: {article.category} • Publikasi Resmi Sekolah
-          </span>
-          <div className="flex items-center gap-2">
+        {/* Footer: Menampilkan Tanggal & Jumlah Kali Dibaca menggantikan tulisan Kategori/Publikasi Resmi Sekolah */}
+        <div className="p-3.5 sm:p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 font-medium truncate">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>{article.date}</span>
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>{article.views + 1} dibaca</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
             {parsedEmbed && (
               <a
                 href={parsedEmbed.originalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1.5"
+                className="hidden sm:inline-flex px-3.5 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg transition-colors items-center gap-1.5"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Buka Embed Tab Baru</span>
+                <span>Buka Embed</span>
               </a>
             )}
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+              className="px-4 sm:px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
             >
               Tutup
             </button>

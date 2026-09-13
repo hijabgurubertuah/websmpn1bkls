@@ -64,6 +64,33 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyn
     return () => window.removeEventListener('select-news-category', handleSelectCategory);
   }, []);
 
+  // Auto-open article from URL parameter or popstate (e.g. ?post=post_123 or ?post=slug)
+  useEffect(() => {
+    if (!articles || articles.length === 0) return;
+
+    const checkUrlForPost = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('post') || params.get('berita') || params.get('id');
+        if (postId) {
+          const found = articles.find(
+            (a) =>
+              a.id === postId ||
+              (a.slug && a.slug.toLowerCase() === postId.toLowerCase()) ||
+              String(a.id).toLowerCase() === postId.toLowerCase()
+          );
+          if (found) {
+            setSelectedArticle(found);
+          }
+        }
+      } catch {}
+    };
+
+    checkUrlForPost();
+    window.addEventListener('popstate', checkUrlForPost);
+    return () => window.removeEventListener('popstate', checkUrlForPost);
+  }, [articles]);
+
   // Layout Columns state (1, 2, 3, or 4 columns)
   const [layoutColumns, setLayoutColumns] = useState<1 | 2 | 3 | 4>(() => {
     try {
