@@ -13,13 +13,14 @@ export function syncPWAManifest(identity: SchoolIdentity) {
 
   const schoolName = identity.name || 'Portal Resmi';
   const shortName = identity.shortName || identity.name || 'Portal';
+  const DEFAULT_LOGO_URL = 'https://i.ibb.co.com/d44hK88L/logo-smpn-1-bengkalis-kecil.png';
   const rawLogo = identity.logoUrl || '';
   const cleanLogo = (rawLogo && !rawLogo.includes('photo-1594608661623')) ? rawLogo : '';
   const rawFavicon = identity.faviconUrl || identity.logoUrl || '';
   const cleanFavicon = (rawFavicon && !rawFavicon.includes('photo-1546410531') && !rawFavicon.includes('photo-1594608661623')) ? rawFavicon : '';
 
-  const logoUrl = cleanLogo || '/pwa-192x192.png';
-  const faviconUrl = cleanFavicon || cleanLogo || '/icon.svg';
+  const logoUrl = cleanLogo || DEFAULT_LOGO_URL;
+  const faviconUrl = cleanFavicon || cleanLogo || DEFAULT_LOGO_URL;
 
   // 1. Update Document Title
   document.title = `${schoolName} - Portal Resmi`;

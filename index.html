@@ -14,13 +14,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PortalResmi" />
-    <link id="dynamic-favicon" rel="icon" href="/icon.svg" />
-    <link id="dynamic-apple-icon" rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link id="dynamic-favicon" rel="icon" href="https://i.ibb.co.com/d44hK88L/logo-smpn-1-bengkalis-kecil.png" />
+    <link id="dynamic-apple-icon" rel="apple-touch-icon" href="https://i.ibb.co.com/d44hK88L/logo-smpn-1-bengkalis-kecil.png" />
     <script>
       // Instantly apply user-uploaded school favicon from local storage before render
       (function() {
         try {
-          var raw = localStorage.getItem('public_school_config') || localStorage.getItem('admin_school_config') || localStorage.getItem('school_config');
+          var raw = localStorage.getItem('smpn1_public_config_v4') || localStorage.getItem('public_school_config') || localStorage.getItem('admin_school_config') || localStorage.getItem('school_config');
           if (raw) {
             var parsed = JSON.parse(raw);
             var icon = (parsed && parsed.identity && (parsed.identity.faviconUrl || parsed.identity.logoUrl)) || '';
