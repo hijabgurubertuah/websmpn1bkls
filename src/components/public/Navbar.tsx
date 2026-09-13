@@ -178,14 +178,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
 
               {/* Motto / Tagline Running Text Marquee */}
-              <div
-                style={navbarText ? { color: navbarText, opacity: 0.8 } : undefined}
-                className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium w-36 xs:w-48 sm:w-64 md:w-80"
-              >
-                <div className="inline-block animate-marquee pl-0">
-                  {identity.tagline || 'Unggul, Berkarakter & Berprestasi'}
+              {identity.tagline ? (
+                <div
+                  style={navbarText ? { color: navbarText, opacity: 0.8 } : undefined}
+                  className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium w-36 xs:w-48 sm:w-64 md:w-80"
+                >
+                  <div className="inline-block animate-marquee pl-0">
+                    {identity.tagline}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </a>
 
@@ -302,7 +304,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>{config.ppdb?.buttonLabel || 'Info PPDB 2026'}</span>
+                <span>{config.ppdb?.buttonLabel || 'Info PPDB'}</span>
               </a>
             )}
 
@@ -434,7 +436,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center justify-center gap-2 w-full bg-blue-700 text-white font-bold py-2.5 rounded-lg text-center text-sm"
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>{config.ppdb?.buttonLabel || 'Info PPDB 2026/2027'}</span>
+                <span>{config.ppdb?.buttonLabel || 'Info PPDB'}</span>
               </a>
             </div>
           )}

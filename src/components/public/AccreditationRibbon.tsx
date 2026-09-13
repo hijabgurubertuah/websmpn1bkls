@@ -9,12 +9,12 @@ interface AccreditationRibbonProps {
 export const AccreditationRibbon: React.FC<AccreditationRibbonProps> = ({ config }) => {
   const { identity } = config;
 
-  if (identity.accreditationTickerEnabled === false) {
+  const customText = identity.accreditationTickerText?.trim();
+  const hasContent = Boolean(customText || identity.akreditasi || identity.npsn);
+
+  if (identity.accreditationTickerEnabled === false || !hasContent) {
     return null;
   }
-
-  const akreditasiText = identity.akreditasi || 'Akreditasi A (Unggul)';
-  const npsnText = identity.npsn || '10495146';
 
   // Determine speed
   const getSpeedDuration = () => {
@@ -29,8 +29,7 @@ export const AccreditationRibbon: React.FC<AccreditationRibbonProps> = ({ config
     }
   };
 
-  // Parse items from custom text or fallback
-  const customText = identity.accreditationTickerText?.trim();
+  // Parse items from custom text or dynamic fields
   let tickerItems: Array<{ badge?: string; text: string; highlight?: string }> = [];
 
   if (customText) {
@@ -55,29 +54,25 @@ export const AccreditationRibbon: React.FC<AccreditationRibbonProps> = ({ config
       tickerItems = [{ text: customText, badge: 'INFO' }];
     }
   } else {
-    // Default curated items
-    tickerItems = [
-      {
-        badge: 'BAN-S/M',
-        text: `Status ${akreditasiText} — Sertifikasi Resmi BAN-S/M`,
-        highlight: 'Predikat A (Unggul)',
-      },
-      {
+    // Dynamically build from actual non-empty identity fields
+    if (identity.akreditasi) {
+      tickerItems.push({
+        badge: 'AKREDITASI',
+        text: `Status: ${identity.akreditasi}`,
+      });
+    }
+    if (identity.npsn) {
+      tickerItems.push({
         badge: 'NPSN',
-        text: `Nomor Pokok Sekolah Nasional: ${npsnText}`,
-        highlight: 'Kemendikbudristek RI',
-      },
-      {
-        badge: 'PRESTASI',
-        text: `Peringkat Akreditasi Tertinggi Standar Mutu Pendidikan Nasional`,
-        highlight: 'Sekolah Ramah Anak',
-      },
-      {
-        badge: 'KURIKULUM',
-        text: `${identity.name || 'SMP Negeri 1 Bengkalis'} — Unggul, Berkarakter & Berprestasi`,
-        highlight: 'Tahun Ajaran 2026/2027',
-      },
-    ];
+        text: `Nomor Registrasi / NPSN: ${identity.npsn}`,
+      });
+    }
+    if (identity.name) {
+      tickerItems.push({
+        badge: 'INSTANSI',
+        text: identity.name,
+      });
+    }
   }
 
   const customBg = identity.accreditationTickerBgColor;

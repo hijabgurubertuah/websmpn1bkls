@@ -57,12 +57,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
       {/* Background Hero Image with Overlays - Batas bawah tepat di tengah kartu */}
       <div className="relative overflow-hidden bg-slate-950">
         <div className="absolute inset-0 z-0">
-          <img
-            src={header.heroImageUrl || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&auto=format&fit=crop&q=80'}
-            alt={identity.name}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover object-center transform scale-105 duration-1000 ease-out"
-          />
+          {header.heroImageUrl && (
+            <img
+              src={header.heroImageUrl}
+              alt={identity.name || 'Hero Banner'}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover object-center transform scale-105 duration-1000 ease-out"
+            />
+          )}
           {/* Pelindung Kontras Teks: Latar tetap gelap pekat di area teks agar selalu tajam & mudah dibaca */}
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-transparent max-w-4xl" />
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent" />

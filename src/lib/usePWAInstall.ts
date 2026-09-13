@@ -11,8 +11,8 @@ let activeBlobManifestUrl: string | null = null;
 export function syncPWAManifest(identity: SchoolIdentity) {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  const schoolName = identity.name || 'SMP Negeri 1 Bengkalis';
-  const shortName = identity.shortName || identity.name || 'SMPN 1 Bengkalis';
+  const schoolName = identity.name || 'Portal Resmi';
+  const shortName = identity.shortName || identity.name || 'Portal';
   const rawLogo = identity.logoUrl || '';
   const cleanLogo = (rawLogo && !rawLogo.includes('photo-1594608661623')) ? rawLogo : '';
   const rawFavicon = identity.faviconUrl || identity.logoUrl || '';

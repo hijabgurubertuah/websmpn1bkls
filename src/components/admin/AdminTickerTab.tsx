@@ -52,7 +52,13 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
     });
   };
 
-  const defaultAccreditationText = `[AKREDITASI] Status ${identity.akreditasi || 'Terakreditasi A (Unggul)'} — Sertifikasi Resmi • [LEGALITAS] Nomor Pokok / Registrasi: ${identity.npsn || '10495146'} — Terverifikasi Resmi • [KOMITMEN] ${identity.name || 'Portal Instansi'} — Unggul, Profesional & Berintegritas`;
+  const generateAccreditationTemplate = () => {
+    const parts: string[] = [];
+    if (identity.akreditasi) parts.push(`[AKREDITASI] Status: ${identity.akreditasi}`);
+    if (identity.npsn) parts.push(`[NPSN] Nomor Pokok / Registrasi: ${identity.npsn}`);
+    if (identity.name) parts.push(`[LEMBAGA] ${identity.name}`);
+    return parts.length > 0 ? parts.join(' • ') : '';
+  };
 
   const quickColorsAnn = ['#f59e0b', '#dc2626', '#059669', '#2563eb', '#0f172a', '#9333ea'];
   const quickColorsAccred = ['#0f172a', '#1e3a8a', '#991b1b', '#065f46', '#000000', '#581c87'];
@@ -476,7 +482,7 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                   </label>
                   <button
                     type="button"
-                    onClick={() => updateIdentity('accreditationTickerText', defaultAccreditationText)}
+                    onClick={() => updateIdentity('accreditationTickerText', generateAccreditationTemplate())}
                     className="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer"
                   >
                     <RotateCcw className="w-2.5 h-2.5" />
@@ -485,10 +491,10 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                 </div>
                 <textarea
                   rows={4}
-                  value={identity.accreditationTickerText ?? defaultAccreditationText}
+                  value={identity.accreditationTickerText || ''}
                   onChange={(e) => updateIdentity('accreditationTickerText', e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white text-slate-900"
-                  placeholder="Teks akreditasi..."
+                  placeholder="Teks pesan berjalan..."
                 />
               </div>
 
@@ -500,11 +506,11 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                   style={{ backgroundColor: identity.accreditationTickerBgColor || '#0f172a' }}
                 >
                   <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[9px] font-bold uppercase tracking-wider shrink-0">
-                    BAN-S/M
+                    INFO
                   </span>
                   <div className="overflow-hidden whitespace-nowrap text-xs flex-1 text-slate-200">
                     <div className="inline-block animate-marquee hover:[animation-play-state:paused]">
-                      {identity.accreditationTickerText || defaultAccreditationText}
+                      {identity.accreditationTickerText || generateAccreditationTemplate() || 'Pesan berjalan akan tampil di sini'}
                     </div>
                   </div>
                 </div>
