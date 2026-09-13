@@ -84,24 +84,6 @@ export function syncPWAManifest(identity: SchoolIdentity) {
       scope: '/',
       icons: [
         {
-          src: logoUrl,
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'any',
-        },
-        {
-          src: logoUrl,
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any',
-        },
-        {
-          src: logoUrl,
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-        {
           src: '/pwa-192x192.png',
           sizes: '192x192',
           type: 'image/png',
@@ -109,6 +91,24 @@ export function syncPWAManifest(identity: SchoolIdentity) {
         },
         {
           src: '/pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src: '/pwa-maskable-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+        {
+          src: logoUrl,
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src: logoUrl,
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any',
