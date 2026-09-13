@@ -154,14 +154,26 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-5 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-6 flex-1">
+        <div className="p-4 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-5 sm:space-y-6 flex-1">
+          {/* Cover Image - diletakkan di atas teks dan terlihat utuh tanpa terpotong pada tampilan HP */}
+          {article.coverImage && (
+            <div className="rounded-xl sm:rounded-2xl overflow-hidden w-full bg-slate-100/90 border border-slate-200/90 shadow-2xs flex items-center justify-center p-1 sm:p-1.5">
+              <img
+                src={article.coverImage}
+                alt={article.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-auto max-h-[65vh] sm:max-h-[520px] object-contain rounded-lg mx-auto block"
+              />
+            </div>
+          )}
+
           {/* Title */}
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
             {article.title}
           </h1>
 
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-500 pb-4 border-b border-slate-100">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-500 pb-3 sm:pb-4 border-b border-slate-100">
             <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
               <User className="w-4 h-4 text-blue-600" />
               {article.author}
@@ -175,25 +187,6 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
               {article.views + 1} dibaca
             </span>
           </div>
-
-          {/* Cover Image */}
-          {article.coverImage && (
-            <div className="rounded-xl overflow-hidden max-h-96 w-full bg-slate-100 shadow-sm border border-slate-200">
-              <img
-                src={article.coverImage}
-                alt={article.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
-          {/* Summary Quote Box */}
-          {article.summary && (
-            <div className="bg-blue-50/60 border-l-4 border-blue-600 p-4 rounded-r-xl text-slate-700 text-sm sm:text-base italic font-medium leading-relaxed">
-              {article.summary}
-            </div>
-          )}
 
           {/* Body Content */}
           <div className="text-slate-800 text-base leading-relaxed">

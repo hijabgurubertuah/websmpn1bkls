@@ -63,6 +63,63 @@ export const AdminEmbedsTab: React.FC<AdminEmbedsTabProps> = ({ config, onChange
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
+      {/* YouTube Video Section */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+          <Video className="w-4 h-4 text-red-600" />
+          <span>Video Profil (YouTube)</span>
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Judul Video
+            </label>
+            <input
+              type="text"
+              value={embeds.youtubeTitle}
+              onChange={(e) => updateEmbed('youtubeTitle', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              placeholder="Video Profil Instansi"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              URL Video YouTube
+            </label>
+            <input
+              type="text"
+              value={embeds.youtubeUrl}
+              onChange={(e) => updateEmbed('youtubeUrl', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none font-mono"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </div>
+        </div>
+
+        {/* Video Preview */}
+        {embeds.youtubeUrl && (
+          <div className="w-full max-w-md aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
+            <iframe
+              src={
+                embeds.youtubeUrl.includes('embed/')
+                  ? embeds.youtubeUrl
+                  : `https://www.youtube.com/embed/${
+                      embeds.youtubeUrl.includes('watch?v=')
+                        ? embeds.youtubeUrl.split('watch?v=')[1]?.split('&')[0]
+                        : embeds.youtubeUrl.split('youtu.be/')[1]?.split('?')[0] || ''
+                    }`
+              }
+              title="YouTube Preview"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full border-0"
+            />
+          </div>
+        )}
+      </div>
+
       {/* Google Maps Embed */}
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -137,63 +194,6 @@ export const AdminEmbedsTab: React.FC<AdminEmbedsTabProps> = ({ config, onChange
             />
           )}
         </div>
-      </div>
-
-      {/* YouTube Video Embed */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-          <Video className="w-4 h-4 text-red-600" />
-          <span>Video YouTube</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Judul Video
-            </label>
-            <input
-              type="text"
-              value={embeds.youtubeTitle}
-              onChange={(e) => updateEmbed('youtubeTitle', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              placeholder="Video Profil Instansi"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              URL Video YouTube
-            </label>
-            <input
-              type="text"
-              value={embeds.youtubeUrl}
-              onChange={(e) => updateEmbed('youtubeUrl', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none font-mono"
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-          </div>
-        </div>
-
-        {/* Video Preview */}
-        {embeds.youtubeUrl && (
-          <div className="w-full max-w-md aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
-            <iframe
-              src={
-                embeds.youtubeUrl.includes('embed/')
-                  ? embeds.youtubeUrl
-                  : `https://www.youtube.com/embed/${
-                      embeds.youtubeUrl.includes('watch?v=')
-                        ? embeds.youtubeUrl.split('watch?v=')[1]?.split('&')[0]
-                        : embeds.youtubeUrl.split('youtu.be/')[1]?.split('?')[0] || ''
-                    }`
-              }
-              title="YouTube Preview"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full border-0"
-            />
-          </div>
-        )}
       </div>
     </div>
   );

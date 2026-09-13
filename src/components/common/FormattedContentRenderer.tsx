@@ -797,11 +797,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                   <h4 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
                     {pendingLink.matchedArticle.title}
                   </h4>
-                  {pendingLink.matchedArticle.summary && (
-                    <p className="text-xs text-slate-600 line-clamp-2 italic">
-                      "{pendingLink.matchedArticle.summary}"
-                    </p>
-                  )}
                 </div>
 
                 <div className="pt-2 flex items-center justify-end gap-2.5">

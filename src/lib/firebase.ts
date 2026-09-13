@@ -40,6 +40,11 @@ export const PUBLIC_NEWS_KEY = 'smpn1_public_news_v4';
 export const ADMIN_CONFIG_KEY = 'smpn1_admin_config_v4';
 export const ADMIN_NEWS_KEY = 'smpn1_admin_news_v4';
 
+// Dedicated Segregated Caches for Instant Hydration (Persistent across hard refresh)
+export const DEDICATED_POSTS_CACHE_KEY = 'portal_dedicated_posts_v1';
+export const DEDICATED_PRINCIPAL_CACHE_KEY = 'portal_dedicated_principal_v1';
+export const DEDICATED_DOCK_CACHE_KEY = 'portal_dedicated_dock_v1';
+
 // Backward compatibility legacy keys
 const LEGACY_CONFIG_KEY = 'smpn1_bengkalis_config_v3';
 const LEGACY_NEWS_KEY = 'smpn1_bengkalis_news_v3';
@@ -66,24 +71,49 @@ export async function withTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Pro
  */
 export function normalizeSchoolConfig(raw: Partial<SchoolConfig> | null | undefined): SchoolConfig {
   if (!raw) return DEFAULT_SCHOOL_CONFIG;
+
+  // Sanitize legacy default placeholders so they are never displayed if loaded from old cache/cloud
+  const sanitizedRaw = { ...raw };
+  if (sanitizedRaw.principal) {
+    const p = { ...sanitizedRaw.principal };
+    if (p.imageUrl && p.imageUrl.includes('photo-1560250097-0b93528c311a')) {
+      p.imageUrl = '';
+    }
+    if (p.name && (p.name.includes('Syahrul') || p.name === 'Drs. H. Syahrul, M.Pd.')) {
+      p.name = '';
+    }
+    sanitizedRaw.principal = p;
+  }
+
+  if (sanitizedRaw.identity) {
+    const id = { ...sanitizedRaw.identity };
+    if (id.logoUrl && id.logoUrl.includes('photo-1594608661623')) {
+      id.logoUrl = '';
+    }
+    if (id.faviconUrl && id.faviconUrl.includes('photo-1546410531')) {
+      id.faviconUrl = '';
+    }
+    sanitizedRaw.identity = id;
+  }
+
   return {
     ...DEFAULT_SCHOOL_CONFIG,
-    ...raw,
-    identity: { ...DEFAULT_SCHOOL_CONFIG.identity, ...(raw.identity || {}) },
-    importantAnnouncement: { ...DEFAULT_SCHOOL_CONFIG.importantAnnouncement, ...(raw.importantAnnouncement || {}) },
-    header: { ...DEFAULT_SCHOOL_CONFIG.header, ...(raw.header || {}) },
-    layoutSections: { ...DEFAULT_SCHOOL_CONFIG.layoutSections, ...(raw.layoutSections || {}) },
-    mobileBottomNav: { ...DEFAULT_SCHOOL_CONFIG.mobileBottomNav, ...(raw.mobileBottomNav || {}) },
-    themeConfig: { ...DEFAULT_SCHOOL_CONFIG.themeConfig, ...(raw.themeConfig || {}) },
-    principal: { ...DEFAULT_SCHOOL_CONFIG.principal, ...(raw.principal || {}) },
-    ppdb: { ...DEFAULT_SCHOOL_CONFIG.ppdb, ...(raw.ppdb || {}) },
-    embeds: { ...DEFAULT_SCHOOL_CONFIG.embeds, ...(raw.embeds || {}) },
-    footer: { ...DEFAULT_SCHOOL_CONFIG.footer, ...(raw.footer || {}) },
-    googleAppsScript: { ...DEFAULT_SCHOOL_CONFIG.googleAppsScript, ...(raw.googleAppsScript || {}) },
-    navMenus: Array.isArray(raw.navMenus) ? raw.navMenus : DEFAULT_SCHOOL_CONFIG.navMenus,
-    facilities: Array.isArray(raw.facilities) ? raw.facilities : DEFAULT_SCHOOL_CONFIG.facilities,
-    extracurriculars: Array.isArray(raw.extracurriculars) ? raw.extracurriculars : DEFAULT_SCHOOL_CONFIG.extracurriculars,
-    agendas: Array.isArray(raw.agendas) ? raw.agendas : DEFAULT_SCHOOL_CONFIG.agendas,
+    ...sanitizedRaw,
+    identity: { ...DEFAULT_SCHOOL_CONFIG.identity, ...(sanitizedRaw.identity || {}) },
+    importantAnnouncement: { ...DEFAULT_SCHOOL_CONFIG.importantAnnouncement, ...(sanitizedRaw.importantAnnouncement || {}) },
+    header: { ...DEFAULT_SCHOOL_CONFIG.header, ...(sanitizedRaw.header || {}) },
+    layoutSections: { ...DEFAULT_SCHOOL_CONFIG.layoutSections, ...(sanitizedRaw.layoutSections || {}) },
+    mobileBottomNav: { ...DEFAULT_SCHOOL_CONFIG.mobileBottomNav, ...(sanitizedRaw.mobileBottomNav || {}) },
+    themeConfig: { ...DEFAULT_SCHOOL_CONFIG.themeConfig, ...(sanitizedRaw.themeConfig || {}) },
+    principal: { ...DEFAULT_SCHOOL_CONFIG.principal, ...(sanitizedRaw.principal || {}) },
+    ppdb: { ...DEFAULT_SCHOOL_CONFIG.ppdb, ...(sanitizedRaw.ppdb || {}) },
+    embeds: { ...DEFAULT_SCHOOL_CONFIG.embeds, ...(sanitizedRaw.embeds || {}) },
+    footer: { ...DEFAULT_SCHOOL_CONFIG.footer, ...(sanitizedRaw.footer || {}) },
+    googleAppsScript: { ...DEFAULT_SCHOOL_CONFIG.googleAppsScript, ...(sanitizedRaw.googleAppsScript || {}) },
+    navMenus: Array.isArray(sanitizedRaw.navMenus) ? sanitizedRaw.navMenus : DEFAULT_SCHOOL_CONFIG.navMenus,
+    facilities: Array.isArray(sanitizedRaw.facilities) ? sanitizedRaw.facilities : DEFAULT_SCHOOL_CONFIG.facilities,
+    extracurriculars: Array.isArray(sanitizedRaw.extracurriculars) ? sanitizedRaw.extracurriculars : DEFAULT_SCHOOL_CONFIG.extracurriculars,
+    agendas: Array.isArray(sanitizedRaw.agendas) ? sanitizedRaw.agendas : DEFAULT_SCHOOL_CONFIG.agendas,
   };
 }
 
@@ -103,35 +133,142 @@ export function isAdminAuthenticated(): boolean {
 }
 
 /**
+ * Dedicated Cache: News Posts / Articles (Synchronous 0ms getter)
+ */
+export function getDedicatedPostsCacheSync(): NewsArticle[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(DEDICATED_POSTS_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Dedicated Cache: Save News Posts / Articles
+ */
+export async function saveDedicatedPostsCache(articles: NewsArticle[]): Promise<void> {
+  if (typeof window === 'undefined' || !Array.isArray(articles)) return;
+  try {
+    localStorage.setItem(DEDICATED_POSTS_CACHE_KEY, JSON.stringify(articles));
+    await setOfflineItem('dedicated_news_articles', articles);
+  } catch (e) {
+    console.warn('Error saving dedicated posts cache:', e);
+  }
+}
+
+/**
+ * Dedicated Cache: Sambutan Pimpinan (Synchronous 0ms getter)
+ */
+export function getDedicatedPrincipalCacheSync(): SchoolConfig['principal'] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(DEDICATED_PRINCIPAL_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed.welcomeMessage) return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Dedicated Cache: Save Sambutan Pimpinan
+ */
+export async function saveDedicatedPrincipalCache(principal: SchoolConfig['principal']): Promise<void> {
+  if (typeof window === 'undefined' || !principal) return;
+  try {
+    localStorage.setItem(DEDICATED_PRINCIPAL_CACHE_KEY, JSON.stringify(principal));
+    await setOfflineItem('dedicated_principal', principal);
+  } catch (e) {
+    console.warn('Error saving dedicated principal cache:', e);
+  }
+}
+
+/**
+ * Dedicated Cache: Docker (Mobile Bottom Navigation) (Synchronous 0ms getter)
+ */
+export function getDedicatedDockCacheSync(): SchoolConfig['mobileBottomNav'] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(DEDICATED_DOCK_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Dedicated Cache: Save Docker
+ */
+export async function saveDedicatedDockCache(dock: SchoolConfig['mobileBottomNav']): Promise<void> {
+  if (typeof window === 'undefined' || !dock) return;
+  try {
+    localStorage.setItem(DEDICATED_DOCK_CACHE_KEY, JSON.stringify(dock));
+    await setOfflineItem('dedicated_dock', dock);
+  } catch (e) {
+    console.warn('Error saving dedicated dock cache:', e);
+  }
+}
+
+/**
  * Retrieve cached SchoolConfig from IndexedDB or localStorage based on user role (Public vs Admin)
  */
 export async function getCachedSchoolConfig(forceScope?: 'public' | 'admin'): Promise<SchoolConfig | null> {
   const scope = forceScope || (isAdminAuthenticated() ? 'admin' : 'public');
-  const idbKey = scope === 'admin' ? 'admin_school_config' : 'public_school_config';
   const lsKey = scope === 'admin' ? ADMIN_CONFIG_KEY : PUBLIC_CONFIG_KEY;
+  const idbKey = scope === 'admin' ? 'admin_school_config' : 'public_school_config';
 
+  let resolvedConfig: SchoolConfig | null = null;
+
+  // 1. Fast path: check synchronous localStorage first (instant 0ms)
   try {
-    const idbData = await getOfflineItem<SchoolConfig>(idbKey);
-    if (idbData) return normalizeSchoolConfig(idbData);
+    const lsData = localStorage.getItem(lsKey);
+    if (lsData) resolvedConfig = normalizeSchoolConfig(JSON.parse(lsData) as SchoolConfig);
   } catch {
     // ignore
   }
 
-  try {
-    const lsData = localStorage.getItem(lsKey);
-    if (lsData) return normalizeSchoolConfig(JSON.parse(lsData) as SchoolConfig);
-  } catch {
-    // ignore
+  // 2. Check IndexedDB
+  if (!resolvedConfig) {
+    try {
+      const idbData = await getOfflineItem<SchoolConfig>(idbKey);
+      if (idbData) resolvedConfig = normalizeSchoolConfig(idbData);
+    } catch {
+      // ignore
+    }
   }
 
   // Fallback to legacy key or global key if newly partitioned cache is not yet seeded
-  try {
-    const legacy = localStorage.getItem(LEGACY_CONFIG_KEY);
-    if (legacy) return normalizeSchoolConfig(JSON.parse(legacy) as SchoolConfig);
-    const globalIdb = await getOfflineItem<SchoolConfig>('school_config');
-    if (globalIdb) return normalizeSchoolConfig(globalIdb);
-  } catch {
-    // ignore
+  if (!resolvedConfig) {
+    try {
+      const legacy = localStorage.getItem(LEGACY_CONFIG_KEY);
+      if (legacy) resolvedConfig = normalizeSchoolConfig(JSON.parse(legacy) as SchoolConfig);
+      if (!resolvedConfig) {
+        const globalIdb = await getOfflineItem<SchoolConfig>('school_config');
+        if (globalIdb) resolvedConfig = normalizeSchoolConfig(globalIdb);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (resolvedConfig) {
+    // Overlay dedicated principal and dock caches so they never get lost or stale on hard refresh
+    const dedicatedPrincipal = getDedicatedPrincipalCacheSync();
+    if (dedicatedPrincipal) {
+      resolvedConfig.principal = { ...resolvedConfig.principal, ...dedicatedPrincipal };
+    }
+    const dedicatedDock = getDedicatedDockCacheSync();
+    if (dedicatedDock) {
+      resolvedConfig.mobileBottomNav = { ...resolvedConfig.mobileBottomNav, ...dedicatedDock };
+    }
+    return resolvedConfig;
   }
 
   return null;
@@ -141,23 +278,34 @@ export async function getCachedSchoolConfig(forceScope?: 'public' | 'admin'): Pr
  * Retrieve cached NewsArticles from IndexedDB or localStorage based on user role (Public vs Admin)
  */
 export async function getCachedNewsArticles(forceScope?: 'public' | 'admin'): Promise<NewsArticle[] | null> {
-  const scope = forceScope || (isAdminAuthenticated() ? 'admin' : 'public');
-  const idbKey = scope === 'admin' ? 'admin_news_articles' : 'public_news_articles';
-  const lsKey = scope === 'admin' ? ADMIN_NEWS_KEY : PUBLIC_NEWS_KEY;
-
-  try {
-    const idbData = await getOfflineItem<NewsArticle[]>(idbKey);
-    if (idbData && Array.isArray(idbData)) return idbData;
-  } catch {
-    // ignore
+  // 1. Check dedicated posts cache first (isolated and persistent across hard refresh)
+  const dedicated = getDedicatedPostsCacheSync();
+  if (dedicated && Array.isArray(dedicated) && dedicated.length > 0) {
+    return dedicated;
   }
 
+  const scope = forceScope || (isAdminAuthenticated() ? 'admin' : 'public');
+  const lsKey = scope === 'admin' ? ADMIN_NEWS_KEY : PUBLIC_NEWS_KEY;
+  const idbKey = scope === 'admin' ? 'admin_news_articles' : 'public_news_articles';
+
+  // 2. Fast path: check synchronous localStorage (instant 0ms)
   try {
     const lsData = localStorage.getItem(lsKey);
     if (lsData) {
       const parsed = JSON.parse(lsData);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
+  } catch {
+    // ignore
+  }
+
+  // 3. Check IndexedDB dedicated cache & scoped cache
+  try {
+    const dedicatedIdb = await getOfflineItem<NewsArticle[]>('dedicated_news_articles');
+    if (dedicatedIdb && Array.isArray(dedicatedIdb) && dedicatedIdb.length > 0) return dedicatedIdb;
+
+    const idbData = await getOfflineItem<NewsArticle[]>(idbKey);
+    if (idbData && Array.isArray(idbData) && idbData.length > 0) return idbData;
   } catch {
     // ignore
   }
@@ -167,10 +315,10 @@ export async function getCachedNewsArticles(forceScope?: 'public' | 'admin'): Pr
     const legacy = localStorage.getItem(LEGACY_NEWS_KEY);
     if (legacy) {
       const parsed = JSON.parse(legacy);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
     const globalIdb = await getOfflineItem<NewsArticle[]>('news_articles');
-    if (globalIdb && Array.isArray(globalIdb)) return globalIdb;
+    if (globalIdb && Array.isArray(globalIdb) && globalIdb.length > 0) return globalIdb;
   } catch {
     // ignore
   }
@@ -191,6 +339,17 @@ export async function saveToPublicCache(config: SchoolConfig, articles: NewsArti
     await setOfflineItem('school_config', config);
     await setOfflineItem('news_articles', articles);
 
+    // Save dedicated segregated caches (Postingan, Sambutan Pimpinan, Docker)
+    if (Array.isArray(articles) && articles.length > 0) {
+      await saveDedicatedPostsCache(articles);
+    }
+    if (config.principal) {
+      await saveDedicatedPrincipalCache(config.principal);
+    }
+    if (config.mobileBottomNav) {
+      await saveDedicatedDockCache(config.mobileBottomNav);
+    }
+
     // Sync Google Apps Script configuration across browsers
     if (config.googleAppsScript?.webAppUrl) {
       saveStoredAppsScriptConfig(config.googleAppsScript);
@@ -209,6 +368,17 @@ export async function saveToAdminCache(config: SchoolConfig, articles: NewsArtic
     localStorage.setItem(ADMIN_NEWS_KEY, JSON.stringify(articles));
     await setOfflineItem('admin_school_config', config);
     await setOfflineItem('admin_news_articles', articles);
+
+    // Save dedicated segregated caches (Postingan, Sambutan Pimpinan, Docker)
+    if (Array.isArray(articles) && articles.length > 0) {
+      await saveDedicatedPostsCache(articles);
+    }
+    if (config.principal) {
+      await saveDedicatedPrincipalCache(config.principal);
+    }
+    if (config.mobileBottomNav) {
+      await saveDedicatedDockCache(config.mobileBottomNav);
+    }
 
     // Sync Google Apps Script configuration across browsers
     if (config.googleAppsScript?.webAppUrl) {
@@ -881,8 +1051,15 @@ export function areArticlesEqual(
         id: item.id,
         title: item.title,
         date: item.date,
+        summary: item.summary,
         content: item.content,
+        author: item.author,
+        coverImage: item.coverImage,
+        galleryImages: item.galleryImages || [],
+        embedUrl: item.embedUrl,
         category: item.category,
+        actionLink: item.actionLink,
+        slug: item.slug,
         isPinned: item.isPinned,
         status: item.status,
         isLocalDraft: Boolean(item.isLocalDraft),
@@ -1235,4 +1412,43 @@ export function subscribeToCloudConfig(
     return () => {};
   }
 }
+
+/**
+ * Subscribe to real-time changes of news articles in Firestore.
+ * Automatically triggers callback whenever an article is created, edited, or deleted.
+ */
+export function subscribeToCloudArticles(
+  onUpdate: (articles: NewsArticle[]) => void
+): () => void {
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return () => {};
+  }
+
+  try {
+    const articlesColRef = collection(db, 'news_articles');
+    const unsubscribe = onSnapshot(
+      articlesColRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const arts: NewsArticle[] = [];
+          snapshot.forEach((d) => {
+            arts.push(d.data() as NewsArticle);
+          });
+          arts.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
+          // Save to dedicated posts cache immediately
+          saveDedicatedPostsCache(arts);
+          onUpdate(arts);
+        }
+      },
+      (error) => {
+        console.info('Firestore realtime articles listener suspended:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.info('Failed to setup realtime articles subscription:', err);
+    return () => {};
+  }
+}
+
 

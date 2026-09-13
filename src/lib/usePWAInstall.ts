@@ -13,8 +13,13 @@ export function syncPWAManifest(identity: SchoolIdentity) {
 
   const schoolName = identity.name || 'SMP Negeri 1 Bengkalis';
   const shortName = identity.shortName || identity.name || 'SMPN 1 Bengkalis';
-  const logoUrl = identity.logoUrl || '/pwa-192x192.png';
-  const faviconUrl = identity.faviconUrl || identity.logoUrl || '/icon.svg';
+  const rawLogo = identity.logoUrl || '';
+  const cleanLogo = (rawLogo && !rawLogo.includes('photo-1594608661623')) ? rawLogo : '';
+  const rawFavicon = identity.faviconUrl || identity.logoUrl || '';
+  const cleanFavicon = (rawFavicon && !rawFavicon.includes('photo-1546410531') && !rawFavicon.includes('photo-1594608661623')) ? rawFavicon : '';
+
+  const logoUrl = cleanLogo || '/pwa-192x192.png';
+  const faviconUrl = cleanFavicon || cleanLogo || '/icon.svg';
 
   // 1. Update Document Title
   document.title = `${schoolName} - Portal Resmi`;

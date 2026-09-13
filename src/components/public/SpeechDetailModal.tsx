@@ -21,19 +21,23 @@ export const SpeechDetailModal: React.FC<SpeechDetailModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-300">
-              <img
-                src={principal.imageUrl}
-                alt={principal.name}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-300 shrink-0 bg-blue-50 flex items-center justify-center">
+              {principal.imageUrl ? (
+                <img
+                  src={principal.imageUrl}
+                  alt={principal.name || 'Kepala Sekolah'}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Award className="w-5 h-5 text-blue-600" />
+              )}
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900 leading-tight">
                 Sambutan Kepala {schoolName}
               </h3>
-              <p className="text-xs text-slate-500">{principal.name}</p>
+              <p className="text-xs text-slate-500">{principal.name || principal.title || 'Kepala Sekolah'}</p>
             </div>
           </div>
 
@@ -57,8 +61,8 @@ export const SpeechDetailModal: React.FC<SpeechDetailModalProps> = ({
 
           <div className="pt-4 border-t border-slate-100 mt-6 flex items-center justify-between">
             <div>
-              <p className="font-bold text-slate-900">{principal.name}</p>
-              <p className="text-xs text-slate-500">{principal.title}</p>
+              <p className="font-bold text-slate-900">{principal.name || principal.title || 'Kepala Sekolah'}</p>
+              <p className="text-xs text-slate-500">{principal.title || 'Kepala Sekolah'}</p>
               {principal.nip && <p className="text-xs text-slate-400">NIP. {principal.nip}</p>}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-blue-700 font-semibold bg-blue-50 px-3 py-1 rounded-full">

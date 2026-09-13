@@ -16,6 +16,18 @@ import {
   deleteNewsArticle,
   fetchAndSyncLatestData,
   subscribeToCloudConfig,
+  subscribeToCloudArticles,
+  normalizeSchoolConfig,
+  getDedicatedPostsCacheSync,
+  saveDedicatedPostsCache,
+  getDedicatedPrincipalCacheSync,
+  saveDedicatedPrincipalCache,
+  getDedicatedDockCacheSync,
+  saveDedicatedDockCache,
+  PUBLIC_CONFIG_KEY,
+  ADMIN_CONFIG_KEY,
+  PUBLIC_NEWS_KEY,
+  ADMIN_NEWS_KEY,
 } from './lib/firebase';
 import { TopBar } from './components/public/TopBar';
 import { Navbar } from './components/public/Navbar';
@@ -32,15 +44,82 @@ import { OfflineIndicator } from './components/public/OfflineIndicator';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { MobileBottomNav } from './components/public/MobileBottomNav';
-import { ShieldCheck, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Sparkles, CheckCircle2, RefreshCw, School } from 'lucide-react';
 import { syncPWAManifest } from './lib/usePWAInstall';
 
+const getInitialSchoolConfig = (): SchoolConfig => {
+  if (typeof window === 'undefined') return DEFAULT_SCHOOL_CONFIG;
+  try {
+    const scope = localStorage.getItem('admin_authenticated') === 'true' ? 'admin' : 'public';
+    const lsKey = scope === 'admin' ? ADMIN_CONFIG_KEY : PUBLIC_CONFIG_KEY;
+    const raw =
+      localStorage.getItem(lsKey) ||
+      localStorage.getItem('admin_school_config') ||
+      localStorage.getItem('public_school_config') ||
+      localStorage.getItem('school_config') ||
+      localStorage.getItem('smpn1_bengkalis_config_v3') ||
+      localStorage.getItem('smpn1_bengkalis_custom_default_config_v1');
+    let base = DEFAULT_SCHOOL_CONFIG;
+    if (raw) {
+      base = normalizeSchoolConfig(JSON.parse(raw));
+    }
+    // Overlay dedicated principal message cache if present
+    const dedicatedPrincipal = getDedicatedPrincipalCacheSync();
+    if (dedicatedPrincipal) {
+      base = {
+        ...base,
+        principal: { ...base.principal, ...dedicatedPrincipal },
+      };
+    }
+    // Overlay dedicated mobile bottom dock cache if present
+    const dedicatedDock = getDedicatedDockCacheSync();
+    if (dedicatedDock) {
+      base = {
+        ...base,
+        mobileBottomNav: { ...base.mobileBottomNav, ...dedicatedDock },
+      };
+    }
+    return base;
+  } catch {}
+  return DEFAULT_SCHOOL_CONFIG;
+};
+
+const getInitialNewsArticles = (): NewsArticle[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    // 1. Dedicated posts cache (isolated, persistent across hard refresh)
+    const dedicated = getDedicatedPostsCacheSync();
+    if (dedicated && Array.isArray(dedicated) && dedicated.length > 0) {
+      return dedicated;
+    }
+
+    // 2. Scoped cache check
+    const scope = localStorage.getItem('admin_authenticated') === 'true' ? 'admin' : 'public';
+    const lsKey = scope === 'admin' ? ADMIN_NEWS_KEY : PUBLIC_NEWS_KEY;
+    const raw =
+      localStorage.getItem(lsKey) ||
+      localStorage.getItem('public_news_articles') ||
+      localStorage.getItem('admin_news_articles') ||
+      localStorage.getItem('news_articles') ||
+      localStorage.getItem('smpn1_bengkalis_news_v3') ||
+      localStorage.getItem('smpn1_bengkalis_custom_default_news_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return [];
+};
+
 export default function App() {
-  const [config, setConfig] = useState<SchoolConfig>(DEFAULT_SCHOOL_CONFIG);
-  const [articles, setArticles] = useState<NewsArticle[]>(DEFAULT_NEWS_ARTICLES);
+  const [config, setConfig] = useState<SchoolConfig>(() => getInitialSchoolConfig());
+  const [articles, setArticles] = useState<NewsArticle[]>(() => getInitialNewsArticles());
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialSyncing, setIsInitialSyncing] = useState(() => articles.length === 0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
 
@@ -57,7 +136,10 @@ export default function App() {
         ]);
         if (isMounted) {
           setConfig(localConfig);
-          setArticles(localArticles);
+          if (localArticles && localArticles.length > 0) {
+            setArticles(localArticles);
+            setIsInitialSyncing(false);
+          }
           setIsLoading(false);
         }
       } catch (err) {
@@ -74,35 +156,57 @@ export default function App() {
           setConfig(syncRes.config);
           if (syncRes.articles) {
             setArticles(syncRes.articles);
+            saveDedicatedPostsCache(syncRes.articles);
           }
+          if (syncRes.config.principal) {
+            saveDedicatedPrincipalCache(syncRes.config.principal);
+          }
+          if (syncRes.config.mobileBottomNav) {
+            saveDedicatedDockCache(syncRes.config.mobileBottomNav);
+          }
+          setIsInitialSyncing(false);
 
           if (syncRes.isDifferent) {
             setSyncToast({
-              message: 'Data diperbarui',
+              message: 'Data diperbarui dari cloud',
               type: 'success',
             });
             setTimeout(() => {
               if (isMounted) setSyncToast(null);
-            }, 1000);
+            }, 1200);
           }
         }
       } catch (err) {
         console.info('Live sync on reload skipped:', err);
+      } finally {
+        if (isMounted) setIsInitialSyncing(false);
       }
     }
 
     initAndSyncData();
 
-    // 3. Realtime Firestore listener (updates public pages immediately when admin saves on any device)
-    const unsubscribeCloud = subscribeToCloudConfig((newCloudConfig) => {
+    // 3. Realtime Firestore listener for School Config (updates immediately when admin saves on any device)
+    const unsubscribeCloudConfig = subscribeToCloudConfig((newCloudConfig) => {
       if (isMounted && !isAdminMode) {
         setConfig(newCloudConfig);
+        if (newCloudConfig.principal) saveDedicatedPrincipalCache(newCloudConfig.principal);
+        if (newCloudConfig.mobileBottomNav) saveDedicatedDockCache(newCloudConfig.mobileBottomNav);
+      }
+    });
+
+    // 4. Realtime Firestore listener for News Articles (updates immediately when news is created/edited/deleted)
+    const unsubscribeCloudArticles = subscribeToCloudArticles((newArticles) => {
+      if (isMounted && !isAdminMode) {
+        setArticles(newArticles);
+        saveDedicatedPostsCache(newArticles);
+        setIsInitialSyncing(false);
       }
     });
 
     return () => {
       isMounted = false;
-      unsubscribeCloud();
+      unsubscribeCloudConfig();
+      unsubscribeCloudArticles();
     };
   }, [isAdminMode]);
 
@@ -215,7 +319,7 @@ export default function App() {
   };
 
   if (isLoading) {
-    const schoolLogo = config.identity.logoUrl || DEFAULT_SCHOOL_CONFIG.identity.logoUrl;
+    const schoolLogo = config.identity.logoUrl;
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6 relative overflow-hidden">
         {/* Subtle background glow */}
@@ -226,15 +330,19 @@ export default function App() {
           {/* School Logo */}
           <div className="relative mb-6">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-3 shadow-2xl flex items-center justify-center animate-pulse">
-              <img
-                src={schoolLogo}
-                alt={config.identity.name || 'Logo Sekolah'}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = DEFAULT_SCHOOL_CONFIG.identity.logoUrl;
-                }}
-              />
+              {schoolLogo ? (
+                <img
+                  src={schoolLogo}
+                  alt={config.identity.name || 'Logo Sekolah'}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <School className="w-10 h-10 sm:w-12 sm:h-12 text-blue-400" />
+              )}
             </div>
             <div className="absolute -inset-1.5 rounded-3xl bg-blue-500/20 blur-md -z-10 animate-pulse" />
           </div>
@@ -330,11 +438,14 @@ export default function App() {
         <PrincipalSection
           principal={config.principal}
           schoolName={config.identity.name}
+          articles={articles}
         />
       )}
 
       {/* Berita, Prestasi & Pengumuman Sekolah */}
-      {layoutSections.showNews && <NewsSection articles={articles} />}
+      {layoutSections.showNews && (
+        <NewsSection articles={articles} isInitialSyncing={isInitialSyncing} />
+      )}
 
       {/* Agenda & Kalender Kegiatan */}
       {layoutSections.showAgenda && (

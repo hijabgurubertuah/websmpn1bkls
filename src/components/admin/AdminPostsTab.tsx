@@ -203,6 +203,10 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
 
     setFormError(null);
     setSavingLocal(true);
+    const generatedSummary =
+      summary.trim().replace(/<[^>]*>/g, '') ||
+      cleanContentText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+
     const localArticle: NewsArticle = {
       id: editingArticleId || `news-${Date.now()}`,
       title: title.trim(),
@@ -211,7 +215,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, ''),
       category,
-      summary: summary.trim().replace(/<[^>]*>/g, ''),
+      summary: generatedSummary,
       content: cleanContentText || '<p>Silakan akses aplikasi interaktif di bawah ini.</p>',
       coverImage:
         coverImage.trim() ||
@@ -270,6 +274,10 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
 
     setFormError(null);
     setSaving(true);
+    const generatedSummary =
+      summary.trim().replace(/<[^>]*>/g, '') ||
+      cleanContentText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+
     const newArticle: NewsArticle = {
       id: editingArticleId || `news-${Date.now()}`,
       title: title.trim(),
@@ -278,7 +286,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, ''),
       category,
-      summary: summary.trim().replace(/<[^>]*>/g, ''),
+      summary: generatedSummary,
       content: cleanContentText || '<p>Silakan akses aplikasi interaktif di bawah ini.</p>',
       coverImage:
         coverImage.trim() ||
@@ -358,13 +366,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   };
 
   const handleTogglePin = async (art: NewsArticle) => {
-    // If currently NOT pinned, check how many are already pinned
+    // If currently NOT pinned, check how many are already pinned (max 4)
     if (!art.isPinned) {
       const currentlyPinned = articles.filter((a) => Boolean(a.isPinned));
-      if (currentlyPinned.length >= 3) {
+      if (currentlyPinned.length >= 4) {
         setFeedbackToast({
           type: 'error',
-          message: 'Maksimal 3 postingan yang dapat disematkan (pin). Lepas pin dari postingan lain terlebih dahulu.',
+          message: 'Maksimal 4 postingan yang dapat disematkan (pin). Lepas pin dari postingan lain terlebih dahulu.',
         });
         setTimeout(() => setFeedbackToast(null), 4000);
         return;
@@ -540,7 +548,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                       Kategori Berita
@@ -557,19 +565,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                       <option value="Ekstrakurikuler">Ekstrakurikuler</option>
                       <option value="Alumni">Alumni</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Penulis / Sumber
-                    </label>
-                    <input
-                      type="text"
-                      value={author}
-                      onChange={(e) => setAuthor(e.target.value)}
-                      placeholder="Humas Instansi"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                    />
                   </div>
 
                   <div>
@@ -596,20 +591,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                     aspectRatio="wide"
                     placeholder="https://... atau tempel link Google Drive"
                     allowDriveConverter={true}
-                  />
-                </div>
-
-                {/* Summary */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Ringkasan Berita
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
-                    placeholder="Ringkasan singkat 1-2 kalimat yang tampil di kartu berita..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   />
                 </div>
 
@@ -1004,7 +985,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
               <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[11px] tracking-wider">
                 <th className="py-3 px-3">Berita</th>
                 <th className="py-3 px-3">Kategori</th>
-                <th className="py-3 px-3">Penulis</th>
                 <th className="py-3 px-3">Tanggal</th>
                 <th className="py-3 px-3">Status Simpan</th>
                 <th className="py-3 px-3 text-right">Aksi</th>
@@ -1024,7 +1004,9 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                       </div>
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 line-clamp-1 text-sm">{art.title}</p>
-                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">{art.summary}</p>
+                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                          {art.summary || art.content?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)}
+                        </p>
                         
                         {/* Tags for multi-image, embed, link */}
                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -1055,10 +1037,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700">
                       {art.category}
                     </span>
-                  </td>
-
-                  <td className="py-3.5 px-3 text-slate-600 text-xs">
-                    {art.author}
                   </td>
 
                   <td className="py-3.5 px-3 text-slate-500 text-xs whitespace-nowrap">
