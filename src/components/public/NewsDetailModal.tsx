@@ -210,14 +210,16 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   return (
     <div
       onClick={onClose}
-      className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-2 sm:p-4 ${
-        isSecondLayer ? 'bg-slate-950/70 backdrop-blur-xs' : 'bg-slate-950/75 backdrop-blur-xs'
-      } overscroll-contain touch-pan-y animate-in fade-in duration-200`}
+      className={`fixed inset-0 ${zIndexClass || 'z-50'} flex items-center justify-center p-1.5 sm:p-4 pt-[max(0.375rem,env(safe-area-inset-top))] pb-[max(0.375rem,env(safe-area-inset-bottom))] pl-[max(0.375rem,env(safe-area-inset-left))] pr-[max(0.375rem,env(safe-area-inset-right))] ${
+        isSecondLayer ? 'bg-slate-950/75 backdrop-blur-xs' : 'bg-slate-950/80 backdrop-blur-xs'
+      } overscroll-contain touch-pan-y animate-in fade-in duration-200 h-[100dvh] w-full`}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className={`relative w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col overscroll-contain transition-all duration-300 ${
-          isEmbedExpanded ? 'max-w-6xl h-[96vh]' : 'max-w-4xl max-h-[95vh] sm:max-h-[92vh]'
+          isEmbedExpanded
+            ? 'max-w-6xl h-[calc(100dvh-12px)] sm:h-[96vh]'
+            : 'max-w-4xl h-full max-h-[calc(100dvh-12px)] sm:max-h-[92vh]'
         }`}
       >
         {/* Toast Share Notification */}
@@ -285,7 +287,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-4 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-5 sm:space-y-6 flex-1 pb-8">
+        <div className="p-3.5 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-4 sm:space-y-6 flex-1 pb-6 sm:pb-8">
           {/* Cover Image - diletakkan di atas teks dan terlihat utuh tanpa terpotong pada tampilan HP */}
           {article.coverImage && (
             <div className="rounded-xl sm:rounded-2xl overflow-hidden w-full bg-slate-100/90 border border-slate-200/90 shadow-2xs flex items-center justify-center p-1 sm:p-1.5">
@@ -293,7 +295,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
                 src={article.coverImage}
                 alt={article.title}
                 referrerPolicy="no-referrer"
-                className="w-full h-auto max-h-[65vh] sm:max-h-[520px] object-contain rounded-lg mx-auto block"
+                className="w-full h-auto max-h-[48dvh] sm:max-h-[520px] object-contain rounded-lg mx-auto block"
               />
             </div>
           )}

@@ -47,7 +47,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overscroll-contain touch-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3.5 sm:p-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] bg-slate-950/75 backdrop-blur-xs overscroll-contain touch-none animate-in fade-in duration-200 h-[100dvh] w-full">
       <div
         className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 overflow-hidden relative overscroll-contain animate-in zoom-in-95 duration-200"
         role="dialog"
