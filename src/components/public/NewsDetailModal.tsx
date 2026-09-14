@@ -56,7 +56,8 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   isSecondLayer = false,
   zIndexClass = 'z-50',
 }) => {
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isEmbedExpanded, setIsEmbedExpanded] = useState(false);
   const [iframeKey, setIframeKey] = useState(1);
   const [copiedNotice, setCopiedNotice] = useState(false);
@@ -197,14 +198,14 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (activeGalleryIndex === null) return;
-    setActiveGalleryIndex((activeGalleryIndex - 1 + gallery.length) % gallery.length);
+    if (lightboxIndex === null) return;
+    setLightboxIndex((lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length);
   };
 
   const handleNextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (activeGalleryIndex === null) return;
-    setActiveGalleryIndex((activeGalleryIndex + 1) % gallery.length);
+    if (lightboxIndex === null) return;
+    setLightboxIndex((lightboxIndex + 1) % lightboxImages.length);
   };
 
   return (
@@ -290,12 +291,18 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
         <div className="p-3.5 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-4 sm:space-y-6 flex-1 pb-6 sm:pb-8">
           {/* Cover Image - diletakkan di atas teks dan terlihat utuh tanpa terpotong pada tampilan HP */}
           {article.coverImage && (
-            <div className="rounded-xl sm:rounded-2xl overflow-hidden w-full bg-slate-100/90 border border-slate-200/90 shadow-2xs flex items-center justify-center p-1 sm:p-1.5">
+            <div
+              onClick={() => {
+                setLightboxImages([article.coverImage]);
+                setLightboxIndex(0);
+              }}
+              className="rounded-xl sm:rounded-2xl overflow-hidden w-full bg-slate-100/90 border border-slate-200/90 shadow-2xs flex items-center justify-center p-1 sm:p-1.5 cursor-pointer group"
+            >
               <img
                 src={article.coverImage}
                 alt={article.title}
                 referrerPolicy="no-referrer"
-                className="w-full h-auto max-h-[48dvh] sm:max-h-[520px] object-contain rounded-lg mx-auto block"
+                className="w-full h-auto max-h-[48dvh] sm:max-h-[520px] object-contain rounded-lg mx-auto block transition-transform duration-200 group-hover:scale-[1.01]"
               />
             </div>
           )}
@@ -443,7 +450,10 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
                 {gallery.map((imgUrl, idx) => (
                   <div
                     key={idx}
-                    onClick={() => setActiveGalleryIndex(idx)}
+                    onClick={() => {
+                      setLightboxImages(gallery);
+                      setLightboxIndex(idx);
+                    }}
                     className="group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-4/3 cursor-pointer shadow-xs hover:shadow-md transition-all"
                   >
                     <img
@@ -452,14 +462,6 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     />
-                    <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                        Lihat Foto
-                      </span>
-                    </div>
-                    <span className="absolute bottom-1.5 right-1.5 bg-slate-900/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                      #{idx + 1}
-                    </span>
                   </div>
                 ))}
               </div>
@@ -532,9 +534,9 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
         </div>
 
         {/* Lightbox Modal for Gallery Fullscreen View */}
-        {activeGalleryIndex !== null && (
+        {lightboxIndex !== null && lightboxImages.length > 0 && (
           <div
-            onClick={() => setActiveGalleryIndex(null)}
+            onClick={() => setLightboxIndex(null)}
             className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
           >
             <div
@@ -544,14 +546,14 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
               {/* Close Button */}
               <button
                 type="button"
-                onClick={() => setActiveGalleryIndex(null)}
+                onClick={() => setLightboxIndex(null)}
                 className="absolute top-2 right-2 z-20 p-2 bg-white/20 hover:bg-white/40 text-white rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-6 h-6" />
               </button>
 
               {/* Prev Button */}
-              {gallery.length > 1 && (
+              {lightboxImages.length > 1 && (
                 <button
                   type="button"
                   onClick={handlePrevImage}
@@ -562,7 +564,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
               )}
 
               {/* Next Button */}
-              {gallery.length > 1 && (
+              {lightboxImages.length > 1 && (
                 <button
                   type="button"
                   onClick={handleNextImage}
@@ -575,17 +577,19 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
               {/* Main Image */}
               <div className="max-h-[80vh] overflow-hidden rounded-xl border border-white/20 shadow-2xl bg-black/50">
                 <img
-                  src={gallery[activeGalleryIndex]}
-                  alt={`Galeri ${activeGalleryIndex + 1}`}
+                  src={lightboxImages[lightboxIndex]}
+                  alt={`Galeri ${lightboxIndex + 1}`}
                   referrerPolicy="no-referrer"
                   className="max-h-[80vh] w-auto object-contain mx-auto"
                 />
               </div>
 
               {/* Counter Indicator */}
-              <div className="mt-3 text-white text-xs font-semibold bg-white/15 px-3 py-1 rounded-full">
-                Foto {activeGalleryIndex + 1} dari {gallery.length}
-              </div>
+              {lightboxImages.length > 1 && (
+                <div className="mt-3 text-white text-xs font-semibold bg-white/15 px-3 py-1 rounded-full">
+                  Foto {lightboxIndex + 1} dari {lightboxImages.length}
+                </div>
+              )}
             </div>
           </div>
         )}

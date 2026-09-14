@@ -463,15 +463,36 @@ export const Navbar: React.FC<NavbarProps> = ({
     {/* Fullscreen Hard Reset Loading Screen */}
     {isHardResetting && (
       <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-white text-center animate-in fade-in duration-200">
-        <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 p-4 mb-4 flex items-center justify-center shadow-2xl">
-          <RotateCcw className="w-8 h-8 text-blue-400 animate-spin" />
+        <style>{`
+          @keyframes rotate-y-anim {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+          }
+          .animate-rotate-y {
+            animation: rotate-y-anim 2.5s linear infinite;
+            transform-style: preserve-3d;
+          }
+        `}</style>
+        <div style={{ perspective: '1000px' }} className="mb-4">
+          <div className="w-20 h-20 rounded-2xl bg-white/10 border border-white/20 p-2.5 flex items-center justify-center shadow-2xl animate-rotate-y">
+            {identity.logoUrl ? (
+              <img
+                src={identity.logoUrl}
+                alt={identity.name}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <School className="w-10 h-10 text-blue-400" />
+            )}
+          </div>
         </div>
-        <h3 className="text-lg font-bold text-white mb-1">
-          Sedang Membersihkan Seluruh Cache...
+        <h3 className="text-xl font-black text-white tracking-widest animate-pulse">
+          Loading......
         </h3>
-        <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
-          Menghapus cache offline browser &amp; memuat ulang versi terbaru dari server. Halaman akan terbuka otomatis.
-        </p>
       </div>
     )}
     </>

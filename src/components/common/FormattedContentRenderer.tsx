@@ -175,6 +175,18 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
   // Intercept any <a> tag clicks inside rendered content to show 2nd layer confirmation popup
   const handleContainerClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+
+    // Support clicking on images inside raw HTML/editor content
+    if (target.tagName === 'IMG') {
+      const src = target.getAttribute('src');
+      if (src) {
+        e.preventDefault();
+        e.stopPropagation();
+        setLightboxIndex({ urls: [src], index: 0 });
+        return;
+      }
+    }
+
     const anchor = target.closest('a');
     if (anchor) {
       const href = anchor.getAttribute('href');
@@ -253,12 +265,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
               referrerPolicy="no-referrer"
               className="w-full h-auto max-h-80 object-cover group-hover:scale-102 transition-transform duration-200"
             />
-            <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5 text-blue-600" />
-                <span>Perbesar</span>
-              </span>
-            </div>
           </div>
           {caption && (
             <p className="text-[11px] text-slate-500 font-medium p-2 text-center bg-slate-100/80 border-t border-slate-200">
@@ -279,12 +285,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
               referrerPolicy="no-referrer"
               className="w-full h-auto max-h-80 object-cover group-hover:scale-102 transition-transform duration-200"
             />
-            <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5 text-blue-600" />
-                <span>Perbesar</span>
-              </span>
-            </div>
           </div>
           {caption && (
             <p className="text-[11px] text-slate-500 font-medium p-2 text-center bg-slate-100/80 border-t border-slate-200">
@@ -312,12 +312,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
-                  <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Perbesar</span>
-                    </span>
-                  </div>
                 </div>
                 {captions && captions[i] && (
                   <p className="text-[11px] text-slate-600 font-medium text-center bg-slate-50 py-1 px-2 rounded-lg border border-slate-200/60">
@@ -353,12 +347,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
-                  <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Perbesar</span>
-                    </span>
-                  </div>
                 </div>
                 {captions && captions[i] && (
                   <p className="text-[11px] text-slate-600 font-medium text-center bg-slate-50 py-1 px-2 rounded-lg border border-slate-200/60">
@@ -393,12 +381,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                 />
-                <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="bg-white/90 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-xs flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Perbesar</span>
-                  </span>
-                </div>
               </div>
             ))}
           </div>
@@ -421,12 +403,6 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
             referrerPolicy="no-referrer"
             className="w-full h-auto max-h-[500px] object-cover group-hover:scale-[1.01] transition-transform duration-200"
           />
-          <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <span className="bg-white/90 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
-              <Eye className="w-4 h-4 text-blue-600" />
-              <span>Perbesar Gambar</span>
-            </span>
-          </div>
         </div>
         {caption && (
           <p className="text-xs text-slate-500 font-medium p-2 text-center bg-slate-100/80 border-t border-slate-200">
@@ -463,6 +439,8 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
       cleanText.includes('<div') ||
       cleanText.includes('<h2') ||
       cleanText.includes('<h3') ||
+      cleanText.includes('<img') ||
+      cleanText.includes('<iframe') ||
       cleanText.includes('<blockquote') ||
       cleanText.includes('<span') ||
       cleanText.includes('<font') ||
@@ -495,7 +473,7 @@ export const FormattedContentRenderer: React.FC<FormattedContentRendererProps> =
       return (
         <div
           key={key}
-          className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed space-y-3 [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5"
+          className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed space-y-3 [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5 [&_img]:cursor-pointer"
           dangerouslySetInnerHTML={{ __html: processedHtml }}
         />
       );

@@ -10,6 +10,7 @@ import {
   Quote,
   ImageIcon,
   Eye,
+  Edit,
   Edit3,
   Plus,
   Trash2,
@@ -30,10 +31,12 @@ import {
   ListOrdered,
   Subscript,
   Superscript,
+  Video,
 } from 'lucide-react';
 import { FormattedContentRenderer } from './FormattedContentRenderer';
 import { ImageUploadButton } from '../admin/ImageUploadButton';
 import { convertGoogleDriveUrl } from '../../lib/imageOptimizer';
+import { parseEmbedUrl } from '../../lib/embedHelper';
 
 export interface InternalPostItem {
   id: string;
@@ -114,11 +117,83 @@ const NUMBER_VARIATIONS = [
   { label: 'Romawi Kecil (i, ii, iii)', style: 'lower-roman', sample: 'i.' },
 ];
 
+// Helper: Convert [img layout="..." urls="..." caption="..."] BBCode shortcodes to real standard interactive HTML blocks
+function shortcodesToHtml(input: string): string {
+  if (!input) return '';
+  let html = input;
+
+  // Regex to match [img layout="full" urls="..."] or [img layout="..." urls="..." caption="..." captions="..."]
+  const regex = /\[img\s+layout=["']([^"']+)["']\s+urls=["']([^"']+)["'](?:(?:\s+caption=["']([^"']+)["'])|(?:\s+captions=["']([^"']+)["']))?\]/gi;
+  html = html.replace(regex, (match, layout, urlsStr, caption, captionsStr) => {
+    const urls = (urlsStr || '').split(' | ').map(u => u.trim());
+    const captions = captionsStr ? captionsStr.split(' | ').map(c => c.trim()) : (caption ? [caption] : []);
+
+    if (urls.length === 0 || !urls[0]) return '';
+
+    if (layout === 'full' || urls.length === 1) {
+      const u = urls[0];
+      const cap = captions[0] || '';
+      return `
+        <div class="my-4 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-1 select-none" contenteditable="false" data-layout="full" data-urls="${u}" data-caption="${cap}">
+          <img src="${u}" class="max-w-full h-auto max-h-[450px] object-contain rounded-lg shadow-xs" referrerpolicy="no-referrer" />
+          ${cap ? `<p class="text-xs text-slate-500 mt-2 px-3 py-1 bg-white border border-slate-100 rounded-full font-medium shadow-2xs">${cap}</p>` : ''}
+        </div><p><br></p>
+      `;
+    } else if (layout === 'grid-2' || urls.length === 2) {
+      const u1 = urls[0];
+      const u2 = urls[1] || '';
+      const cap1 = captions[0] || '';
+      const cap2 = captions[1] || '';
+      return `
+        <div class="grid grid-cols-2 gap-2 my-4 bg-slate-50 border border-slate-200 rounded-xl p-1.5 select-none" contenteditable="false" data-layout="grid-2" data-urls="${u1} | ${u2}">
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u1}" class="w-full h-auto max-h-[300px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap1 ? `<p class="text-[10px] text-slate-500 mt-1.5 px-2 py-0.5 bg-white border border-slate-100 rounded-md font-medium shadow-2xs">${cap1}</p>` : ''}
+          </div>
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u2}" class="w-full h-auto max-h-[300px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap2 ? `<p class="text-[10px] text-slate-500 mt-1.5 px-2 py-0.5 bg-white border border-slate-100 rounded-md font-medium shadow-2xs">${cap2}</p>` : ''}
+          </div>
+        </div><p><br></p>
+      `;
+    } else {
+      // grid-3 or more
+      const u1 = urls[0];
+      const u2 = urls[1] || '';
+      const u3 = urls[2] || '';
+      const cap1 = captions[0] || '';
+      const cap2 = captions[1] || '';
+      const cap3 = captions[2] || '';
+      return `
+        <div class="grid grid-cols-3 gap-2 my-4 bg-slate-50 border border-slate-200 rounded-xl p-1.5 select-none" contenteditable="false" data-layout="grid-3" data-urls="${u1} | ${u2} | ${u3}">
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u1}" class="w-full h-auto max-h-[220px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap1 ? `<p class="text-[9px] text-slate-500 mt-1 px-1.5 py-0.5 bg-white border border-slate-100 rounded font-medium shadow-2xs">${cap1}</p>` : ''}
+          </div>
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u2}" class="w-full h-auto max-h-[220px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap2 ? `<p class="text-[9px] text-slate-500 mt-1 px-1.5 py-0.5 bg-white border border-slate-100 rounded font-medium shadow-2xs">${cap2}</p>` : ''}
+          </div>
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u3}" class="w-full h-auto max-h-[220px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap3 ? `<p class="text-[9px] text-slate-500 mt-1 px-1.5 py-0.5 bg-white border border-slate-100 rounded font-medium shadow-2xs">${cap3}</p>` : ''}
+          </div>
+        </div><p><br></p>
+      `;
+    }
+  });
+
+  return html;
+}
+
 // Helper: Convert legacy BBCode / plain text into clean HTML for live WYSIWYG editing
 function bbcodeToHtml(input: string): string {
   if (!input) return '';
 
   let html = input;
+
+  // First convert [img ...] shortcodes to modern standard interactive HTML blocks
+  html = shortcodesToHtml(html);
 
   // Strip duplicate/nested BBCode tags first
   html = html.replace(/\[align=(justify|center|right|left)\]\s*\[align=\1\]/gi, '[align=$1]');
@@ -225,6 +300,12 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
   const [linkText, setLinkText] = useState('');
   const [showInternalPosts, setShowInternalPosts] = useState(false);
   const [postSearchQuery, setPostSearchQuery] = useState('');
+  const [showEmbedModal, setShowEmbedModal] = useState(false);
+  const [embedInputUrl, setEmbedInputUrl] = useState('');
+  const [embedInputTitle, setEmbedInputTitle] = useState('');
+  const [selectedEmbedNode, setSelectedEmbedNode] = useState<HTMLElement | null>(null);
+  const [selectedEmbedType, setSelectedEmbedType] = useState<'image' | 'video' | null>(null);
+  const [editingNode, setEditingNode] = useState<HTMLElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
 
   // Stored articles list for internal link selector
@@ -1090,6 +1171,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
       { url: '', caption: '' },
     ]);
     setLayoutCount(1);
+    setEditingNode(null);
   };
 
   // Insert complete shortcode into editor at cursor
@@ -1108,77 +1190,222 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
     const captions = activeSlots.map((s) => s.caption.trim());
     const hasAnyCaption = captions.some((c) => c.length > 0);
 
-    let shortcode = '';
+    let htmlBlock = '';
     if (layoutCount === 1) {
-      const singleCaption = captions[0] || '';
-      shortcode = `[img layout="full" urls="${cleanUrls[0]}"${singleCaption ? ` caption="${singleCaption}"` : ''}]`;
+      const u = cleanUrls[0];
+      const cap = captions[0] || '';
+      htmlBlock = `
+        <div class="my-4 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden p-1 select-none" contenteditable="false" data-layout="full" data-urls="${u}" data-caption="${cap}">
+          <img src="${u}" class="max-w-full h-auto max-h-[450px] object-contain rounded-lg shadow-xs" referrerpolicy="no-referrer" />
+          ${cap ? `<p class="text-xs text-slate-500 mt-2 px-3 py-1 bg-white border border-slate-100 rounded-full font-medium shadow-2xs">${cap}</p>` : ''}
+        </div><p><br></p>
+      `;
     } else if (layoutCount === 2) {
-      shortcode = `[img layout="grid-2" urls="${cleanUrls.join(' | ')}"${hasAnyCaption ? ` captions="${captions.join(' | ')}"` : ''}]`;
-    } else if (layoutCount === 3) {
-      shortcode = `[img layout="grid-3" urls="${cleanUrls.join(' | ')}"${hasAnyCaption ? ` captions="${captions.join(' | ')}"` : ''}]`;
+      const u1 = cleanUrls[0];
+      const u2 = cleanUrls[1] || '';
+      const cap1 = captions[0] || '';
+      const cap2 = captions[1] || '';
+      htmlBlock = `
+        <div class="grid grid-cols-2 gap-2 my-4 bg-slate-50 border border-slate-200 rounded-xl p-1.5 select-none" contenteditable="false" data-layout="grid-2" data-urls="${u1} | ${u2}">
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u1}" class="w-full h-auto max-h-[300px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap1 ? `<p class="text-[10px] text-slate-500 mt-1.5 px-2 py-0.5 bg-white border border-slate-100 rounded-md font-medium shadow-2xs">${cap1}</p>` : ''}
+          </div>
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u2}" class="w-full h-auto max-h-[300px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap2 ? `<p class="text-[10px] text-slate-500 mt-1.5 px-2 py-0.5 bg-white border border-slate-100 rounded-md font-medium shadow-2xs">${cap2}</p>` : ''}
+          </div>
+        </div><p><br></p>
+      `;
+    } else {
+      const u1 = cleanUrls[0];
+      const u2 = cleanUrls[1] || '';
+      const u3 = cleanUrls[2] || '';
+      const cap1 = captions[0] || '';
+      const cap2 = captions[1] || '';
+      const cap3 = captions[2] || '';
+      htmlBlock = `
+        <div class="grid grid-cols-3 gap-2 my-4 bg-slate-50 border border-slate-200 rounded-xl p-1.5 select-none" contenteditable="false" data-layout="grid-3" data-urls="${u1} | ${u2} | ${u3}">
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u1}" class="w-full h-auto max-h-[220px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap1 ? `<p class="text-[9px] text-slate-500 mt-1 px-1.5 py-0.5 bg-white border border-slate-100 rounded font-medium shadow-2xs">${cap1}</p>` : ''}
+          </div>
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u2}" class="w-full h-auto max-h-[220px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap2 ? `<p class="text-[9px] text-slate-500 mt-1 px-1.5 py-0.5 bg-white border border-slate-100 rounded font-medium shadow-2xs">${cap2}</p>` : ''}
+          </div>
+          <div class="flex flex-col items-center justify-center">
+            <img src="${u3}" class="w-full h-auto max-h-[220px] object-cover rounded-lg shadow-2xs" referrerpolicy="no-referrer" />
+            ${cap3 ? `<p class="text-[9px] text-slate-500 mt-1 px-1.5 py-0.5 bg-white border border-slate-100 rounded font-medium shadow-2xs">${cap3}</p>` : ''}
+          </div>
+        </div><p><br></p>
+      `;
     }
 
-    if (editorMode === 'wysiwyg' && editorRef.current) {
+    if (editingNode) {
+      editingNode.outerHTML = htmlBlock;
+      setEditingNode(null);
+      setSelectedEmbedNode(null);
+      setSelectedEmbedType(null);
+      handleEditorInput();
+    } else if (editorMode === 'wysiwyg' && editorRef.current) {
       editorRef.current.focus();
 
       try {
-        document.execCommand('insertText', false, `\n\n${shortcode}\n\n`);
+        document.execCommand('insertHTML', false, htmlBlock);
       } catch {
-        editorRef.current.innerHTML += `<p>${shortcode}</p>`;
+        editorRef.current.innerHTML += htmlBlock;
       }
       handleEditorInput();
     } else {
-      onChange(value ? `${value}\n\n${shortcode}\n` : `${shortcode}\n`);
+      onChange(value ? `${value}\n\n${htmlBlock}\n` : `${htmlBlock}\n`);
     }
 
     handleCloseImageModal();
+  };
+
+  // Insert complete embed video/iframe HTML into editor at cursor
+  const handleConfirmInsertEmbed = () => {
+    if (!embedInputUrl.trim()) return;
+
+    const parsed = parseEmbedUrl(embedInputUrl.trim());
+    if (!parsed || !parsed.embedUrl) {
+      alert('Tautan video tidak dikenali. Silakan masukkan tautan YouTube yang valid atau kode iframe yang benar.');
+      return;
+    }
+
+    const titleText = embedInputTitle.trim();
+    const htmlBlock = `
+      <div class="my-5 flex flex-col items-center bg-slate-100 border border-slate-200 rounded-xl overflow-hidden p-2 shadow-2xs max-w-2xl mx-auto w-full select-none" contenteditable="false" data-embed-url="${parsed.embedUrl}">
+        <div class="relative w-full aspect-video rounded-lg overflow-hidden shadow-2xs bg-black">
+          <iframe src="${parsed.embedUrl}" class="absolute top-0 left-0 w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+        ${titleText ? `<p class="text-xs font-bold text-slate-700 mt-2 text-center px-4">${titleText}</p>` : ''}
+      </div><p><br></p>
+    `;
+
+    if (editingNode) {
+      editingNode.outerHTML = htmlBlock;
+      setEditingNode(null);
+      setSelectedEmbedNode(null);
+      setSelectedEmbedType(null);
+      handleEditorInput();
+    } else if (editorMode === 'wysiwyg' && editorRef.current) {
+      editorRef.current.focus();
+
+      try {
+        document.execCommand('insertHTML', false, htmlBlock);
+      } catch {
+        editorRef.current.innerHTML += htmlBlock;
+      }
+      handleEditorInput();
+    } else {
+      onChange(value ? `${value}\n\n${htmlBlock}\n` : `${htmlBlock}\n`);
+    }
+
+    setShowEmbedModal(false);
+    setEmbedInputUrl('');
+    setEmbedInputTitle('');
   };
 
   const filteredInternalPosts = internalList.filter((a) =>
     a.title.toLowerCase().includes(postSearchQuery.toLowerCase())
   );
 
+  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const block = target.closest('[data-layout], [data-embed-url]') as HTMLElement | null;
+
+    if (block) {
+      e.preventDefault();
+      setSelectedEmbedNode(block);
+      if (block.hasAttribute('data-embed-url')) {
+        setSelectedEmbedType('video');
+      } else {
+        setSelectedEmbedType('image');
+      }
+    } else {
+      setSelectedEmbedNode(null);
+      setSelectedEmbedType(null);
+    }
+  };
+
+  const handleDeleteSelectedEmbed = () => {
+    if (!selectedEmbedNode) return;
+
+    if (confirm('Apakah Anda yakin ingin menghapus media ini dari artikel?')) {
+      selectedEmbedNode.remove();
+      setSelectedEmbedNode(null);
+      setSelectedEmbedType(null);
+      handleEditorInput();
+    }
+  };
+
+  const handleEditSelectedEmbed = () => {
+    if (!selectedEmbedNode) return;
+
+    if (selectedEmbedType === 'video') {
+      const url = selectedEmbedNode.getAttribute('data-embed-url') || '';
+      const p = selectedEmbedNode.querySelector('p');
+      const title = p ? p.innerText : '';
+
+      setEmbedInputUrl(url);
+      setEmbedInputTitle(title);
+      setEditingNode(selectedEmbedNode);
+      setShowEmbedModal(true);
+    } else {
+      // Image layout block
+      const layout = selectedEmbedNode.getAttribute('data-layout') || 'full';
+      const newSlots = [
+        { url: '', caption: '' },
+        { url: '', caption: '' },
+        { url: '', caption: '' },
+      ];
+
+      if (layout === 'full') {
+        const img = selectedEmbedNode.querySelector('img');
+        const p = selectedEmbedNode.querySelector('p');
+        newSlots[0] = {
+          url: img ? img.getAttribute('src') || '' : '',
+          caption: p ? p.innerText : '',
+        };
+        setLayoutCount(1);
+      } else {
+        const imgs = Array.from(selectedEmbedNode.querySelectorAll('img'));
+        imgs.forEach((img, idx) => {
+          if (idx >= 3) return;
+          const parentCol = img.parentElement;
+          const p = parentCol ? parentCol.querySelector('p') : null;
+          newSlots[idx] = {
+            url: img.getAttribute('src') || '',
+            caption: p ? p.innerText : '',
+          };
+        });
+        setLayoutCount(layout === 'grid-2' ? 2 : 3);
+      }
+
+      setSlots(newSlots);
+      setEditingNode(selectedEmbedNode);
+      setShowImageModal(true);
+    }
+  };
+
   return (
     <div className="space-y-2">
-      {/* Top Header Label & Editor / Preview Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+      {/* Top Header Label */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
         {label && (
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
             {label}
           </label>
         )}
-
-        <div className="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl border border-slate-300/70 text-xs w-full sm:w-auto self-stretch sm:self-auto">
-          <button
-            type="button"
-            onClick={() => handleSwitchTab('editor')}
-            className={`flex-1 sm:flex-none justify-center px-4 py-2 sm:py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs ${
-              activeTab === 'editor'
-                ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Edit3 className="w-3.5 h-3.5 shrink-0" />
-            <span>Editor</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSwitchTab('preview')}
-            className={`flex-1 sm:flex-none justify-center px-4 py-2 sm:py-1.5 rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs ${
-              activeTab === 'preview'
-                ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5 shrink-0" />
-            <span>Pratinjau</span>
-          </button>
-        </div>
+        <span className="text-[10px] text-slate-400 font-medium italic">
+          (Mode WYSIWYG Terpadu: Edit & Pratinjau Langsung Secara Real-time)
+        </span>
       </div>
 
-      {/* Mode 1: Live Editor */}
-      {activeTab === 'editor' && (
-        <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-2xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600 transition-all relative">
+      {/* Unified Editor & Preview Panel */}
+      <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-2xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600 transition-all relative">
           
           {/* Formatting Toolbar */}
           <div className="bg-slate-50 border-b border-slate-200 p-2 flex flex-wrap items-center gap-1.5 relative">
@@ -1848,6 +2075,26 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               >
                 <ImageIcon className="w-4 h-4" />
               </button>
+
+              {/* Video Embed Button */}
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
+                onClick={() => {
+                  saveSelection();
+                  setShowEmbedModal(true);
+                  setShowEmojiPicker(false);
+                  setShowLinkModal(false);
+                }}
+                className="p-1.5 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-center"
+                title="Sisipkan Video (YouTube / Embed Link)"
+                aria-label="Sisipkan Video"
+              >
+                <Video className="w-4 h-4" />
+              </button>
             </div>
 
           </div>
@@ -2027,9 +2274,10 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 saveSelection();
                 updateActiveFormats();
               }}
-              onClick={() => {
+              onClick={(e) => {
                 saveSelection();
                 updateActiveFormats();
+                handleEditorClick(e);
               }}
               className="w-full p-4 min-h-[220px] text-sm font-sans text-slate-800 leading-relaxed focus:outline-none bg-white font-normal [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_a]:font-medium [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5"
               style={{ minHeight: `${minRows * 24}px` }}
@@ -2045,21 +2293,46 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
             />
           )}
 
-        </div>
-      )}
-
-      {/* Mode 2: Preview Mode */}
-      {activeTab === 'preview' && (
-        <div className="border border-slate-200 rounded-xl p-5 bg-white shadow-2xs space-y-3">
-          {value ? (
-            <FormattedContentRenderer content={value} />
-          ) : (
-            <div className="p-8 text-center text-slate-400 text-xs italic">
-              Teks masih kosong. Tuliskan teks di mode editor terlebih dahulu.
+          {/* Floating Action Overlay for Selected Image or Video Embed */}
+          {selectedEmbedNode && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl px-4 py-2.5 flex items-center gap-3.5 shadow-2xl border border-slate-700/80 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <span className="text-xs font-bold text-slate-300 select-none flex items-center gap-1.5">
+                {selectedEmbedType === 'video' ? '📺 Video Terpilih' : '🖼️ Gambar Terpilih'}
+              </span>
+              <div className="h-4 w-[1px] bg-slate-700" />
+              <button
+                type="button"
+                onClick={handleEditSelectedEmbed}
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                title="Ubah detail / layout media ini"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span>Ubah / Edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSelectedEmbed}
+                className="text-xs font-bold text-red-400 hover:text-red-300 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                title="Hapus media ini"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEmbedNode(null);
+                  setSelectedEmbedType(null);
+                }}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer ml-1"
+                title="Batal Pilih"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
+
         </div>
-      )}
 
       {/* Modal Sisipkan Gambar & Susunan Layout (Minimalist without tips) */}
       {showImageModal && (
@@ -2234,6 +2507,94 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <span>Sisipkan Foto ke Dalam Teks</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Modal Sisipkan Video / Embed Link */}
+      {showEmbedModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Video className="w-5 h-5 text-blue-600" />
+                <h3 className="font-extrabold text-slate-900 text-base">
+                  Sisipkan Video & Media Embed
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmbedModal(false);
+                  setEmbedInputUrl('');
+                  setEmbedInputTitle('');
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Inputs */}
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Tautan Video / Kode Iframe
+                </label>
+                <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
+                  Tempel tautan video YouTube (contoh: <code>https://www.youtube.com/watch?v=...</code> atau <code>https://youtu.be/...</code>) atau kode HTML iframe dari penyedia media.
+                </p>
+                <textarea
+                  value={embedInputUrl}
+                  onChange={(e) => setEmbedInputUrl(e.target.value)}
+                  placeholder="Tempel tautan YouTube atau kode iframe di sini..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:ring-2 focus:ring-blue-600 focus:bg-white focus:outline-none font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Keterangan / Judul Video (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={embedInputTitle}
+                  onChange={(e) => setEmbedInputTitle(e.target.value)}
+                  placeholder="Contoh: Video profil sekolah terbaru..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:ring-2 focus:ring-blue-600 focus:bg-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmbedModal(false);
+                  setEmbedInputUrl('');
+                  setEmbedInputTitle('');
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmInsertEmbed}
+                disabled={!embedInputUrl.trim()}
+                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>Sisipkan Video</span>
               </button>
             </div>
 
