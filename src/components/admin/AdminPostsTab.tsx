@@ -138,6 +138,9 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   const handleStartCreate = () => {
     resetForm();
     setIsEditing(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 80);
   };
 
   const handleStartEdit = (art: NewsArticle) => {
@@ -167,6 +170,9 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     setPostEditorTab(art.embedUrl ? 'embed' : 'content');
     setFormError(null);
     setIsEditing(true);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 80);
   };
 
   // Helper to sanitize article content before saving to local or cloud storage
@@ -1070,16 +1076,16 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                   </td>
 
                   <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                    <div className="inline-flex items-center gap-1">
+                    <div className="inline-flex items-center gap-2 sm:gap-1.5">
                       {art.isLocalDraft && (
                         <button
                           type="button"
                           onClick={() => handleQuickUploadToCloud(art)}
                           disabled={saving}
                           title="Unggah draf lokal ini ke Firebase Cloud sekarang"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer mr-1 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer mr-1 disabled:opacity-50"
                         >
-                          <CloudUpload className="w-3.5 h-3.5" />
+                          <CloudUpload className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                           <span className="hidden sm:inline">Unggah Cloud</span>
                         </button>
                       )}
@@ -1088,31 +1094,31 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                         type="button"
                         onClick={() => handleTogglePin(art)}
                         title={art.isPinned ? 'Lepas Pin' : 'Pasang Pin Unggulan'}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        className={`p-3 sm:p-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 ${
                           art.isPinned
                             ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
                             : 'text-slate-400 hover:text-slate-700'
                         }`}
                       >
-                        <BookmarkCheck className="w-4 h-4" />
+                        <BookmarkCheck className="w-5 h-5 sm:w-4 sm:h-4" />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleStartEdit(art)}
                         title="Edit Berita"
-                        className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-3 sm:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-5 h-5 sm:w-4 sm:h-4" />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setArticleToDelete(art)}
                         title="Hapus Berita"
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-3 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   </td>
