@@ -438,6 +438,7 @@ export default function App() {
         <PrincipalSection
           principal={config.principal}
           schoolName={config.identity.name}
+          logoUrl={config.identity.logoUrl}
           articles={articles}
         />
       )}

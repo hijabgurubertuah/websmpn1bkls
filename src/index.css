@@ -28,6 +28,20 @@ html {
   animation-play-state: paused;
 }
 
+@keyframes spinY {
+  0% {
+    transform: perspective(400px) rotateY(0deg);
+  }
+  100% {
+    transform: perspective(400px) rotateY(360deg);
+  }
+}
+
+.animate-spin-y {
+  animation: spinY 6s linear infinite;
+  transform-style: preserve-3d;
+}
+
 /* Subscript & Superscript styling rules */
 sub {
   font-size: 0.75em;

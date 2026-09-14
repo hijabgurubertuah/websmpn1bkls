@@ -7,6 +7,7 @@ import { NewsDetailModal } from './NewsDetailModal';
 interface PrincipalSectionProps {
   principal: PrincipalConfig;
   schoolName: string;
+  logoUrl?: string;
   articles?: NewsArticle[];
 }
 
@@ -41,6 +42,7 @@ const parseDateToTime = (dateStr?: string, id?: string): number => {
 export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
   principal,
   schoolName,
+  logoUrl,
   articles = [],
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -633,6 +635,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
         <SpeechDetailModal
           principal={principal}
           schoolName={schoolName}
+          logoUrl={logoUrl}
           onClose={() => setModalOpen(false)}
         />
       )}
