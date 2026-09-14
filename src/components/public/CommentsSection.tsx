@@ -25,6 +25,8 @@ import {
   loginWithGoogleForComments,
   logoutCommentUser,
   getCurrentCommentUser,
+  subscribeToCommentAuth,
+  saveLocalGuestProfile,
   subscribeToComments,
   checkProfanity,
   getProfanityFilterConfig,
@@ -101,16 +103,10 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     if (!replyText.trim() || !replyingToId) return;
 
     let user = currentUser;
-    if (!user && getProfanityFilterConfig().allowGuestComments) {
-      user = {
-        displayName: customName || 'Pengunjung',
-        email: userIdentifier,
-      };
-    }
-
     if (!user) {
-      handleGoogleLogin();
-      return;
+      const nameToUse = customName.trim() || 'Pengunjung';
+      user = saveLocalGuestProfile(nameToUse);
+      setCurrentUser(user);
     }
 
     const { isProfane } = checkProfanity(replyText);
@@ -125,7 +121,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       await postComment({
         targetId,
         targetTitle,
-        userName: customName || user.displayName || 'Pengguna',
+        userName: customName.trim() || user.displayName || 'Pengunjung',
         userEmail: user.email,
         userAvatar: user.photoURL || undefined,
         content: replyText.trim(),
@@ -253,20 +249,24 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   useEffect(() => {
     loadTargetComments();
 
-    // Check current auth user
-    const initialUser = getCurrentCommentUser();
-    setCurrentUser(initialUser);
-    if (initialUser?.displayName) {
-      setCustomName(initialUser.displayName);
-    }
+    // Subscribe to realtime auth status
+    const unsubscribeAuth = subscribeToCommentAuth((user) => {
+      if (user) {
+        setCurrentUser(user);
+        if (user.displayName) {
+          setCustomName((prev) => prev || user.displayName);
+        }
+      }
+    });
 
     // Subscribe to realtime comments
-    const unsubscribe = subscribeToComments(targetId, (updatedList) => {
+    const unsubscribeComments = subscribeToComments(targetId, (updatedList) => {
       setComments(updatedList);
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeAuth) unsubscribeAuth();
+      if (unsubscribeComments) unsubscribeComments();
     };
   }, [targetId]);
 
@@ -300,7 +300,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       }
     } catch (err: any) {
       setErrorMessage(
-        err?.message || 'Gagal masuk dengan akun Google. Pastikan popup tidak diblokir oleh peramban.'
+        err?.message || 'Gagal masuk dengan akun Google. Silakan tulis nama Anda langsung di atas untuk berkomentar.'
       );
     } finally {
       setIsLoggingIn(false);
@@ -320,9 +320,11 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!currentUser) {
-      setErrorMessage('Silakan masuk dengan akun Google terlebih dahulu untuk mengirim komentar.');
-      return;
+    let user = currentUser;
+    if (!user) {
+      const nameToUse = customName.trim() || 'Pengunjung';
+      user = saveLocalGuestProfile(nameToUse);
+      setCurrentUser(user);
     }
 
     const trimmed = commentText.trim();
@@ -341,9 +343,9 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       const saved = await postComment({
         targetId,
         targetTitle,
-        userName: customName.trim() || currentUser.displayName || 'Pengguna Google',
-        userEmail: currentUser.email,
-        userAvatar: currentUser.photoURL,
+        userName: customName.trim() || user.displayName || 'Pengunjung',
+        userEmail: user.email,
+        userAvatar: user.photoURL,
         content: trimmed,
       });
 
@@ -767,102 +769,116 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
           isFocused ? 'border-blue-400/80 bg-blue-50/30' : ''
         }`}
       >
-        {!currentUser ? (
-          /* Google Login Prompt */
-          <div className="text-center py-2 px-1 space-y-2">
-            <div>
-              <p className="text-xs font-bold text-slate-800">
-                Tuliskan Tanggapan atau Pertanyaan Anda
-              </p>
-              <p className="text-[11px] text-slate-500 max-w-md mx-auto mt-0.5">
-                Masuk dengan akun Google untuk mengirim komentar langsung.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={isLoggingIn}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-lg border border-slate-300 shadow-2xs active:scale-95 transition-all cursor-pointer"
-            >
-              {/* Google G SVG */}
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                />
-              </svg>
-              <span>{isLoggingIn ? 'Menghubungkan...' : 'Masuk dengan Akun Google'}</span>
-            </button>
-          </div>
-        ) : (
-          /* Form Komentar Aktif */
           <form onSubmit={handleSubmit} className="space-y-2">
-            {/* User Info Bar: Profile Avatar + Name Beside it */}
-            <div className="flex items-center gap-2 pb-1.5 border-b border-slate-200/60 min-w-0">
-              {currentUser.photoURL ? (
-                <img
-                  src={currentUser.photoURL}
-                  alt={customName || currentUser.displayName}
-                  referrerPolicy="no-referrer"
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
-                />
-              ) : (
-                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                  {(customName || currentUser.displayName || 'U').charAt(0).toUpperCase()}
-                </div>
-              )}
+            {/* User Info / Identity Bar */}
+            <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-200/60 min-w-0">
+              {currentUser ? (
+                /* Authenticated or Saved Profile */
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt={customName || currentUser.displayName}
+                      referrerPolicy="no-referrer"
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                      {(customName || currentUser.displayName || 'P').charAt(0).toUpperCase()}
+                    </div>
+                  )}
 
-              {/* Name beside profile */}
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                {isEditingName ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {isEditingName ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={customName}
+                          onChange={(e) => setCustomName(e.target.value)}
+                          placeholder="Nama Anda"
+                          className="text-xs px-2 py-0.5 bg-white border border-blue-400 rounded-md focus:outline-none"
+                          maxLength={40}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingName(false)}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Simpan Nama"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-slate-800 truncate">
+                          {customName || currentUser.displayName || 'Pengguna'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingName(true)}
+                          className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors"
+                          title="Ubah nama tampilan"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="text-[10px] text-slate-400 hover:text-rose-600 font-semibold px-1.5 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                    title="Keluar / Ganti Akun"
+                  >
+                    Keluar
+                  </button>
+                </div>
+              ) : (
+                /* Unauthenticated / Quick Name Option + Google Login */
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 w-full">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
+                    <UserIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <input
                       type="text"
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Nama Anda"
-                      className="text-xs px-2 py-0.5 bg-white border border-blue-400 rounded-md focus:outline-none"
+                      placeholder="Nama Anda (cth: Budi / Wali Murid)"
+                      className="text-xs px-2 py-1 w-full bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
                       maxLength={40}
-                      autoFocus
                     />
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingName(false)}
-                      className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                      title="Simpan Nama"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </button>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-bold text-slate-800 truncate">
-                      {customName || currentUser.displayName || 'Pengguna'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingName(true)}
-                      className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors"
-                      title="Ubah nama tampilan"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={isLoggingIn}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-lg border border-slate-300 shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="Masuk dengan akun Google"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                    <span>{isLoggingIn ? 'Menghubungkan...' : 'Masuk Google'}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Textarea with Send Icon Button placed on the right side */}
@@ -927,8 +943,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
               </div>
             )}
           </form>
-        )}
-      </div>
+        </div>
 
       {/* List of Comments */}
       <div className="space-y-3">

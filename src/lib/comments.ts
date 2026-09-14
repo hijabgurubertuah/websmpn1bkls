@@ -15,6 +15,9 @@ import {
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  onAuthStateChanged,
   signOut,
   User,
 } from 'firebase/auth';
@@ -173,7 +176,7 @@ export function checkProfanity(
 }
 
 /**
- * Get current Google logged-in user for comment section
+ * Get current Google logged-in user or cached commenter profile
  */
 export function getCurrentCommentUser(): CommenterUser | null {
   if (typeof window === 'undefined') return null;
@@ -193,7 +196,7 @@ export function getCurrentCommentUser(): CommenterUser | null {
     const raw = localStorage.getItem(COMMENTER_PROFILE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.email) {
+      if (parsed && (parsed.email || parsed.displayName)) {
         return parsed as CommenterUser;
       }
     }
@@ -202,6 +205,102 @@ export function getCurrentCommentUser(): CommenterUser | null {
   }
 
   return null;
+}
+
+/**
+ * Subscribe to real-time auth changes & handle redirect result
+ */
+export function subscribeToCommentAuth(callback: (user: CommenterUser | null) => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  // Check cached user initially
+  const cached = getCurrentCommentUser();
+  if (cached) {
+    callback(cached);
+  }
+
+  if (!auth) {
+    return () => {};
+  }
+
+  // Handle returning from signInWithRedirect
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result?.user) {
+        const u = result.user;
+        const commenter: CommenterUser = {
+          displayName: u.displayName || u.email?.split('@')[0] || 'Pengguna Google',
+          email: u.email || '',
+          photoURL: u.photoURL || undefined,
+          uid: u.uid,
+        };
+        if (commenter.email) {
+          localStorage.setItem(COMMENTER_PROFILE_KEY, JSON.stringify(commenter));
+        }
+        callback(commenter);
+      }
+    })
+    .catch((err) => {
+      console.warn('Redirect auth result check:', err);
+    });
+
+  // Listen to Firebase auth changes
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user && user.email) {
+      const commenter: CommenterUser = {
+        displayName: user.displayName || user.email.split('@')[0] || 'Pengguna Google',
+        email: user.email,
+        photoURL: user.photoURL || undefined,
+        uid: user.uid,
+      };
+      localStorage.setItem(COMMENTER_PROFILE_KEY, JSON.stringify(commenter));
+      callback(commenter);
+    } else {
+      const cur = getCurrentCommentUser();
+      callback(cur);
+    }
+  });
+
+  return unsubscribe;
+}
+
+/**
+ * Save / Create local guest commenter profile (fallback for browsers blocking popup)
+ */
+export function saveLocalGuestProfile(displayName: string, customEmail?: string): CommenterUser {
+  let deviceId = 'visitor';
+  if (typeof window !== 'undefined') {
+    try {
+      let savedId = localStorage.getItem('smpn1_device_id');
+      if (!savedId) {
+        savedId = 'anon_' + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem('smpn1_device_id', savedId);
+      }
+      deviceId = savedId;
+    } catch {
+      // ignore
+    }
+  }
+
+  const cleanName = displayName.trim() || 'Pengunjung';
+  const email = customEmail?.trim() || `${deviceId}@visitor.smpn1bengkalis.sch.id`;
+
+  const guestUser: CommenterUser = {
+    displayName: cleanName,
+    email: email,
+  };
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(COMMENTER_PROFILE_KEY, JSON.stringify(guestUser));
+    } catch {
+      // ignore
+    }
+  }
+
+  return guestUser;
 }
 
 /**
@@ -234,7 +333,27 @@ export async function loginWithGoogleForComments(): Promise<CommenterUser | null
 
     return commenter;
   } catch (err: any) {
-    console.error('Login Google Error:', err);
+    console.warn('Popup login error, trying redirect fallback for mobile browser / Opera:', err);
+
+    // Fallback to signInWithRedirect if popup is blocked in Opera or mobile browsers
+    const isPopupBlocked =
+      err?.code === 'auth/popup-blocked' ||
+      err?.code === 'auth/popup-closed-by-user' ||
+      err?.code === 'auth/cancelled-popup-request' ||
+      (err?.message && String(err.message).toLowerCase().includes('popup'));
+
+    if (isPopupBlocked) {
+      try {
+        await signInWithRedirect(auth, provider);
+        return null; // Will redirect page
+      } catch (redirectErr: any) {
+        console.error('Redirect auth fallback failed:', redirectErr);
+        throw new Error(
+          'Pop-up Google diblokir oleh peramban (seperti Opera). Silakan ketik nama Anda langsung untuk berkomentar, atau izinkan pop-up di browser.'
+        );
+      }
+    }
+
     throw err;
   }
 }
