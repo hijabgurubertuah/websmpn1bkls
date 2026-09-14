@@ -152,6 +152,9 @@ export interface CommentItem {
   status: 'approved' | 'rejected' | 'pending';
   isFlaggedProfanity?: boolean;
   flaggedWords?: string[];
+  isPinned?: boolean;
+  parentId?: string;
+  parentUserName?: string;
 }
 
 export interface CommentModerationConfig {

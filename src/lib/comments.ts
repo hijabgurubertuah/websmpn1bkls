@@ -468,6 +468,8 @@ export async function postComment(params: {
   userEmail: string;
   userAvatar?: string;
   content: string;
+  parentId?: string;
+  parentUserName?: string;
 }): Promise<CommentItem> {
   const { isProfane, matchedWords } = checkProfanity(params.content);
   const activeConfig = getProfanityFilterConfig();
@@ -490,6 +492,8 @@ export async function postComment(params: {
     status,
     isFlaggedProfanity: isProfane,
     flaggedWords: isProfane ? matchedWords : undefined,
+    parentId: params.parentId || undefined,
+    parentUserName: params.parentUserName || undefined,
   };
 
   // 1. Optimistic UI update
@@ -728,7 +732,7 @@ export function getArticleViewsCount(
 }
 
 /**
- * Admin: Delete comment permanently
+ * Admin or Author: Delete comment permanently
  */
 export async function deleteComment(commentId: string): Promise<boolean> {
   inMemoryComments = inMemoryComments.filter((c) => c.id !== commentId);
@@ -743,6 +747,48 @@ export async function deleteComment(commentId: string): Promise<boolean> {
       return true;
     } catch (err) {
       console.error('Failed to delete comment on cloud:', err);
+    }
+  }
+  return true;
+}
+
+/**
+ * Author or Admin: Update comment text content
+ */
+export async function updateCommentContent(
+  commentId: string,
+  newContent: string
+): Promise<boolean> {
+  const idx = inMemoryComments.findIndex((c) => c.id === commentId);
+  if (idx === -1) return false;
+
+  const filterConfig = getProfanityFilterConfig();
+  const { isProfane } = checkProfanity(newContent, filterConfig.badWords);
+  const newStatus = (isProfane && filterConfig.profanityFilterEnabled) ? 'pending' : inMemoryComments[idx].status;
+
+  inMemoryComments[idx] = {
+    ...inMemoryComments[idx],
+    content: newContent,
+    status: newStatus,
+  };
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(COMMENTS_CACHE_KEY, JSON.stringify(inMemoryComments));
+    await setOfflineItem('public_comments', inMemoryComments);
+  }
+
+  if (db) {
+    try {
+      await withTimeout(
+        updateDoc(doc(db, 'comments', commentId), {
+          content: newContent,
+          status: newStatus,
+        }),
+        3000
+      );
+      return true;
+    } catch (err) {
+      console.error('Failed to update comment content on cloud:', err);
     }
   }
   return true;
@@ -773,6 +819,36 @@ export async function moderateComment(
       return true;
     } catch (err) {
       console.error('Failed to moderate comment on cloud:', err);
+    }
+  }
+  return true;
+}
+
+/**
+ * Admin: Toggle pinned status of a comment
+ */
+export async function togglePinComment(
+  commentId: string,
+  isPinned: boolean
+): Promise<boolean> {
+  const idx = inMemoryComments.findIndex((c) => c.id === commentId);
+  if (idx === -1) return false;
+
+  inMemoryComments[idx] = { ...inMemoryComments[idx], isPinned };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(COMMENTS_CACHE_KEY, JSON.stringify(inMemoryComments));
+    await setOfflineItem('public_comments', inMemoryComments);
+  }
+
+  if (db) {
+    try {
+      await withTimeout(
+        updateDoc(doc(db, 'comments', commentId), { isPinned }),
+        3000
+      );
+      return true;
+    } catch (err) {
+      console.error('Failed to pin comment on cloud:', err);
     }
   }
   return true;

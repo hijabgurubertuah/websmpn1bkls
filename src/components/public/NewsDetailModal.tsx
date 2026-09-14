@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NewsArticle } from '../../types';
 import {
   X,
@@ -68,7 +68,12 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
     getArticleViewsCount(article.id, article.views || 0)
   );
 
+  const viewIncrementedRef = useRef(false);
+
   useEffect(() => {
+    if (viewIncrementedRef.current) return;
+    viewIncrementedRef.current = true;
+
     let isMounted = true;
     incrementArticleViews(article.id, article.views || 0).then((newCount) => {
       if (isMounted) {
@@ -80,12 +85,26 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
     };
   }, [article.id]);
 
-  const handleTogglePostLike = async () => {
-    const userIdentifier =
-      getCurrentCommentUser()?.email ||
-      'anon_' + (typeof window !== 'undefined' ? window.navigator.userAgent.slice(0, 30) : 'user');
-    const res = await toggleLikeArticle(article.id, userIdentifier);
-    setLikesState({ likes: res.likes, hasLiked: res.hasLiked });
+  const handleTogglePostLike = () => {
+    let userIdentifier = getCurrentCommentUser()?.email;
+    if (!userIdentifier && typeof window !== 'undefined') {
+      userIdentifier = localStorage.getItem('smpn1_device_id') || undefined;
+      if (!userIdentifier) {
+        userIdentifier = 'anon_' + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem('smpn1_device_id', userIdentifier);
+      }
+    }
+    userIdentifier = userIdentifier || 'anon_user';
+
+    // Instant optimistic update
+    setLikesState((prev) => ({
+      likes: prev.hasLiked ? Math.max(0, prev.likes - 1) : prev.likes + 1,
+      hasLiked: !prev.hasLiked,
+    }));
+
+    toggleLikeArticle(article.id, userIdentifier).catch((err) => {
+      console.warn('Failed to sync post like:', err);
+    });
   };
 
   const parsedEmbed = article.embedUrl ? parseEmbedUrl(article.embedUrl) : null;
@@ -193,12 +212,12 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
       onClick={onClose}
       className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-2 sm:p-4 ${
         isSecondLayer ? 'bg-slate-950/70 backdrop-blur-xs' : 'bg-slate-950/75 backdrop-blur-xs'
-      } overscroll-contain touch-none animate-in fade-in duration-200`}
+      } overscroll-contain touch-pan-y animate-in fade-in duration-200`}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className={`relative w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col overscroll-contain transition-all duration-300 ${
-          isEmbedExpanded ? 'max-w-6xl h-[96vh]' : 'max-w-4xl max-h-[92vh]'
+          isEmbedExpanded ? 'max-w-6xl h-[96vh]' : 'max-w-4xl max-h-[95vh] sm:max-h-[92vh]'
         }`}
       >
         {/* Toast Share Notification */}
@@ -266,7 +285,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-4 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-5 sm:space-y-6 flex-1">
+        <div className="p-4 sm:p-8 overflow-y-auto overscroll-contain touch-pan-y space-y-5 sm:space-y-6 flex-1 pb-8">
           {/* Cover Image - diletakkan di atas teks dan terlihat utuh tanpa terpotong pada tampilan HP */}
           {article.coverImage && (
             <div className="rounded-xl sm:rounded-2xl overflow-hidden w-full bg-slate-100/90 border border-slate-200/90 shadow-2xs flex items-center justify-center p-1 sm:p-1.5">
@@ -446,7 +465,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
           )}
 
           {/* Section Komentar & Tanggapan Khusus Postingan Berita */}
-          <div className="mt-8 pt-6 border-t border-slate-200">
+          <div className="mt-4 pt-3 border-t border-slate-200">
             <CommentsSection
               targetId={article.id}
               targetTitle={article.title}
