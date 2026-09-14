@@ -29,6 +29,7 @@ import {
   saveLocalGuestProfile,
   subscribeToComments,
   checkProfanity,
+  containsLink,
   getProfanityFilterConfig,
   updateCommentContent,
   deleteComment,
@@ -264,9 +265,18 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       setComments(updatedList);
     });
 
+    // Listen for local storage changes (e.g. from Admin Dashboard tab deletion)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'smpn1_cached_comments_v1') {
+        loadTargetComments();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
       if (unsubscribeAuth) unsubscribeAuth();
       if (unsubscribeComments) unsubscribeComments();
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [targetId]);
 
@@ -763,122 +773,77 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       </div>
 
       {/* Comment Form Card */}
-      <div
-        ref={formCardRef}
-        className={`bg-slate-50/90 border border-slate-200/90 rounded-xl p-2.5 sm:p-3 mb-3 shadow-2xs focus-within:ring-2 focus-within:ring-blue-400/30 focus-within:border-blue-400 transition-all scroll-mt-6 sm:scroll-mt-24 ${
-          isFocused ? 'border-blue-400/80 bg-blue-50/30' : ''
-        }`}
-      >
+      {currentUser && currentUser.uid ? (
+        <div
+          ref={formCardRef}
+          className={`bg-slate-50/90 border border-slate-200/90 rounded-xl p-2.5 sm:p-3 mb-3 shadow-2xs focus-within:ring-2 focus-within:ring-blue-400/30 focus-within:border-blue-400 transition-all scroll-mt-6 sm:scroll-mt-24 ${
+            isFocused ? 'border-blue-400/80 bg-blue-50/30' : ''
+          }`}
+        >
           <form onSubmit={handleSubmit} className="space-y-2">
             {/* User Info / Identity Bar */}
             <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-200/60 min-w-0">
-              {currentUser ? (
-                /* Authenticated or Saved Profile */
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {currentUser.photoURL ? (
-                    <img
-                      src={currentUser.photoURL}
-                      alt={customName || currentUser.displayName}
-                      referrerPolicy="no-referrer"
-                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
-                    />
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={customName || currentUser.displayName}
+                    referrerPolicy="no-referrer"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
+                  />
+                ) : (
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                    {(customName || currentUser.displayName || 'P').charAt(0).toUpperCase()}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  {isEditingName ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        placeholder="Nama Anda"
+                        className="text-xs px-2 py-0.5 bg-white border border-blue-400 rounded-md focus:outline-none"
+                        maxLength={40}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingName(false)}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                        title="Simpan Nama"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   ) : (
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                      {(customName || currentUser.displayName || 'P').charAt(0).toUpperCase()}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs font-bold text-slate-800 truncate">
+                        {customName || currentUser.displayName || 'Pengguna'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingName(true)}
+                        className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors"
+                        title="Ubah nama tampilan"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
                     </div>
                   )}
-
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    {isEditingName ? (
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={customName}
-                          onChange={(e) => setCustomName(e.target.value)}
-                          placeholder="Nama Anda"
-                          className="text-xs px-2 py-0.5 bg-white border border-blue-400 rounded-md focus:outline-none"
-                          maxLength={40}
-                          autoFocus
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingName(false)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                          title="Simpan Nama"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-xs font-bold text-slate-800 truncate">
-                          {customName || currentUser.displayName || 'Pengguna'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingName(true)}
-                          className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors"
-                          title="Ubah nama tampilan"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="text-[10px] text-slate-400 hover:text-rose-600 font-semibold px-1.5 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                    title="Keluar / Ganti Akun"
-                  >
-                    Keluar
-                  </button>
                 </div>
-              ) : (
-                /* Unauthenticated / Quick Name Option + Google Login */
-                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 w-full">
-                  <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
-                    <UserIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <input
-                      type="text"
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Nama Anda (cth: Budi / Wali Murid)"
-                      className="text-xs px-2 py-1 w-full bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
-                      maxLength={40}
-                    />
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={isLoggingIn}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-lg border border-slate-300 shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="Masuk dengan akun Google"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      />
-                    </svg>
-                    <span>{isLoggingIn ? 'Menghubungkan...' : 'Masuk Google'}</span>
-                  </button>
-                </div>
-              )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-[10px] text-slate-400 hover:text-rose-600 font-semibold px-1.5 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                  title="Keluar / Ganti Akun"
+                >
+                  Keluar
+                </button>
+              </div>
             </div>
 
             {/* Textarea with Send Icon Button placed on the right side */}
@@ -917,6 +882,16 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
               </button>
             </div>
 
+            {/* Link Plain Text Info Notice */}
+            {containsLink(commentText) && (
+              <div className="flex items-start gap-1.5 p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-[11px] leading-tight">
+                <AlertCircle className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Informasi Tautan:</span> Tautan (link) yang Anda tulis tidak dapat diklik dan hanya tampil sebagai teks biasa.
+                </div>
+              </div>
+            )}
+
             {/* Profanity Warning */}
             {profanityWarning.length > 0 && (
               <div className="flex items-start gap-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] leading-tight">
@@ -944,6 +919,34 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
             )}
           </form>
         </div>
+      ) : (
+        /* Unauthenticated Login Card: extremely clean, no extra Google texts, just single "Login" button */
+        <div
+          ref={formCardRef}
+          className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 mb-3 shadow-2xs flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in duration-200"
+        >
+          <div className="text-slate-400 p-2 bg-slate-100 rounded-full">
+            <UserIcon className="w-6 h-6" />
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-xs">
+            Silakan login untuk dapat mengirim komentar di portal ini.
+          </p>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={isLoggingIn}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg shadow-xs transition-all active:scale-95 cursor-pointer text-xs sm:text-sm"
+          >
+            {isLoggingIn ? 'Menghubungkan...' : 'Login'}
+          </button>
+          {errorMessage && (
+            <div className="flex items-center gap-1.5 p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* List of Comments */}
       <div className="space-y-3">

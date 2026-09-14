@@ -176,6 +176,15 @@ export function checkProfanity(
 }
 
 /**
+ * Checks if a comment text contains URLs or hyperlinks
+ */
+export function containsLink(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const urlPattern = /(https?:\/\/|ftp:\/\/|www\.)[^\s]+|([a-zA-Z0-9-]+\.)+(com|id|net|org|edu|gov|co\.id|sch\.id|info|io|biz|me)\b/i;
+  return urlPattern.test(text);
+}
+
+/**
  * Get current Google logged-in user or cached commenter profile
  */
 export function getCurrentCommentUser(): CommenterUser | null {
@@ -316,6 +325,20 @@ export async function loginWithGoogleForComments(): Promise<CommenterUser | null
     prompt: 'select_account',
   });
 
+  // Direct check for mobile user-agent to immediately use redirect (fully reliable on HP)
+  const isMobile = typeof navigator !== 'undefined' && 
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    try {
+      await signInWithRedirect(auth, provider);
+      return null; // Page will redirect
+    } catch (redirectErr: any) {
+      console.error('Redirect auth failed:', redirectErr);
+      throw new Error('Gagal mengalihkan ke halaman login Google di HP.');
+    }
+  }
+
   try {
     const result = await signInWithPopup(auth, provider);
     const user: User = result.user;
@@ -333,28 +356,18 @@ export async function loginWithGoogleForComments(): Promise<CommenterUser | null
 
     return commenter;
   } catch (err: any) {
-    console.warn('Popup login error, trying redirect fallback for mobile browser / Opera:', err);
+    console.warn('Popup login error, trying redirect fallback:', err);
 
-    // Fallback to signInWithRedirect if popup is blocked in Opera or mobile browsers
-    const isPopupBlocked =
-      err?.code === 'auth/popup-blocked' ||
-      err?.code === 'auth/popup-closed-by-user' ||
-      err?.code === 'auth/cancelled-popup-request' ||
-      (err?.message && String(err.message).toLowerCase().includes('popup'));
-
-    if (isPopupBlocked) {
-      try {
-        await signInWithRedirect(auth, provider);
-        return null; // Will redirect page
-      } catch (redirectErr: any) {
-        console.error('Redirect auth fallback failed:', redirectErr);
-        throw new Error(
-          'Pop-up Google diblokir oleh peramban (seperti Opera). Silakan ketik nama Anda langsung untuk berkomentar, atau izinkan pop-up di browser.'
-        );
-      }
+    // Always fallback to redirect on any error or popup blocking
+    try {
+      await signInWithRedirect(auth, provider);
+      return null; // Will redirect page
+    } catch (redirectErr: any) {
+      console.error('Redirect auth fallback failed:', redirectErr);
+      throw new Error(
+        'Gagal masuk menggunakan Google Login. Harap pastikan peramban Anda mendukung pengalihan halaman.'
+      );
     }
-
-    throw err;
   }
 }
 
@@ -854,7 +867,13 @@ export function getArticleViewsCount(
  * Admin or Author: Delete comment permanently
  */
 export async function deleteComment(commentId: string): Promise<boolean> {
-  inMemoryComments = inMemoryComments.filter((c) => c.id !== commentId);
+  const childIds = inMemoryComments
+    .filter((c) => c.parentId === commentId)
+    .map((c) => c.id);
+
+  const idsToDelete = [commentId, ...childIds];
+
+  inMemoryComments = inMemoryComments.filter((c) => !idsToDelete.includes(c.id));
   if (typeof window !== 'undefined') {
     localStorage.setItem(COMMENTS_CACHE_KEY, JSON.stringify(inMemoryComments));
     await setOfflineItem('public_comments', inMemoryComments);
@@ -862,7 +881,9 @@ export async function deleteComment(commentId: string): Promise<boolean> {
 
   if (db) {
     try {
-      await withTimeout(deleteDoc(doc(db, 'comments', commentId)), 3000);
+      for (const id of idsToDelete) {
+        await withTimeout(deleteDoc(doc(db, 'comments', id)), 3000).catch(() => {});
+      }
       return true;
     } catch (err) {
       console.error('Failed to delete comment on cloud:', err);

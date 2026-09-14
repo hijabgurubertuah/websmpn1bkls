@@ -267,6 +267,10 @@ export interface SchoolConfig {
   themeConfig?: ThemeConfig;
   googleAppsScript?: GoogleAppsScriptConfig;
   commentsConfig?: CommentModerationConfig;
+  facilitiesTabTitle?: string;
+  ekskulTabTitle?: string;
+  facilitiesSectionTitle?: string;
+  facilitiesSectionSubtitle?: string;
 }
 
 export interface NewsArticle {

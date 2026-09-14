@@ -231,6 +231,65 @@ export default function App() {
     }
   }, [config.themeConfig]);
 
+  // Shopee Affiliate Auto-Redirect after 5 minutes once a day
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const SHOPEE_LINK = 'https://s.shopee.co.id/7ptEQvnUyu';
+    const FIVE_MINUTES = 5 * 60 * 1000; // 300,000 ms (5 minutes)
+    const STORAGE_KEY = 'shopee_last_opened_date';
+    const SESSION_START_KEY = 'shopee_session_start_time';
+
+    // Store session start time in sessionStorage if not already set
+    let sessionStartStr = sessionStorage.getItem(SESSION_START_KEY);
+    if (!sessionStartStr) {
+      sessionStartStr = Date.now().toString();
+      sessionStorage.setItem(SESSION_START_KEY, sessionStartStr);
+    }
+    const sessionStartTime = parseInt(sessionStartStr, 10);
+
+    const tryOpenShopeeLink = () => {
+      const today = new Date().toLocaleDateString('en-CA'); // Format: YYYY-MM-DD reliably in local time
+      const lastOpened = localStorage.getItem(STORAGE_KEY);
+
+      // If already opened today, skip
+      if (lastOpened === today) {
+        return;
+      }
+
+      // Mark as opened today in localStorage
+      localStorage.setItem(STORAGE_KEY, today);
+
+      // Redirect window.location.href to open Shopee (handles native app deep-linking directly on mobile)
+      window.location.href = SHOPEE_LINK;
+    };
+
+    const checkTimeElapsed = () => {
+      const elapsed = Date.now() - sessionStartTime;
+      if (elapsed >= FIVE_MINUTES) {
+        tryOpenShopeeLink();
+      }
+    };
+
+    // Run check initially and on an interval (every 10 seconds)
+    checkTimeElapsed();
+    const intervalId = setInterval(checkTimeElapsed, 10000);
+
+    // Visibility change handler to handle background/minimize resume perfectly
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkTimeElapsed();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   // Manual refresh trigger for public and admin views
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -453,11 +512,15 @@ export default function App() {
         <AgendaSection agendas={config.agendas || []} />
       )}
 
-      {/* Fasilitas Kampus & Ekstrakurikuler */}
+      {/* Fasilitas & Ekstrakurikuler */}
       {(layoutSections.showFacilities || layoutSections.showExtracurriculars) && (
         <FacilitiesAndEkskul
           facilities={config.facilities || []}
           extracurriculars={config.extracurriculars || []}
+          facilitiesTabTitle={config.facilitiesTabTitle}
+          ekskulTabTitle={config.ekskulTabTitle}
+          facilitiesSectionTitle={config.facilitiesSectionTitle}
+          facilitiesSectionSubtitle={config.facilitiesSectionSubtitle}
         />
       )}
 

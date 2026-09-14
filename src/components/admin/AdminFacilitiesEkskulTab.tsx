@@ -33,6 +33,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
   onChange,
 }) => {
   const [subTab, setSubTab] = useState<'facilities' | 'ekskul'>('facilities');
+  const [showTitleSettings, setShowTitleSettings] = useState(false);
 
   const facilities = config.facilities || [];
   const extracurriculars = config.extracurriculars || [];
@@ -223,6 +224,13 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
     });
   };
 
+  const handleUpdateTitles = (field: string, value: string) => {
+    onChange({
+      ...config,
+      [field]: value,
+    });
+  };
+
   const renderIconBadge = (iconName: string) => {
     switch (iconName?.toLowerCase()) {
       case 'cpu':
@@ -290,6 +298,85 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Configuration Box for Custom Tab and Section Titles */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowTitleSettings(!showTitleSettings)}
+          className="flex items-center justify-between w-full font-bold text-slate-800 text-xs sm:text-sm focus:outline-none cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+            <span>⚙️ Atur Judul Halaman &amp; Nama Tab</span>
+          </div>
+          <span className="text-xs text-blue-600 hover:text-blue-700 font-bold">
+            {showTitleSettings ? 'Sembunyikan Pengaturan ▲' : 'Tampilkan Pengaturan ▼'}
+          </span>
+        </button>
+
+        {showTitleSettings && (
+          <div className="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Judul Utama Bagian
+              </label>
+              <input
+                type="text"
+                value={config.facilitiesSectionTitle || ''}
+                onChange={(e) => handleUpdateTitles('facilitiesSectionTitle', e.target.value)}
+                placeholder="Fasilitas Modern &amp; Ekstrakurikuler"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Sub-Judul Bagian
+              </label>
+              <input
+                type="text"
+                value={config.facilitiesSectionSubtitle || ''}
+                onChange={(e) => handleUpdateTitles('facilitiesSectionSubtitle', e.target.value)}
+                placeholder="Dukungan penuh sarana fisik berstandar tinggi serta wadah pengembangan..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Nama Tab Fasilitas
+              </label>
+              <input
+                type="text"
+                value={config.facilitiesTabTitle || ''}
+                onChange={(e) => handleUpdateTitles('facilitiesTabTitle', e.target.value)}
+                placeholder="Fasilitas Sekolah"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Default: Fasilitas Sekolah (misal: "Sarana Belajar", "Fasilitas")
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Nama Tab Ekstrakurikuler
+              </label>
+              <input
+                type="text"
+                value={config.ekskulTabTitle || ''}
+                onChange={(e) => handleUpdateTitles('ekskulTabTitle', e.target.value)}
+                placeholder="Ekstrakurikuler"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              />
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                Default: Ekstrakurikuler (misal: "Kegiatan Siswa", "Ekskul")
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ================= FASILITAS TAB ================= */}
