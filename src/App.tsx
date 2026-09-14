@@ -40,6 +40,7 @@ import { FacilitiesAndEkskul } from './components/public/FacilitiesAndEkskul';
 import { EmbedMediaSection } from './components/public/EmbedMediaSection';
 import { FooterSection } from './components/public/FooterSection';
 import { AccreditationRibbon } from './components/public/AccreditationRibbon';
+import { CommentsSection } from './components/public/CommentsSection';
 import { OfflineIndicator } from './components/public/OfflineIndicator';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
@@ -469,6 +470,18 @@ export default function App() {
           showVideo={layoutSections.showVideoEmbed}
           showMap={layoutSections.showMapEmbed}
         />
+      )}
+
+      {/* Komentar & Aspirasi Publik (Dapat diaktifkan/dinonaktifkan lewat Tata Letak) */}
+      {layoutSections.showPublicComments !== false && (
+        <section id="komentar-publik" className="py-10 sm:py-14 bg-slate-50/70 border-t border-slate-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <CommentsSection
+              targetId="general"
+              targetTitle={`Portal Resmi ${config.identity.name}`}
+            />
+          </div>
+        </section>
       )}
 
       {/* Footer Section */}

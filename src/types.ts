@@ -135,6 +135,31 @@ export interface LayoutSections {
   showExtracurriculars: boolean;
   showVideoEmbed: boolean;
   showMapEmbed: boolean;
+  showPublicComments?: boolean;
+}
+
+export interface CommentItem {
+  id: string;
+  targetId: string; // 'general' or article ID e.g. 'article_1'
+  targetTitle?: string;
+  userName: string;
+  userEmail: string;
+  userAvatar?: string;
+  content: string;
+  createdAt: string;
+  likesCount: number;
+  likedByEmails?: string[];
+  status: 'approved' | 'rejected' | 'pending';
+  isFlaggedProfanity?: boolean;
+  flaggedWords?: string[];
+}
+
+export interface CommentModerationConfig {
+  enabled: boolean;
+  allowGuestComments: boolean;
+  profanityFilterEnabled: boolean;
+  badWords: string[];
+  autoHideFlagged: boolean;
 }
 
 export interface PrincipalConfig {
@@ -238,6 +263,7 @@ export interface SchoolConfig {
   footer: FooterConfig;
   themeConfig?: ThemeConfig;
   googleAppsScript?: GoogleAppsScriptConfig;
+  commentsConfig?: CommentModerationConfig;
 }
 
 export interface NewsArticle {
@@ -252,6 +278,8 @@ export interface NewsArticle {
   date: string;
   isPinned: boolean;
   views: number;
+  likes?: number;
+  likedByEmails?: string[];
   status: 'published' | 'draft';
   galleryImages?: string[];
   actionLink?: {

@@ -75,6 +75,7 @@ export const AdminLayoutTab: React.FC<AdminLayoutTabProps> = ({ config, onChange
     { key: 'showExtracurriculars', title: 'Ekstrakurikuler' },
     { key: 'showVideoEmbed', title: 'Video Profil (YouTube)' },
     { key: 'showMapEmbed', title: 'Peta Lokasi (Google Maps)' },
+    { key: 'showPublicComments', title: 'Komentar & Aspirasi Publik (Bawah Halaman)' },
   ];
 
   const themePresets = [

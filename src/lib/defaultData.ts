@@ -53,6 +53,7 @@ export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
     showExtracurriculars: false,
     showVideoEmbed: false,
     showMapEmbed: false,
+    showPublicComments: true,
   },
   mobileBottomNav: {
     enabled: true,

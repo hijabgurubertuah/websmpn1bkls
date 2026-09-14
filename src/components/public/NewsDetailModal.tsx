@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NewsArticle } from '../../types';
 import {
   X,
@@ -19,10 +19,19 @@ import {
   Globe,
   FileText,
   CheckCircle2,
+  Heart,
 } from 'lucide-react';
 import { parseEmbedUrl } from '../../lib/embedHelper';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
 import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
+import { CommentsSection } from './CommentsSection';
+import {
+  toggleLikeArticle,
+  getArticleLikesState,
+  getCurrentCommentUser,
+  incrementArticleViews,
+  getArticleViewsCount,
+} from '../../lib/comments';
 
 interface NewsDetailModalProps {
   article: NewsArticle | null;
@@ -52,6 +61,32 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   const [iframeKey, setIframeKey] = useState(1);
   const [copiedNotice, setCopiedNotice] = useState(false);
   const [actionConfirmUrl, setActionConfirmUrl] = useState<string | null>(null);
+  const [likesState, setLikesState] = useState(() =>
+    getArticleLikesState(article.id, article.likes || 0, getCurrentCommentUser()?.email)
+  );
+  const [viewsCount, setViewsCount] = useState(() =>
+    getArticleViewsCount(article.id, article.views || 0)
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    incrementArticleViews(article.id, article.views || 0).then((newCount) => {
+      if (isMounted) {
+        setViewsCount(newCount);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [article.id]);
+
+  const handleTogglePostLike = async () => {
+    const userIdentifier =
+      getCurrentCommentUser()?.email ||
+      'anon_' + (typeof window !== 'undefined' ? window.navigator.userAgent.slice(0, 30) : 'user');
+    const res = await toggleLikeArticle(article.id, userIdentifier);
+    setLikesState({ likes: res.likes, hasLiked: res.hasLiked });
+  };
 
   const parsedEmbed = article.embedUrl ? parseEmbedUrl(article.embedUrl) : null;
   const gallery = article.galleryImages || [];
@@ -409,9 +444,18 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
               </div>
             </div>
           )}
+
+          {/* Section Komentar & Tanggapan Khusus Postingan Berita */}
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <CommentsSection
+              targetId={article.id}
+              targetTitle={article.title}
+              compact={false}
+            />
+          </div>
         </div>
 
-        {/* Footer: Menampilkan Tanggal & Jumlah Kali Dibaca menggantikan tulisan Kategori/Publikasi Resmi Sekolah */}
+        {/* Footer: Menampilkan Tanggal, Jumlah Baca, Tombol Suka Postingan (Love), dan Tutup */}
         <div className="p-3.5 sm:p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 font-medium truncate">
             <span className="inline-flex items-center gap-1.5">
@@ -421,11 +465,30 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
             <span className="text-slate-300">•</span>
             <span className="inline-flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>{article.views + 1} dibaca</span>
+              <span>{viewsCount} dibaca</span>
             </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Tombol Tanda Love Suka Postingan (hanya jumlah angka saja) */}
+            <button
+              type="button"
+              onClick={handleTogglePostLike}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border cursor-pointer active:scale-95 shadow-2xs ${
+                likesState.hasLiked
+                  ? 'bg-rose-50 text-rose-600 border-rose-300 hover:bg-rose-100'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-rose-600'
+              }`}
+              title={likesState.hasLiked ? 'Batalkan suka' : 'Sukai postingan ini'}
+            >
+              <Heart
+                className={`w-4 h-4 transition-transform ${
+                  likesState.hasLiked ? 'fill-rose-500 text-rose-500 scale-110' : 'text-slate-400'
+                }`}
+              />
+              <span>{likesState.likes}</span>
+            </button>
+
             {parsedEmbed && (
               <a
                 href={parsedEmbed.originalUrl}
@@ -440,7 +503,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 sm:px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+              className="px-4 sm:px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-xs"
             >
               Tutup
             </button>

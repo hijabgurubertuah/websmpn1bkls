@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
 import {
   initializeFirestore,
   getFirestore,
@@ -55,6 +56,7 @@ const CUSTOM_DEFAULT_META_KEY = 'smpn1_bengkalis_custom_default_meta_v1';
 
 export let app: FirebaseApp | null = null;
 export let db: Firestore | null = null;
+export let auth: Auth | null = null;
 
 // Safe promise timeout helper to prevent hanging if connection is offline/slow
 export async function withTimeout<T>(promise: Promise<T>, timeoutMs = 3500): Promise<T> {
@@ -420,6 +422,12 @@ try {
     db = FIREBASE_CONFIG.firestoreDatabaseId
       ? getFirestore(app, FIREBASE_CONFIG.firestoreDatabaseId)
       : getFirestore(app);
+  }
+
+  try {
+    auth = getAuth(app);
+  } catch {
+    // ignore
   }
 } catch (err) {
   console.info('Firebase running in local storage offline mode:', err);

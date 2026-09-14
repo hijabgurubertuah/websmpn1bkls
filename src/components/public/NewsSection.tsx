@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { NewsDetailModal } from './NewsDetailModal';
+import { getArticleViewsCount } from '../../lib/comments';
 
 interface NewsSectionProps {
   articles: NewsArticle[];
@@ -390,7 +391,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyn
                         <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>•</span>
                         <span className={`items-center gap-1 ${layoutColumns === 3 ? 'hidden sm:flex' : 'flex'}`}>
                           <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          {article.views} views
+                          {getArticleViewsCount(article.id, article.views || 0)} dibaca
                         </span>
                       </div>
                     )}

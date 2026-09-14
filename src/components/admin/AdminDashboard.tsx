@@ -29,6 +29,7 @@ import {
   AlertCircle,
   Volume2,
   Settings,
+  MessageSquare,
 } from 'lucide-react';
 import { AdminHeaderTab } from './AdminHeaderTab';
 import { AdminThemeTab } from './AdminThemeTab';
@@ -36,6 +37,7 @@ import { AdminTickerTab } from './AdminTickerTab';
 import { AdminMenusTab } from './AdminMenusTab';
 import { AdminPPDBTab } from './AdminPPDBTab';
 import { AdminPostsTab } from './AdminPostsTab';
+import { AdminCommentsTab } from './AdminCommentsTab';
 import { AdminAgendaTab } from './AdminAgendaTab';
 import { AdminFacilitiesEkskulTab } from './AdminFacilitiesEkskulTab';
 import { AdminLayoutTab } from './AdminLayoutTab';
@@ -70,6 +72,7 @@ export type AdminTab =
   | 'menus'
   | 'ppdb'
   | 'posts'
+  | 'comments'
   | 'agenda'
   | 'facilities'
   | 'layout'
@@ -189,6 +192,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Kategori: Konten & Informasi
   const contentTabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
     { id: 'posts', label: 'Postingan Berita', icon: <FileText className="w-4 h-4" /> },
+    { id: 'comments', label: 'Pengelola Komentar', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'agenda', label: 'Agenda & Jadwal', icon: <Calendar className="w-4 h-4" /> },
     { id: 'ppdb', label: 'PPDB Online', icon: <GraduationCap className="w-4 h-4" /> },
     { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
@@ -790,7 +794,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <main className="flex-1 min-w-0 w-full">
 
           {/* Dedicated Tab Header with Status for Current Tab (Save button is placed ONLY at the bottom) */}
-          {activeTab !== 'sync' && activeTab !== 'posts' && (
+          {activeTab !== 'sync' && activeTab !== 'posts' && activeTab !== 'comments' && (
             <div className="mb-6 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
@@ -849,6 +853,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           </div>
 
+          {activeTab === 'comments' && (
+            <AdminCommentsTab articles={articles} />
+          )}
+
           {activeTab === 'agenda' && (
             <AdminAgendaTab config={config} onChange={handleConfigUpdate} />
           )}
@@ -887,8 +895,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             />
           )}
 
-          {/* Granular Quick-Save Bar for Non-Sync and Non-Posts Tabs */}
-          {activeTab !== 'sync' && activeTab !== 'posts' && (
+          {/* Granular Quick-Save Bar for Non-Sync, Non-Posts, and Non-Comments Tabs */}
+          {activeTab !== 'sync' && activeTab !== 'posts' && activeTab !== 'comments' && (
             <div className="mt-8 flex items-center justify-end">
               <button
                 type="button"
