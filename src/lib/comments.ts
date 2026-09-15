@@ -276,34 +276,68 @@ export function subscribeToCommentAuth(callback: (user: CommenterUser | null) =>
 }
 
 /**
- * Save / Create local guest commenter profile (fallback for browsers blocking popup)
+ * Stable, persistent identifier for the current browser (stored in localStorage)
+ * Guarantees every browser can uniquely like articles and comments without logging in
+ */
+export function getBrowserDeviceId(): string {
+  if (typeof window === 'undefined') return 'browser_guest';
+  try {
+    let deviceId = localStorage.getItem('smpn1_device_id');
+    if (!deviceId) {
+      deviceId = 'browser_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+      localStorage.setItem('smpn1_device_id', deviceId);
+    }
+    return deviceId;
+  } catch {
+    return 'browser_guest';
+  }
+}
+
+/**
+ * Get previously saved commenter name from localStorage
+ */
+export function getSavedCommenterName(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return localStorage.getItem('smpn1_commenter_name') || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Save commenter name into localStorage
+ */
+export function saveCommenterName(name: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const clean = name.trim();
+    if (clean) {
+      localStorage.setItem('smpn1_commenter_name', clean);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Save / Create local guest commenter profile (no login required)
  */
 export function saveLocalGuestProfile(displayName: string, customEmail?: string): CommenterUser {
-  let deviceId = 'visitor';
-  if (typeof window !== 'undefined') {
-    try {
-      let savedId = localStorage.getItem('smpn1_device_id');
-      if (!savedId) {
-        savedId = 'anon_' + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem('smpn1_device_id', savedId);
-      }
-      deviceId = savedId;
-    } catch {
-      // ignore
-    }
-  }
-
-  const cleanName = displayName.trim() || 'Pengunjung';
-  const email = customEmail?.trim() || `${deviceId}@visitor.smpn1bengkalis.sch.id`;
+  const deviceId = getBrowserDeviceId();
+  const cleanName = displayName.trim() || 'Pengunjung Portal';
+  const email = customEmail?.trim() || `${deviceId}@tamu.portal`;
 
   const guestUser: CommenterUser = {
     displayName: cleanName,
     email: email,
+    uid: `guest_${deviceId}`,
   };
 
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem(COMMENTER_PROFILE_KEY, JSON.stringify(guestUser));
+      localStorage.setItem('smpn1_commenter_name', cleanName);
     } catch {
       // ignore
     }
@@ -597,12 +631,13 @@ export async function postComment(params: {
   targetId: string;
   targetTitle?: string;
   userName: string;
-  userEmail: string;
+  userEmail?: string;
   userAvatar?: string;
   content: string;
   parentId?: string;
   parentUserName?: string;
 }): Promise<CommentItem> {
+  const deviceId = getBrowserDeviceId();
   const { isProfane, matchedWords } = checkProfanity(params.content);
   const activeConfig = getProfanityFilterConfig();
 
@@ -610,12 +645,15 @@ export async function postComment(params: {
     ? 'pending'
     : 'approved';
 
+  const finalName = params.userName?.trim() || 'Pengunjung';
+  const finalEmail = params.userEmail?.trim() || `${deviceId}@tamu.portal`;
+
   const newComment: CommentItem = {
     id: 'comm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
     targetId: params.targetId || 'general',
     targetTitle: params.targetTitle || 'Halaman Portal',
-    userName: params.userName.trim() || 'Pengguna',
-    userEmail: params.userEmail.trim(),
+    userName: finalName,
+    userEmail: finalEmail,
     userAvatar: params.userAvatar || undefined,
     content: params.content.trim(),
     createdAt: new Date().toISOString(),
@@ -648,27 +686,29 @@ export async function postComment(params: {
 }
 
 /**
- * Like / Unlike a Comment (Tanda Love)
+ * Like / Unlike a Comment (Tanda Love Komentar)
+ * Guaranteed 1 like per browser without requiring login
  */
 export async function toggleLikeComment(
   commentId: string,
-  userIdentifier: string
+  userIdentifier?: string
 ): Promise<{ likesCount: number; hasLiked: boolean }> {
+  const browserId = userIdentifier || getBrowserDeviceId();
   const index = inMemoryComments.findIndex((c) => c.id === commentId);
   if (index === -1) return { likesCount: 0, hasLiked: false };
 
   const comm = inMemoryComments[index];
   const likedList = comm.likedByEmails || [];
-  const hasLiked = likedList.includes(userIdentifier);
+  const hasLiked = likedList.includes(browserId);
 
   let newLikedList: string[];
   let newLikesCount: number;
 
   if (hasLiked) {
-    newLikedList = likedList.filter((e) => e !== userIdentifier);
+    newLikedList = likedList.filter((e) => e !== browserId);
     newLikesCount = Math.max(0, (comm.likesCount || 0) - 1);
   } else {
-    newLikedList = [...likedList, userIdentifier];
+    newLikedList = [...likedList, browserId];
     newLikesCount = (comm.likesCount || 0) + 1;
   }
 
@@ -684,14 +724,18 @@ export async function toggleLikeComment(
     await setOfflineItem('public_comments', inMemoryComments);
   }
 
-  // Firestore sync
+  // Firestore sync with merge: true to avoid document missing errors
   if (db) {
     try {
       await withTimeout(
-        updateDoc(doc(db, 'comments', commentId), {
-          likesCount: newLikesCount,
-          likedByEmails: newLikedList,
-        }),
+        setDoc(
+          doc(db, 'comments', commentId),
+          {
+            likesCount: newLikesCount,
+            likedByEmails: newLikedList,
+          },
+          { merge: true }
+        ),
         3000
       );
     } catch {
@@ -704,11 +748,13 @@ export async function toggleLikeComment(
 
 /**
  * Like / Unlike a News Article Post (Tanda Love pada Postingan)
+ * Guaranteed 1 like per browser without requiring login
  */
 export async function toggleLikeArticle(
   articleId: string,
-  userIdentifier: string
+  userIdentifier?: string
 ): Promise<{ likes: number; hasLiked: boolean }> {
+  const browserId = userIdentifier || getBrowserDeviceId();
   let storedLikes: Record<string, { count: number; likedUsers: string[] }> = {};
 
   if (typeof window !== 'undefined') {
@@ -721,16 +767,16 @@ export async function toggleLikeArticle(
   }
 
   const current = storedLikes[articleId] || { count: 0, likedUsers: [] };
-  const hasLiked = current.likedUsers.includes(userIdentifier);
+  const hasLiked = current.likedUsers.includes(browserId);
 
   let newCount = current.count;
   let newUsers = current.likedUsers;
 
   if (hasLiked) {
-    newUsers = newUsers.filter((u) => u !== userIdentifier);
+    newUsers = newUsers.filter((u) => u !== browserId);
     newCount = Math.max(0, newCount - 1);
   } else {
-    newUsers = [...newUsers, userIdentifier];
+    newUsers = [...newUsers, browserId];
     newCount = newCount + 1;
   }
 
@@ -740,15 +786,19 @@ export async function toggleLikeArticle(
     localStorage.setItem(ARTICLE_LIKES_KEY, JSON.stringify(storedLikes));
   }
 
-  // Sync to Firestore article doc if available
+  // Sync to Firestore article doc with merge: true to avoid document not found error
   if (db) {
     try {
       const artDoc = doc(db, 'news_articles', articleId);
       await withTimeout(
-        updateDoc(artDoc, {
-          likes: newCount,
-          likedByEmails: newUsers,
-        }),
+        setDoc(
+          artDoc,
+          {
+            likes: newCount,
+            likedByEmails: newUsers,
+          },
+          { merge: true }
+        ),
         3000
       );
     } catch {
@@ -761,12 +811,14 @@ export async function toggleLikeArticle(
 
 /**
  * Get current likes state for an article
+ * Defaults to current browser device ID so status is consistent on load
  */
 export function getArticleLikesState(
   articleId: string,
   initialLikes = 0,
   userIdentifier?: string
 ): { likes: number; hasLiked: boolean } {
+  const browserId = userIdentifier || getBrowserDeviceId();
   if (typeof window === 'undefined') {
     return { likes: initialLikes, hasLiked: false };
   }
@@ -777,7 +829,7 @@ export function getArticleLikesState(
       const parsed = JSON.parse(raw);
       if (parsed[articleId]) {
         const item = parsed[articleId];
-        const hasLiked = userIdentifier ? item.likedUsers?.includes(userIdentifier) : false;
+        const hasLiked = browserId ? item.likedUsers?.includes(browserId) : false;
         return {
           likes: Math.max(initialLikes, item.count || 0),
           hasLiked: Boolean(hasLiked),

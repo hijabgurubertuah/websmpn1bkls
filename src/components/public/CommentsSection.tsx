@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   MessageSquare,
   Heart,
   Send,
   ShieldCheck,
   User as UserIcon,
-  LogOut,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -22,10 +21,9 @@ import {
   fetchComments,
   postComment,
   toggleLikeComment,
-  loginWithGoogleForComments,
-  logoutCommentUser,
-  getCurrentCommentUser,
-  subscribeToCommentAuth,
+  getBrowserDeviceId,
+  getSavedCommenterName,
+  saveCommenterName,
   saveLocalGuestProfile,
   subscribeToComments,
   checkProfanity,
@@ -49,19 +47,18 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   className = '',
 }) => {
   const [comments, setComments] = useState<CommentItem[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [customName, setCustomName] = useState<string>('');
-  const [isEditingName, setIsEditingName] = useState<boolean>(false);
+  const [customName, setCustomName] = useState<string>(() => getSavedCommenterName());
+  const [nameError, setNameError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [profanityWarning, setProfanityWarning] = useState<string[]>([]);
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const formCardRef = React.useRef<HTMLDivElement>(null);
-  const mainTextareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const editTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const formCardRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const mainTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>('');
@@ -69,12 +66,19 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Reply states
-  const replyTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyTargetUser, setReplyTargetUser] = useState<string>('');
   const [replyRootParentId, setReplyRootParentId] = useState<string>('');
   const [replyText, setReplyText] = useState<string>('');
   const [isSubmittingReply, setIsSubmittingReply] = useState<boolean>(false);
+
+  const handleNameChange = (val: string) => {
+    setCustomName(val);
+    saveCommenterName(val);
+    saveLocalGuestProfile(val);
+    if (nameError) setNameError(null);
+  };
 
   // Auto expand reply textarea
   useEffect(() => {
@@ -103,12 +107,14 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const handleSendReply = async () => {
     if (!replyText.trim() || !replyingToId) return;
 
-    let user = currentUser;
-    if (!user) {
-      const nameToUse = customName.trim() || 'Pengunjung';
-      user = saveLocalGuestProfile(nameToUse);
-      setCurrentUser(user);
+    const nameToUse = customName.trim();
+    if (!nameToUse) {
+      setErrorMessage('Silakan tulis nama Anda terlebih dahulu sebelum membalas komentar.');
+      return;
     }
+
+    saveCommenterName(nameToUse);
+    const guestUser = saveLocalGuestProfile(nameToUse);
 
     const { isProfane } = checkProfanity(replyText);
     const config = getProfanityFilterConfig();
@@ -122,9 +128,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       await postComment({
         targetId,
         targetTitle,
-        userName: customName.trim() || user.displayName || 'Pengunjung',
-        userEmail: user.email,
-        userAvatar: user.photoURL || undefined,
+        userName: nameToUse,
+        userEmail: guestUser.email,
         content: replyText.trim(),
         parentId: replyRootParentId,
         parentUserName: replyTargetUser,
@@ -250,16 +255,6 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   useEffect(() => {
     loadTargetComments();
 
-    // Subscribe to realtime auth status
-    const unsubscribeAuth = subscribeToCommentAuth((user) => {
-      if (user) {
-        setCurrentUser(user);
-        if (user.displayName) {
-          setCustomName((prev) => prev || user.displayName);
-        }
-      }
-    });
-
     // Subscribe to realtime comments
     const unsubscribeComments = subscribeToComments(targetId, (updatedList) => {
       setComments(updatedList);
@@ -274,7 +269,6 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      if (unsubscribeAuth) unsubscribeAuth();
       if (unsubscribeComments) unsubscribeComments();
       window.removeEventListener('storage', handleStorageChange);
     };
@@ -298,48 +292,23 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     }
   }, [commentText]);
 
-  // Handle Google Login
-  const handleGoogleLogin = async () => {
-    setIsLoggingIn(true);
-    setErrorMessage(null);
-    try {
-      const user = await loginWithGoogleForComments();
-      if (user) {
-        setCurrentUser(user);
-        setCustomName(user.displayName || 'Pengguna Google');
-      }
-    } catch (err: any) {
-      setErrorMessage(
-        err?.message || 'Gagal masuk dengan akun Google. Silakan tulis nama Anda langsung di atas untuk berkomentar.'
-      );
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  // Handle Logout
-  const handleLogout = async () => {
-    await logoutCommentUser();
-    setCurrentUser(null);
-    setCustomName('');
-    setIsEditingName(false);
-  };
-
   // Handle Submit Comment
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setNameError(null);
 
-    let user = currentUser;
-    if (!user) {
-      const nameToUse = customName.trim() || 'Pengunjung';
-      user = saveLocalGuestProfile(nameToUse);
-      setCurrentUser(user);
+    const nameToUse = customName.trim();
+    if (!nameToUse) {
+      setNameError('Silakan masukkan nama Anda.');
+      nameInputRef.current?.focus();
+      return;
     }
 
     const trimmed = commentText.trim();
     if (!trimmed) {
       setErrorMessage('Isi komentar tidak boleh kosong.');
+      mainTextareaRef.current?.focus();
       return;
     }
 
@@ -350,12 +319,14 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
     setIsSubmitting(true);
     try {
+      saveCommenterName(nameToUse);
+      const guestUser = saveLocalGuestProfile(nameToUse);
+
       const saved = await postComment({
         targetId,
         targetTitle,
-        userName: customName.trim() || user.displayName || 'Pengunjung',
-        userEmail: user.email,
-        userAvatar: user.photoURL,
+        userName: nameToUse,
+        userEmail: guestUser.email,
         content: trimmed,
       });
 
@@ -365,9 +336,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         setSuccessNotice('Komentar Anda telah dikirim dan menunggu tinjauan admin.');
         setTimeout(() => setSuccessNotice(null), 4000);
       } else {
-        // No success notice for published comments per user request
         setSuccessNotice(null);
-        // Refresh comments list
         await loadTargetComments();
       }
     } catch (err) {
@@ -379,21 +348,10 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   // Helper for stable device/user identifier
   const getDeviceUserIdentifier = (): string => {
-    if (currentUser?.email) return currentUser.email;
-    if (typeof window === 'undefined') return 'anon_user';
-    try {
-      let deviceId = localStorage.getItem('smpn1_device_id');
-      if (!deviceId) {
-        deviceId = 'anon_' + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem('smpn1_device_id', deviceId);
-      }
-      return deviceId;
-    } catch {
-      return 'anon_guest';
-    }
+    return getBrowserDeviceId();
   };
 
-  // Handle Like Comment
+  // Handle Like Comment (1 like per browser)
   const handleLike = (commentId: string) => {
     const identifier = getDeviceUserIdentifier();
 
@@ -427,11 +385,12 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   };
 
   // Filter and group visible comments:
-  // 1. Filter approved, or pending if posted by current user
+  // 1. Filter approved, or pending if posted by this browser
   // 2. Separate into topLevelComments and repliesMap
   // 3. Sort topLevel (pinned first, then newest) and replies (oldest first)
   const { topLevelComments, repliesMap, totalVisibleCount } = useMemo(() => {
-    const currentEmail = currentUser?.email?.toLowerCase();
+    const browserId = getBrowserDeviceId();
+    const guestEmail = `${browserId}@tamu.portal`;
 
     // Deduplicate comments by unique ID
     const uniqueMap = new Map<string, CommentItem>();
@@ -444,7 +403,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
     const approvedOrOwn = uniqueComments.filter((c) => {
       if (c.status === 'approved') return true;
-      if (c.status === 'pending' && currentEmail && c.userEmail.toLowerCase() === currentEmail) {
+      if (c.status === 'pending' && c.userEmail && c.userEmail.toLowerCase() === guestEmail.toLowerCase()) {
         return true;
       }
       return false;
@@ -486,14 +445,15 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       repliesMap: replies,
       totalVisibleCount: approvedOrOwn.length,
     };
-  }, [comments, currentUser]);
+  }, [comments]);
 
   const userIdentifier = getDeviceUserIdentifier();
 
   const renderCommentCard = (comment: CommentItem, isReply: boolean = false) => {
     const hasLiked = comment.likedByEmails?.includes(userIdentifier);
     const isAuthor =
-      currentUser?.email && comment.userEmail.toLowerCase() === currentUser.email.toLowerCase();
+      (comment.userEmail && comment.userEmail === `${userIdentifier}@tamu.portal`) ||
+      (Boolean(customName.trim()) && comment.userName.trim().toLowerCase() === customName.trim().toLowerCase() && Boolean(comment.userEmail?.includes(userIdentifier)));
 
     return (
       <div
@@ -713,6 +673,17 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                 </button>
               </div>
 
+              {!customName.trim() && (
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="Nama Anda (wajib untuk membalas)..."
+                  maxLength={40}
+                  className="w-full text-xs font-semibold px-2.5 py-1.5 bg-white border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
+                />
+              )}
+
               <textarea
                 ref={replyTextareaRef}
                 value={replyText}
@@ -734,7 +705,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                 <button
                   type="button"
                   onClick={handleSendReply}
-                  disabled={isSubmittingReply || !replyText.trim()}
+                  disabled={isSubmittingReply || !replyText.trim() || !customName.trim()}
                   className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                 >
                   <Send className="w-3 h-3" />
@@ -772,181 +743,126 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         </div>
       </div>
 
-      {/* Comment Form Card */}
-      {currentUser && currentUser.uid ? (
-        <div
-          ref={formCardRef}
-          className={`bg-slate-50/90 border border-slate-200/90 rounded-xl p-2.5 sm:p-3 mb-3 shadow-2xs focus-within:ring-2 focus-within:ring-blue-400/30 focus-within:border-blue-400 transition-all scroll-mt-6 sm:scroll-mt-24 ${
-            isFocused ? 'border-blue-400/80 bg-blue-50/30' : ''
-          }`}
-        >
-          <form onSubmit={handleSubmit} className="space-y-2">
-            {/* User Info / Identity Bar */}
-            <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-200/60 min-w-0">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={customName || currentUser.displayName}
-                    referrerPolicy="no-referrer"
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0 shadow-2xs"
-                  />
-                ) : (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                    {(customName || currentUser.displayName || 'P').charAt(0).toUpperCase()}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  {isEditingName ? (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={customName}
-                        onChange={(e) => setCustomName(e.target.value)}
-                        placeholder="Nama Anda"
-                        className="text-xs px-2 py-0.5 bg-white border border-blue-400 rounded-md focus:outline-none"
-                        maxLength={40}
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingName(false)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                        title="Simpan Nama"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-xs font-bold text-slate-800 truncate">
-                        {customName || currentUser.displayName || 'Pengguna'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingName(true)}
-                        className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors"
-                        title="Ubah nama tampilan"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-[10px] text-slate-400 hover:text-rose-600 font-semibold px-1.5 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                  title="Keluar / Ganti Akun"
-                >
-                  Keluar
-                </button>
+      {/* Comment Form Card (No login required - open for everyone) */}
+      <div
+        ref={formCardRef}
+        className={`bg-slate-50/95 border border-slate-200/90 rounded-xl p-3 sm:p-3.5 mb-3.5 shadow-2xs focus-within:ring-2 focus-within:ring-blue-400/30 focus-within:border-blue-400 transition-all scroll-mt-6 sm:scroll-mt-24 ${
+          isFocused ? 'border-blue-400/80 bg-blue-50/20' : ''
+        }`}
+      >
+        <form onSubmit={handleSubmit} className="space-y-2.5">
+          {/* Identity & Name Input Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/70">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-linear-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                {(customName.trim() || 'P').charAt(0).toUpperCase()}
               </div>
-            </div>
 
-            {/* Textarea with Send Icon Button placed on the right side */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={mainTextareaRef}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                  onClick={handleInputFocus}
-                  onTouchStart={handleInputFocus}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                  placeholder="Ketik komentar santun Anda di sini..."
-                  rows={1}
-                  className="w-full text-xs sm:text-sm px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed text-slate-800 placeholder-slate-400 resize-none transition-all shadow-2xs overflow-y-auto min-h-[40px] max-h-[260px]"
-                  maxLength={800}
+              <div className="flex-1 min-w-0">
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={customName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="Tuliskan Nama Anda di sini..."
+                  maxLength={40}
+                  className={`w-full text-xs sm:text-sm font-semibold px-2.5 py-1.5 bg-white border rounded-lg focus:outline-none focus:ring-2 text-slate-800 placeholder-slate-400 transition-all ${
+                    nameError
+                      ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                      : 'border-slate-300 focus:ring-blue-500 focus:border-blue-500'
+                  }`}
                 />
               </div>
-
-              {/* Send Button: Icon Only */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !commentText.trim()}
-                title="Kirim Komentar"
-                aria-label="Kirim Komentar"
-                className="h-[36px] w-[36px] rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white flex items-center justify-center shrink-0 transition-all shadow-xs active:scale-95 cursor-pointer disabled:cursor-not-allowed mb-0.5"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
             </div>
 
-            {/* Link Plain Text Info Notice */}
-            {containsLink(commentText) && (
-              <div className="flex items-start gap-1.5 p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-[11px] leading-tight">
-                <AlertCircle className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold">Informasi Tautan:</span> Tautan (link) yang Anda tulis tidak dapat diklik dan hanya tampil sebagai teks biasa.
-                </div>
-              </div>
-            )}
-
-            {/* Profanity Warning */}
-            {profanityWarning.length > 0 && (
-              <div className="flex items-start gap-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] leading-tight">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold">Perhatian:</span> Kata tidak pantas terdeteksi ({profanityWarning.join(', ')}). Komentar akan ditinjau terlebih dahulu oleh Admin.
-                </div>
-              </div>
-            )}
-
-            {/* Error Message */}
-            {errorMessage && (
-              <div className="flex items-center gap-1.5 p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* Success Notice */}
-            {successNotice && (
-              <div className="flex items-center gap-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>{successNotice}</span>
-              </div>
-            )}
-          </form>
-        </div>
-      ) : (
-        /* Unauthenticated Login Card: extremely clean, no extra Google texts, just single "Login" button */
-        <div
-          ref={formCardRef}
-          className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 mb-3 shadow-2xs flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in duration-200"
-        >
-          <div className="text-slate-400 p-2 bg-slate-100 rounded-full">
-            <UserIcon className="w-6 h-6" />
+            <div className="flex items-center justify-between sm:justify-end gap-2 text-[11px] text-slate-500 pl-9 sm:pl-0">
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600 border border-slate-200/60">
+                <UserIcon className="w-3 h-3 text-slate-500" />
+                <span>Publik (Tanpa Login)</span>
+              </span>
+            </div>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-xs">
-            Silakan login untuk dapat mengirim komentar di portal ini.
-          </p>
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={isLoggingIn}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg shadow-xs transition-all active:scale-95 cursor-pointer text-xs sm:text-sm"
-          >
-            {isLoggingIn ? 'Menghubungkan...' : 'Login'}
-          </button>
+
+          {nameError && (
+            <div className="flex items-center gap-1.5 text-xs text-rose-600 font-semibold pl-1">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{nameError}</span>
+            </div>
+          )}
+
+          {/* Textarea with Send Icon Button placed on the right side */}
+          <div className="flex items-end gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                ref={mainTextareaRef}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                onClick={handleInputFocus}
+                onTouchStart={handleInputFocus}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+                placeholder="Tuliskan komentar santun Anda di sini... (Tekan Enter untuk kirim)"
+                rows={1}
+                className="w-full text-xs sm:text-sm px-3 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed text-slate-800 placeholder-slate-400 resize-none transition-all shadow-2xs overflow-y-auto min-h-[42px] max-h-[260px]"
+                maxLength={800}
+              />
+            </div>
+
+            {/* Send Button: Icon Only */}
+            <button
+              type="submit"
+              disabled={isSubmitting || !commentText.trim()}
+              title="Kirim Komentar"
+              aria-label="Kirim Komentar"
+              className="h-[38px] w-[38px] rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white flex items-center justify-center shrink-0 transition-all shadow-xs active:scale-95 cursor-pointer disabled:cursor-not-allowed mb-0.5"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Link Plain Text Info Notice */}
+          {containsLink(commentText) && (
+            <div className="flex items-start gap-1.5 p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-[11px] leading-tight">
+              <AlertCircle className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Informasi Tautan:</span> Tautan (link) yang Anda tulis tidak dapat diklik dan hanya tampil sebagai teks biasa.
+              </div>
+            </div>
+          )}
+
+          {/* Profanity Warning */}
+          {profanityWarning.length > 0 && (
+            <div className="flex items-start gap-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] leading-tight">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Perhatian:</span> Kata tidak pantas terdeteksi ({profanityWarning.join(', ')}). Komentar akan ditinjau terlebih dahulu oleh Admin.
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
           {errorMessage && (
             <div className="flex items-center gap-1.5 p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
-        </div>
-      )}
+
+          {/* Success Notice */}
+          {successNotice && (
+            <div className="flex items-center gap-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>{successNotice}</span>
+            </div>
+          )}
+        </form>
+      </div>
 
       {/* List of Comments */}
       <div className="space-y-3">

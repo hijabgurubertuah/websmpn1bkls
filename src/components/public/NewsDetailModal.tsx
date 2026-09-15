@@ -28,6 +28,7 @@ import { CommentsSection } from './CommentsSection';
 import {
   toggleLikeArticle,
   getArticleLikesState,
+  getBrowserDeviceId,
   getCurrentCommentUser,
   incrementArticleViews,
   getArticleViewsCount,
@@ -63,7 +64,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   const [copiedNotice, setCopiedNotice] = useState(false);
   const [actionConfirmUrl, setActionConfirmUrl] = useState<string | null>(null);
   const [likesState, setLikesState] = useState(() =>
-    getArticleLikesState(article.id, article.likes || 0, getCurrentCommentUser()?.email)
+    getArticleLikesState(article.id, article.likes || 0, getBrowserDeviceId())
   );
   const [viewsCount, setViewsCount] = useState(() =>
     getArticleViewsCount(article.id, article.views || 0)
@@ -87,15 +88,7 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   }, [article.id]);
 
   const handleTogglePostLike = () => {
-    let userIdentifier = getCurrentCommentUser()?.email;
-    if (!userIdentifier && typeof window !== 'undefined') {
-      userIdentifier = localStorage.getItem('smpn1_device_id') || undefined;
-      if (!userIdentifier) {
-        userIdentifier = 'anon_' + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem('smpn1_device_id', userIdentifier);
-      }
-    }
-    userIdentifier = userIdentifier || 'anon_user';
+    const userIdentifier = getBrowserDeviceId();
 
     // Instant optimistic update
     setLikesState((prev) => ({
