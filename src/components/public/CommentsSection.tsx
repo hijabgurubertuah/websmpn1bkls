@@ -16,7 +16,7 @@ import {
   Pin,
   CornerDownRight,
 } from 'lucide-react';
-import { CommentItem } from '../../types';
+import { CommentItem, CommentModerationConfig } from '../../types';
 import {
   fetchComments,
   postComment,
@@ -29,6 +29,7 @@ import {
   checkProfanity,
   containsLink,
   getProfanityFilterConfig,
+  subscribeToProfanityFilterConfig,
   updateCommentContent,
   deleteComment,
 } from '../../lib/comments';
@@ -53,6 +54,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [filterConfig, setFilterConfig] = useState<CommentModerationConfig>(() => getProfanityFilterConfig());
   const [profanityWarning, setProfanityWarning] = useState<string[]>([]);
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const formCardRef = useRef<HTMLDivElement>(null);
@@ -116,9 +118,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     saveCommenterName(nameToUse);
     const guestUser = saveLocalGuestProfile(nameToUse);
 
-    const { isProfane } = checkProfanity(replyText);
-    const config = getProfanityFilterConfig();
-    if (isProfane && config.autoHideFlagged) {
+    const { isProfane } = checkProfanity(replyText, filterConfig.badWords);
+    if (isProfane && filterConfig.autoHideFlagged) {
       setSuccessNotice('Balasan Anda telah dikirim dan menunggu tinjauan admin.');
       setTimeout(() => setSuccessNotice(null), 4000);
     }
@@ -274,13 +275,20 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     };
   }, [targetId]);
 
+  // Subscribe to real-time profanity filter config from cloud
+  useEffect(() => {
+    const unsub = subscribeToProfanityFilterConfig((cfg) => {
+      setFilterConfig(cfg);
+    });
+    return () => unsub();
+  }, []);
+
   // Realtime profanity check on typing
   useEffect(() => {
     if (!commentText.trim()) {
       setProfanityWarning([]);
       return;
     }
-    const filterConfig = getProfanityFilterConfig();
     const { isProfane, matchedWords } = checkProfanity(
       commentText,
       filterConfig.badWords
@@ -290,7 +298,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     } else {
       setProfanityWarning([]);
     }
-  }, [commentText]);
+  }, [commentText, filterConfig]);
 
   // Handle Submit Comment
   const handleSubmit = async (e: React.FormEvent) => {

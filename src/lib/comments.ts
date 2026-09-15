@@ -433,7 +433,7 @@ export function updateCommenterProfile(displayName: string): void {
 }
 
 /**
- * Get Comment Moderation & Profanity Configuration
+ * Get Comment Moderation & Profanity Configuration (Synchronous cache read)
  */
 export function getProfanityFilterConfig(): CommentModerationConfig {
   if (inMemoryConfig) return inMemoryConfig;
@@ -456,20 +456,122 @@ export function getProfanityFilterConfig(): CommentModerationConfig {
 }
 
 /**
+ * Asynchronously fetch profanity filter config from Firebase Firestore
+ * and update local memory and storage on any device.
+ */
+export async function fetchProfanityFilterConfig(): Promise<CommentModerationConfig> {
+  const local = getProfanityFilterConfig();
+
+  if (!db || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return local;
+  }
+
+  try {
+    const snap = await withTimeout(
+      getDoc(doc(db, 'system_config', 'comments_moderation')),
+      4000
+    );
+    if (snap && snap.exists()) {
+      const data = snap.data() as Partial<CommentModerationConfig>;
+      const cloudWords = Array.isArray(data.badWords) && data.badWords.length > 0
+        ? Array.from(new Set(data.badWords.map((w: string) => String(w).trim().toLowerCase()).filter(Boolean)))
+        : (local.badWords || DEFAULT_BAD_WORDS);
+
+      const merged: CommentModerationConfig = {
+        ...DEFAULT_COMMENT_MODERATION_CONFIG,
+        ...data,
+        badWords: cloudWords,
+      };
+
+      inMemoryConfig = merged;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(MODERATION_CONFIG_KEY, JSON.stringify(merged));
+        await setOfflineItem('comment_moderation_config', merged).catch(() => {});
+      }
+      return merged;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch profanity filter config from cloud:', err);
+  }
+
+  return local;
+}
+
+/**
+ * Realtime subscription to profanity filter config from Firebase Firestore.
+ */
+export function subscribeToProfanityFilterConfig(
+  onUpdate: (config: CommentModerationConfig) => void
+): () => void {
+  // Always trigger immediate update with current cached config
+  onUpdate(getProfanityFilterConfig());
+
+  if (!db) {
+    return () => {};
+  }
+
+  try {
+    const unsub = onSnapshot(
+      doc(db, 'system_config', 'comments_moderation'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<CommentModerationConfig>;
+          const cloudWords = Array.isArray(data.badWords) && data.badWords.length > 0
+            ? Array.from(new Set(data.badWords.map((w: string) => String(w).trim().toLowerCase()).filter(Boolean)))
+            : DEFAULT_BAD_WORDS;
+
+          const merged: CommentModerationConfig = {
+            ...DEFAULT_COMMENT_MODERATION_CONFIG,
+            ...data,
+            badWords: cloudWords,
+          };
+
+          inMemoryConfig = merged;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(MODERATION_CONFIG_KEY, JSON.stringify(merged));
+            setOfflineItem('comment_moderation_config', merged).catch(() => {});
+          }
+          onUpdate(merged);
+        }
+      },
+      (err) => {
+        console.warn('Realtime subscription error for comments moderation:', err);
+      }
+    );
+    return unsub;
+  } catch (err) {
+    console.warn('Error setting up subscription for comments moderation:', err);
+    return () => {};
+  }
+}
+
+/**
  * Save Comment Moderation Configuration to Local & Cloud Firestore
  */
 export async function saveProfanityFilterConfig(config: CommentModerationConfig): Promise<void> {
-  inMemoryConfig = config;
+  const cleanWords = Array.from(
+    new Set((config.badWords || []).map((w) => String(w).trim().toLowerCase()).filter(Boolean))
+  );
+  const cleanConfig: CommentModerationConfig = {
+    ...config,
+    badWords: cleanWords,
+  };
+
+  inMemoryConfig = cleanConfig;
   if (typeof window !== 'undefined') {
-    localStorage.setItem(MODERATION_CONFIG_KEY, JSON.stringify(config));
-    await setOfflineItem('comment_moderation_config', config);
+    localStorage.setItem(MODERATION_CONFIG_KEY, JSON.stringify(cleanConfig));
+    await setOfflineItem('comment_moderation_config', cleanConfig).catch(() => {});
   }
 
   if (db) {
     try {
-      await withTimeout(setDoc(doc(db, 'system_config', 'comments_moderation'), config, { merge: true }), 3000);
+      await withTimeout(
+        setDoc(doc(db, 'system_config', 'comments_moderation'), cleanConfig, { merge: true }),
+        4000
+      );
     } catch (err) {
       console.warn('Could not sync comments config to cloud:', err);
+      throw err;
     }
   }
 }
@@ -536,6 +638,9 @@ export async function fetchComments(targetId?: string): Promise<CommentItem[]> {
   // 2. Fetch from Cloud Firestore in background if online
   if (db) {
     try {
+      // Also ensure profanity filter configuration is freshly updated in background
+      fetchProfanityFilterConfig().catch(() => {});
+
       const colRef = collection(db, 'comments');
       const snap = await withTimeout(getDocs(query(colRef, orderBy('createdAt', 'desc'))), 3500);
       if (snap && !snap.empty) {

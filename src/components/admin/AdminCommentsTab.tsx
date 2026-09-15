@@ -28,6 +28,8 @@ import {
   moderateComment,
   togglePinComment,
   getProfanityFilterConfig,
+  fetchProfanityFilterConfig,
+  subscribeToProfanityFilterConfig,
   saveProfanityFilterConfig,
   DEFAULT_BAD_WORDS,
   checkProfanity,
@@ -90,7 +92,24 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = ({ articles }) 
 
   useEffect(() => {
     loadData();
-    setFilterConfig(getProfanityFilterConfig());
+
+    let isMounted = true;
+    fetchProfanityFilterConfig().then((cfg) => {
+      if (isMounted && cfg) {
+        setFilterConfig(cfg);
+      }
+    });
+
+    const unsubscribe = subscribeToProfanityFilterConfig((cfg) => {
+      if (isMounted && cfg) {
+        setFilterConfig(cfg);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   // Action: Single Delete Comment
@@ -251,37 +270,64 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = ({ articles }) 
     setTimeout(() => setActionNotice(null), 3000);
   };
 
-  // Bad words management
-  const handleAddBadWord = () => {
+  // Bad words management with real-time cloud sync
+  const handleAddBadWord = async () => {
     const trimmed = newBadWordInput.trim().toLowerCase();
     if (!trimmed) return;
 
     const words = trimmed.split(/[\s,]+/).filter(Boolean);
     const updated = Array.from(new Set([...(filterConfig.badWords || []), ...words]));
+    const nextConfig = { ...filterConfig, badWords: updated };
     
-    setFilterConfig((prev) => ({ ...prev, badWords: updated }));
+    setFilterConfig(nextConfig);
     setNewBadWordInput('');
+
+    // Auto-save to Firebase Firestore so words sync to all devices immediately
+    try {
+      await saveProfanityFilterConfig(nextConfig);
+      setConfigSuccessNotice(`Berhasil menambahkan kata & otomatis tersimpan ke Firebase!`);
+      setTimeout(() => setConfigSuccessNotice(null), 2500);
+    } catch (err) {
+      console.warn('Auto-save bad word to cloud failed:', err);
+    }
   };
 
-  const handleRemoveBadWord = (wordToRemove: string) => {
+  const handleRemoveBadWord = async (wordToRemove: string) => {
     const updated = (filterConfig.badWords || []).filter(
       (w) => w.toLowerCase() !== wordToRemove.toLowerCase()
     );
-    setFilterConfig((prev) => ({ ...prev, badWords: updated }));
+    const nextConfig = { ...filterConfig, badWords: updated };
+    setFilterConfig(nextConfig);
+
+    try {
+      await saveProfanityFilterConfig(nextConfig);
+      setConfigSuccessNotice(`Kata "${wordToRemove}" dihapus & diperbarui di Firebase.`);
+      setTimeout(() => setConfigSuccessNotice(null), 2500);
+    } catch (err) {
+      console.warn('Auto-save remove bad word failed:', err);
+    }
   };
 
   const handleResetDefaultBadWords = () => {
     setShowConfirmModal({
       isOpen: true,
       title: 'Reset Kata Standar',
-      message: 'Kembalikan daftar kata terlarang ke setelan bawaan standar?',
-      confirmText: 'Ya, Reset',
+      message: 'Kembalikan daftar kata terlarang ke setelan bawaan standar? Perubahan akan disimpan ke Firebase.',
+      confirmText: 'Ya, Reset & Simpan',
       isDanger: false,
-      onConfirm: () => {
-        setFilterConfig((prev) => ({
-          ...prev,
+      onConfirm: async () => {
+        const nextConfig = {
+          ...filterConfig,
           badWords: DEFAULT_BAD_WORDS,
-        }));
+        };
+        setFilterConfig(nextConfig);
+        try {
+          await saveProfanityFilterConfig(nextConfig);
+          setConfigSuccessNotice('Daftar kata berhasil direset ke standar dan disimpan ke Firebase!');
+          setTimeout(() => setConfigSuccessNotice(null), 3000);
+        } catch (err) {
+          console.warn('Reset bad words save error:', err);
+        }
       }
     });
   };
@@ -290,10 +336,10 @@ export const AdminCommentsTab: React.FC<AdminCommentsTabProps> = ({ articles }) 
     setIsSavingConfig(true);
     try {
       await saveProfanityFilterConfig(filterConfig);
-      setConfigSuccessNotice('Setelan filter kata tidak pantas berhasil disimpan!');
+      setConfigSuccessNotice('Setelan filter kata berhasil disimpan ke Firebase Cloud!');
       setTimeout(() => setConfigSuccessNotice(null), 3000);
     } catch (err) {
-      alert('Gagal menyimpan setelan');
+      alert('Gagal menyimpan setelan ke Firebase. Periksa koneksi internet.');
     } finally {
       setIsSavingConfig(false);
     }
