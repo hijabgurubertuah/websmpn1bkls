@@ -1314,16 +1314,19 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
 
   const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    const block = target.closest('[data-layout], [data-embed-url]') as HTMLElement | null;
+    
+    // Check video block first, then image layout block to ensure strict separation of embed video link from image blocks
+    const videoBlock = target.closest('[data-embed-url]') as HTMLElement | null;
+    const imageBlock = target.closest('[data-layout]') as HTMLElement | null;
 
-    if (block) {
+    if (videoBlock) {
       e.preventDefault();
-      setSelectedEmbedNode(block);
-      if (block.hasAttribute('data-embed-url')) {
-        setSelectedEmbedType('video');
-      } else {
-        setSelectedEmbedType('image');
-      }
+      setSelectedEmbedNode(videoBlock);
+      setSelectedEmbedType('video');
+    } else if (imageBlock) {
+      e.preventDefault();
+      setSelectedEmbedNode(imageBlock);
+      setSelectedEmbedType('image');
     } else {
       setSelectedEmbedNode(null);
       setSelectedEmbedType(null);
@@ -2279,7 +2282,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 updateActiveFormats();
                 handleEditorClick(e);
               }}
-              className="w-full p-4 min-h-[220px] text-sm font-sans text-slate-800 leading-relaxed focus:outline-none bg-white font-normal [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_a]:font-medium [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5"
+              className="w-full p-4 min-h-[220px] text-sm font-sans text-slate-800 leading-relaxed focus:outline-none bg-white font-normal [&_p]:my-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-4 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_blockquote]:border-l-4 [&_blockquote]:border-blue-600 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:bg-blue-50/60 [&_blockquote]:rounded-r-xl [&_blockquote]:text-slate-700 [&_a]:text-blue-600 [&_a]:underline [&_a:hover]:text-blue-800 [&_a]:font-medium [&_u]:decoration-current [&_ul]:pl-6 [&_ul]:my-2 [&_ol]:pl-6 [&_ol]:my-2 [&_li]:my-0.5 [&_iframe]:pointer-events-none"
               style={{ minHeight: `${minRows * 24}px` }}
             />
           ) : (
