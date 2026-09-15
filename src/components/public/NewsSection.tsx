@@ -18,6 +18,7 @@ import { getArticleViewsCount } from '../../lib/comments';
 interface NewsSectionProps {
   articles: NewsArticle[];
   isInitialSyncing?: boolean;
+  onSelectArticle?: (article: NewsArticle) => void;
 }
 
 // Helper to parse date string or timestamp for accurate sorting
@@ -48,10 +49,22 @@ const parseDateToTime = (dateStr?: string, id?: string): number => {
   return 0;
 };
 
-export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyncing = false }) => {
+export const NewsSection: React.FC<NewsSectionProps> = ({
+  articles,
+  isInitialSyncing = false,
+  onSelectArticle,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+
+  const handleArticleClick = (art: NewsArticle) => {
+    if (onSelectArticle) {
+      onSelectArticle(art);
+    } else {
+      setSelectedArticle(art);
+    }
+  };
 
   useEffect(() => {
     const handleSelectCategory = (e: Event) => {
@@ -67,6 +80,8 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyn
 
   // Auto-open article from URL parameter or popstate (e.g. ?post=post_123 or ?post=slug)
   useEffect(() => {
+    // If handled at parent level (e.g., App.tsx with onSelectArticle), let parent handle URL
+    if (onSelectArticle) return;
     if (!articles || articles.length === 0) return;
 
     const checkUrlForPost = () => {
@@ -90,7 +105,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyn
     checkUrlForPost();
     window.addEventListener('popstate', checkUrlForPost);
     return () => window.removeEventListener('popstate', checkUrlForPost);
-  }, [articles]);
+  }, [articles, onSelectArticle]);
 
   // Layout Columns state (1, 2, 3, or 4 columns)
   const [layoutColumns, setLayoutColumns] = useState<1 | 2 | 3 | 4>(() => {
@@ -284,7 +299,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyn
             {filteredArticles.map((article) => (
               <div
                 key={article.id}
-                onClick={() => setSelectedArticle(article)}
+                onClick={() => handleArticleClick(article)}
                 className={`group bg-white ${
                   layoutColumns === 4 ? 'rounded-lg sm:rounded-2xl' : 'rounded-xl sm:rounded-2xl'
                 } overflow-hidden border border-slate-200 shadow-2xs hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer transform hover:-translate-y-1`}
@@ -453,8 +468,8 @@ export const NewsSection: React.FC<NewsSectionProps> = ({ articles, isInitialSyn
 
       </div>
 
-      {/* Detail Modal */}
-      {selectedArticle && (
+      {/* Detail Modal (fallback if not handled by parent) */}
+      {!onSelectArticle && selectedArticle && (
         <NewsDetailModal
           article={selectedArticle}
           onClose={() => setSelectedArticle(null)}

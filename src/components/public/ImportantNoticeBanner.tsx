@@ -8,9 +8,14 @@ import { FormattedContentRenderer } from '../common/FormattedContentRenderer';
 interface ImportantNoticeBannerProps {
   config: SchoolConfig;
   articles?: NewsArticle[];
+  onSelectArticle?: (article: NewsArticle) => void;
 }
 
-export const ImportantNoticeBanner: React.FC<ImportantNoticeBannerProps> = ({ config, articles = [] }) => {
+export const ImportantNoticeBanner: React.FC<ImportantNoticeBannerProps> = ({
+  config,
+  articles = [],
+  onSelectArticle,
+}) => {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
 
@@ -40,7 +45,11 @@ export const ImportantNoticeBanner: React.FC<ImportantNoticeBannerProps> = ({ co
     if (mode === 'article' && announcement.targetArticleId && articles.length > 0) {
       const found = articles.find((a) => a.id === announcement.targetArticleId);
       if (found) {
-        setSelectedArticle(found);
+        if (onSelectArticle) {
+          onSelectArticle(found);
+        } else {
+          setSelectedArticle(found);
+        }
         return;
       }
     }
@@ -197,8 +206,8 @@ export const ImportantNoticeBanner: React.FC<ImportantNoticeBannerProps> = ({ co
         </div>
       </div>
 
-      {/* Linked News Article Modal */}
-      {selectedArticle && (
+      {/* Linked News Article Modal (fallback if not handled globally) */}
+      {!onSelectArticle && selectedArticle && (
         <NewsDetailModal
           article={selectedArticle}
           onClose={() => setSelectedArticle(null)}

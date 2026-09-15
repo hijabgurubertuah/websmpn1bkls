@@ -752,34 +752,25 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       >
         <form onSubmit={handleSubmit} className="space-y-2.5">
           {/* Identity & Name Input Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/70">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-linear-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                {(customName.trim() || 'P').charAt(0).toUpperCase()}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <input
-                  ref={nameInputRef}
-                  type="text"
-                  value={customName}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="Tuliskan Nama Anda di sini..."
-                  maxLength={40}
-                  className={`w-full text-xs sm:text-sm font-semibold px-2.5 py-1.5 bg-white border rounded-lg focus:outline-none focus:ring-2 text-slate-800 placeholder-slate-400 transition-all ${
-                    nameError
-                      ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
-                      : 'border-slate-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                />
-              </div>
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-200/70">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-linear-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+              {(customName.trim() || 'P').charAt(0).toUpperCase()}
             </div>
 
-            <div className="flex items-center justify-between sm:justify-end gap-2 text-[11px] text-slate-500 pl-9 sm:pl-0">
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] bg-slate-100 px-2 py-0.5 rounded-md font-medium text-slate-600 border border-slate-200/60">
-                <UserIcon className="w-3 h-3 text-slate-500" />
-                <span>Publik (Tanpa Login)</span>
-              </span>
+            <div className="flex-1 min-w-0">
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={customName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="Tuliskan Nama Anda di sini..."
+                maxLength={40}
+                className={`w-full text-xs sm:text-sm font-semibold px-2.5 py-1.5 bg-white border rounded-lg focus:outline-none focus:ring-2 text-slate-800 placeholder-slate-400 transition-all ${
+                  nameError
+                    ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/30'
+                    : 'border-slate-300 focus:ring-blue-500 focus:border-blue-500'
+                }`}
+              />
             </div>
           </div>
 

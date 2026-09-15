@@ -44,6 +44,7 @@ import { OfflineIndicator } from './components/public/OfflineIndicator';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { MobileBottomNav } from './components/public/MobileBottomNav';
+import { NewsDetailModal } from './components/public/NewsDetailModal';
 import { ShieldCheck, Sparkles, CheckCircle2, RefreshCw, School } from 'lucide-react';
 import { syncPWAManifest } from './lib/usePWAInstall';
 
@@ -122,6 +123,34 @@ export default function App() {
   const [isInitialSyncing, setIsInitialSyncing] = useState(() => articles.length === 0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+
+  // Auto-open article from URL parameter or popstate (?post=... or ?berita=...)
+  useEffect(() => {
+    if (!articles || articles.length === 0) return;
+
+    const checkUrlForPost = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('post') || params.get('berita') || params.get('id');
+        if (postId) {
+          const found = articles.find(
+            (a) =>
+              a.id === postId ||
+              (a.slug && a.slug.toLowerCase() === postId.toLowerCase()) ||
+              String(a.id).toLowerCase() === postId.toLowerCase()
+          );
+          if (found) {
+            setSelectedArticle(found);
+          }
+        }
+      } catch {}
+    };
+
+    checkUrlForPost();
+    window.addEventListener('popstate', checkUrlForPost);
+    return () => window.removeEventListener('popstate', checkUrlForPost);
+  }, [articles]);
 
   // Initialize data: Fast render from offline partition, followed immediately by live Firebase sync and realtime subscription
   useEffect(() => {
@@ -482,7 +511,11 @@ export default function App() {
       />
 
       {/* Important Announcement / Info Penting Banner (Placed directly BELOW Navbar menu) */}
-      <ImportantNoticeBanner config={config} articles={articles} />
+      <ImportantNoticeBanner
+        config={config}
+        articles={articles}
+        onSelectArticle={setSelectedArticle}
+      />
 
       {/* Hero Banner Section */}
       {layoutSections.showHero && <HeroSection config={config} />}
@@ -499,12 +532,17 @@ export default function App() {
           schoolName={config.identity.name}
           logoUrl={config.identity.logoUrl}
           articles={articles}
+          onSelectArticle={setSelectedArticle}
         />
       )}
 
       {/* Berita, Prestasi & Pengumuman Sekolah */}
       {layoutSections.showNews && (
-        <NewsSection articles={articles} isInitialSyncing={isInitialSyncing} />
+        <NewsSection
+          articles={articles}
+          isInitialSyncing={isInitialSyncing}
+          onSelectArticle={setSelectedArticle}
+        />
       )}
 
       {/* Agenda & Kalender Kegiatan */}
@@ -549,6 +587,14 @@ export default function App() {
           }
         }}
       />
+
+      {/* Single Centralized News Detail Modal */}
+      {selectedArticle && (
+        <NewsDetailModal
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+        />
+      )}
 
       {/* Offline Status Notification Indicator for PWA */}
       <OfflineIndicator />

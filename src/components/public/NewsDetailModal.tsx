@@ -73,6 +73,12 @@ const SingleNewsModalView: React.FC<SingleNewsModalViewProps> = ({
   const viewIncrementedRef = useRef(false);
 
   useEffect(() => {
+    setLikesState(getArticleLikesState(article.id, article.likes || 0, getBrowserDeviceId()));
+    setViewsCount(getArticleViewsCount(article.id, article.views || 0));
+    viewIncrementedRef.current = false;
+  }, [article.id, article.likes, article.views]);
+
+  useEffect(() => {
     if (viewIncrementedRef.current) return;
     viewIncrementedRef.current = true;
 
@@ -665,69 +671,36 @@ export const NewsDetailModal: React.FC<NewsDetailModalProps> = ({
   onClose,
   zIndexClass = 'z-50',
 }) => {
-  const [baseArticle, setBaseArticle] = useState<NewsArticle | null>(article);
-  const [topArticle, setTopArticle] = useState<NewsArticle | null>(null);
+  const [currentArticle, setCurrentArticle] = useState<NewsArticle | null>(article);
 
   // Sync state if initial article prop changes
   React.useEffect(() => {
-    setBaseArticle(article);
-    setTopArticle(null);
+    setCurrentArticle(article);
   }, [article]);
 
-  // Prevent background scrolling while any modal layer is open
-  useBodyScrollLock(!!baseArticle || !!topArticle);
+  // Prevent background scrolling while modal is open
+  useBodyScrollLock(!!currentArticle);
 
-  if (!baseArticle) return null;
+  if (!currentArticle) return null;
 
-  // Called when user opens an internal article from Layer 1
-  const handleOpenFromBase = (target: NewsArticle) => {
-    setTopArticle(target);
+  // Called when user opens an internal article from within the content: navigate directly in single popup
+  const handleOpenInternal = (target: NewsArticle) => {
+    setCurrentArticle(target);
   };
 
-  // Called when user opens an internal article from Layer 2
-  const handleOpenFromTop = (target: NewsArticle) => {
-    // When opening an internal article (target), the first popup (baseArticle) automatically closes!
-    // The previous topArticle becomes the base, and target becomes the new topArticle.
-    // (If it's an external link or opens a new tab, popup pertama tetap ada dan tidak tertutup otomatis,
-    // which is handled inside FormattedContentRenderer/SingleNewsModalView without closing modals).
-    if (topArticle) {
-      setBaseArticle(topArticle);
-    }
-    setTopArticle(target);
-  };
-
-  const handleCloseTop = () => {
-    setTopArticle(null);
-  };
-
-  const handleCloseBase = () => {
-    setBaseArticle(null);
-    setTopArticle(null);
+  const handleClose = () => {
+    setCurrentArticle(null);
     onClose();
   };
 
   return (
-    <>
-      {/* Layer 1: Popup Pertama */}
-      <SingleNewsModalView
-        article={baseArticle}
-        onClose={handleCloseBase}
-        onOpenInternalArticle={handleOpenFromBase}
-        zIndexClass={zIndexClass}
-        isSecondLayer={false}
-      />
-
-      {/* Layer 2: Popup Kedua (Maksimal 2 Lapis) */}
-      {topArticle && (
-        <SingleNewsModalView
-          article={topArticle}
-          onClose={handleCloseTop}
-          onOpenInternalArticle={handleOpenFromTop}
-          zIndexClass="z-[75]"
-          isSecondLayer={true}
-        />
-      )}
-    </>
+    <SingleNewsModalView
+      article={currentArticle}
+      onClose={handleClose}
+      onOpenInternalArticle={handleOpenInternal}
+      zIndexClass={zIndexClass}
+      isSecondLayer={false}
+    />
   );
 };
 

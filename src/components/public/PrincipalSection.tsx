@@ -9,6 +9,7 @@ interface PrincipalSectionProps {
   schoolName: string;
   logoUrl?: string;
   articles?: NewsArticle[];
+  onSelectArticle?: (article: NewsArticle) => void;
 }
 
 // Helper to parse date string or timestamp for accurate sorting
@@ -44,9 +45,18 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
   schoolName,
   logoUrl,
   articles = [],
+  onSelectArticle,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+
+  const handleArticleClick = (art: NewsArticle) => {
+    if (onSelectArticle) {
+      onSelectArticle(art);
+    } else {
+      setSelectedArticle(art);
+    }
+  };
 
   // Get up to 4 pinned articles (or fallback to latest published if none pinned)
   const pinnedArticles = useMemo(() => {
@@ -202,7 +212,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                 {/* 1 POSTINGAN: Ukuran Besar */}
                 {pinnedCount === 1 && (
                   <div
-                    onClick={() => setSelectedArticle(pinnedArticles[0])}
+                    onClick={() => handleArticleClick(pinnedArticles[0])}
                     className="group flex-1 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer"
                   >
                     <div className="relative w-full aspect-16/9 bg-slate-100 overflow-hidden">
@@ -246,7 +256,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                     {pinnedArticles.map((art) => (
                       <div
                         key={art.id}
-                        onClick={() => setSelectedArticle(art)}
+                        onClick={() => handleArticleClick(art)}
                         className="group flex-1 flex gap-3.5 bg-white rounded-xl border border-slate-200 p-3 shadow-2xs hover:shadow-md transition-all cursor-pointer items-center min-h-[105px]"
                       >
                         <div className="relative w-32 sm:w-36 h-full min-h-[92px] rounded-lg overflow-hidden bg-slate-100 shrink-0">
@@ -288,7 +298,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                     {pinnedArticles.map((art) => (
                       <div
                         key={art.id}
-                        onClick={() => setSelectedArticle(art)}
+                        onClick={() => handleArticleClick(art)}
                         className="group flex gap-3 bg-white rounded-xl border border-slate-200 p-2.5 shadow-2xs hover:shadow-md transition-all cursor-pointer items-center min-h-[72px]"
                       >
                         <div className="relative w-20 h-16 rounded-lg overflow-hidden bg-slate-100 shrink-0">
@@ -321,7 +331,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                     {pinnedArticles.slice(0, 4).map((art) => (
                       <div
                         key={art.id}
-                        onClick={() => setSelectedArticle(art)}
+                        onClick={() => handleArticleClick(art)}
                         className="group flex gap-2.5 bg-white rounded-xl border border-slate-200 p-2 shadow-2xs hover:shadow-md transition-all cursor-pointer items-center min-h-[62px]"
                       >
                         <div className="relative w-16 h-14 rounded-lg overflow-hidden bg-slate-100 shrink-0">
@@ -475,7 +485,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
               {/* JIKA 1 SEMATAN: Besarkan & Seimbangkan Tinggi dengan Sambutan Pimpinan */}
               {pinnedCount === 1 && (
                 <div
-                  onClick={() => setSelectedArticle(pinnedArticles[0])}
+                  onClick={() => handleArticleClick(pinnedArticles[0])}
                   className="flex-1 h-full bg-white hover:bg-blue-50/50 border border-slate-200/90 rounded-2xl p-2.5 sm:p-3 shadow-2xs flex flex-col justify-between cursor-pointer active:scale-[0.99] transition-all group"
                 >
                   <div className="space-y-2">
@@ -521,7 +531,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                   {pinnedArticles.slice(0, 2).map((art) => (
                     <div
                       key={art.id}
-                      onClick={() => setSelectedArticle(art)}
+                      onClick={() => handleArticleClick(art)}
                       className="flex-1 bg-white hover:bg-blue-50/50 border border-slate-200/90 rounded-xl p-2 shadow-2xs flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-all group"
                     >
                       <div className="flex gap-2 items-start">
@@ -561,7 +571,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                   {pinnedArticles.slice(0, 3).map((art) => (
                     <div
                       key={art.id}
-                      onClick={() => setSelectedArticle(art)}
+                      onClick={() => handleArticleClick(art)}
                       className="flex-1 min-h-[58px] sm:min-h-[64px] bg-white hover:bg-blue-50/60 active:bg-blue-50/90 border border-slate-200/90 rounded-xl p-1.5 sm:p-2 shadow-2xs flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98] group"
                     >
                       <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
@@ -595,7 +605,7 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
                   {pinnedArticles.slice(0, 4).map((art) => (
                     <div
                       key={art.id}
-                      onClick={() => setSelectedArticle(art)}
+                      onClick={() => handleArticleClick(art)}
                       className="flex-1 min-h-[54px] sm:min-h-[60px] bg-white hover:bg-blue-50/60 active:bg-blue-50/90 border border-slate-200/90 rounded-xl p-1.5 sm:p-2 shadow-2xs flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-all active:scale-[0.98] group"
                     >
                       <div className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
@@ -640,8 +650,8 @@ export const PrincipalSection: React.FC<PrincipalSectionProps> = ({
         />
       )}
 
-      {/* News Detail Modal for Pinned Posts */}
-      {selectedArticle && (
+      {/* News Detail Modal for Pinned Posts (only if not handled by parent) */}
+      {!onSelectArticle && selectedArticle && (
         <NewsDetailModal
           article={selectedArticle}
           onClose={() => setSelectedArticle(null)}
