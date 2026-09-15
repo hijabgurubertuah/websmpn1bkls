@@ -80,14 +80,14 @@ export const AccreditationRibbon: React.FC<AccreditationRibbonProps> = ({ config
   return (
     <section
       id="akreditasi-running-text"
-      className={`relative z-20 text-white border-y border-white/10 shadow-xs overflow-hidden py-2.5 sm:py-3.5 ${
+      className={`relative z-20 text-white border-y border-white/10 shadow-xs overflow-hidden w-full max-w-full py-2.5 sm:py-3.5 ${
         customBg ? '' : 'bg-gradient-to-r from-slate-950 via-blue-950 to-slate-950 border-blue-800/40'
       }`}
       style={customBg ? { backgroundColor: customBg } : undefined}
     >
-      <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Full-width Running Text Marquee Track */}
-        <div className="overflow-hidden whitespace-nowrap w-full relative">
+        <div className="overflow-hidden whitespace-nowrap w-full min-w-0 relative">
           <div
             className="inline-flex items-center gap-8 animate-marquee hover:pause"
             style={{ animationDuration: getSpeedDuration() }}

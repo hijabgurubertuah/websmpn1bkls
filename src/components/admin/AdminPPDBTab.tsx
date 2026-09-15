@@ -1,6 +1,7 @@
 import React from 'react';
 import { SchoolConfig, PPDBConfig } from '../../types';
 import { GraduationCap } from 'lucide-react';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 
 interface AdminPPDBTabProps {
   config: SchoolConfig;
@@ -125,8 +126,8 @@ export const AdminPPDBTab: React.FC<AdminPPDBTabProps> = ({ config, onChange }) 
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">Keterangan / Jalur PPDB</label>
-          <textarea
-            rows={2}
+          <AutoResizeTextarea
+            minRows={2}
             value={ppdb.announcement || ''}
             onChange={(e) => updatePPDB({ announcement: e.target.value })}
             placeholder="Jalur Zonasi, Afirmasi, Prestasi..."

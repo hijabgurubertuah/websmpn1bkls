@@ -22,6 +22,7 @@ import {
   Search,
 } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 
 interface AdminFacilitiesEkskulTabProps {
   config: SchoolConfig;
@@ -634,13 +635,13 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Nama Fasilitas *
                 </label>
-                <input
-                  type="text"
+                <AutoResizeTextarea
+                  minRows={1}
                   required
                   value={facilityFormData.title}
                   onChange={(e) => setFacilityFormData({ ...facilityFormData, title: e.target.value })}
                   placeholder="Contoh: Laboratorium Komputer Modern"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
               </div>
 
@@ -675,12 +676,12 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Deskripsi / Keterangan Fasilitas
                 </label>
-                <textarea
-                  rows={3}
+                <AutoResizeTextarea
+                  minRows={3}
                   value={facilityFormData.description}
                   onChange={(e) => setFacilityFormData({ ...facilityFormData, description: e.target.value })}
                   placeholder="Jelaskan spesifikasi, kegunaan, atau kelengkapan fasilitas..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
               </div>
 
@@ -727,13 +728,13 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Nama Ekstrakurikuler *
                 </label>
-                <input
-                  type="text"
+                <AutoResizeTextarea
+                  minRows={1}
                   required
                   value={ekskulFormData.name}
                   onChange={(e) => setEkskulFormData({ ...ekskulFormData, name: e.target.value })}
                   placeholder="Contoh: Pramuka Gugus Depan Bengkalis"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
               </div>
 
@@ -805,12 +806,12 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Deskripsi Kegiatan
                 </label>
-                <textarea
-                  rows={3}
+                <AutoResizeTextarea
+                  minRows={3}
                   value={ekskulFormData.description}
                   onChange={(e) => setEkskulFormData({ ...ekskulFormData, description: e.target.value })}
                   placeholder="Jelaskan tujuan ekskul, kegiatan rutin, atau prestasi yang pernah diraih..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
               </div>
 

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
 import { RichTextEditorWithImages } from '../common/RichTextEditorWithImages';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 
 interface AdminTickerTabProps {
   config: SchoolConfig;
@@ -210,8 +211,8 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Pesan
                 </label>
-                <textarea
-                  rows={2}
+                <AutoResizeTextarea
+                  minRows={2}
                   value={ann.text || ''}
                   onChange={(e) => updateAnn('text', e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium focus:ring-1 focus:ring-amber-500 focus:outline-none bg-white text-slate-900"
@@ -489,8 +490,8 @@ export const AdminTickerTab: React.FC<AdminTickerTabProps> = ({ config, articles
                     <span>Reset</span>
                   </button>
                 </div>
-                <textarea
-                  rows={4}
+                <AutoResizeTextarea
+                  minRows={3}
                   value={identity.accreditationTickerText || ''}
                   onChange={(e) => updateIdentity('accreditationTickerText', e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium focus:ring-1 focus:ring-blue-600 focus:outline-none bg-white text-slate-900"

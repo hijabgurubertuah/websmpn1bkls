@@ -480,7 +480,7 @@ export default function App() {
   const { layoutSections } = config;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900 relative pb-20 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 relative pb-20 md:pb-0 w-full max-w-full overflow-x-clip">
       
       {/* Sync Notification Toast */}
       {syncToast && (

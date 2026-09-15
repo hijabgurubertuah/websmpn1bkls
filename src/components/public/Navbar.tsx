@@ -141,7 +141,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         } ${!navbarBg ? 'bg-white' : ''}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4">
           
           {/* Brand Logo & Name */}
           <a
@@ -150,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               e.preventDefault();
               handleNavClick('#beranda');
             }}
-            className="flex items-center gap-2 sm:gap-3 group cursor-pointer max-w-[calc(100%-80px)] lg:max-w-none"
+            className="flex items-center gap-2 sm:gap-3 group cursor-pointer flex-1 min-w-0 max-w-full lg:flex-initial"
           >
             <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl overflow-hidden bg-white border border-slate-200/90 flex items-center justify-center shrink-0 shadow-xs p-0.5 sm:p-1 group-hover:scale-105 transition-transform">
               {identity.logoUrl ? (
@@ -181,7 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {identity.tagline ? (
                 <div
                   style={navbarText ? { color: navbarText, opacity: 0.8 } : undefined}
-                  className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium w-36 xs:w-48 sm:w-64 md:w-80"
+                  className="overflow-hidden whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-medium max-w-[140px] xs:max-w-[200px] sm:max-w-xs md:max-w-sm"
                 >
                   <div className="inline-block animate-marquee pl-0">
                     {identity.tagline}
@@ -334,7 +334,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Mobile Right Action Area */}
-          <div className="flex lg:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-1.5 sm:gap-2 shrink-0">
             <PWAInstallButton />
 
             {/* Direct 1-Click Hard Reset Button on Mobile */}
@@ -343,7 +343,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={handleExecuteHardReset}
               disabled={isHardResetting}
-              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="p-1.5 sm:p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50 shrink-0"
               title="Hard Reset: Bersihkan Cache & Muat Ulang Penuh"
               aria-label="Hard Reset dan Bersihkan Cache"
             >
@@ -354,7 +354,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="btn-mobile-menu-toggle"
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               aria-label="Buka Menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

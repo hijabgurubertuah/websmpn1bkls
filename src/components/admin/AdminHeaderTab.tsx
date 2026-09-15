@@ -2,6 +2,7 @@ import React from 'react';
 import { SchoolConfig } from '../../types';
 import { Sparkles, Image as ImageIcon, Sliders, Globe, RefreshCw, Check } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 
 const DEFAULT_FAVICON_FALLBACK = 'https://i.ibb.co.com/d44hK88L/logo-smpn-1-bengkalis-kecil.png';
 
@@ -54,11 +55,11 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Nama Instansi
             </label>
-            <input
-              type="text"
+            <AutoResizeTextarea
+              minRows={1}
               value={identity.name}
               onChange={(e) => updateIdentity('name', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
               placeholder="Nama instansi / lembaga..."
             />
           </div>
@@ -67,24 +68,24 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Nama Singkat
             </label>
-            <input
-              type="text"
+            <AutoResizeTextarea
+              minRows={1}
               value={identity.shortName || ''}
               onChange={(e) => updateIdentity('shortName', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
               placeholder="Singkatan nama..."
             />
           </div>
 
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Tagline / Visi Singkat
             </label>
-            <input
-              type="text"
+            <AutoResizeTextarea
+              minRows={1}
               value={identity.tagline}
               onChange={(e) => updateIdentity('tagline', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
               placeholder="Motto instansi..."
             />
           </div>
@@ -227,11 +228,11 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Judul Banner
             </label>
-            <input
-              type="text"
+            <AutoResizeTextarea
+              minRows={1}
               value={header.heroTitle}
               onChange={(e) => updateHeader('heroTitle', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
             />
           </div>
 
@@ -239,11 +240,11 @@ export const AdminHeaderTab: React.FC<AdminHeaderTabProps> = ({ config, onChange
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Subjudul Banner
             </label>
-            <textarea
-              rows={2}
+            <AutoResizeTextarea
+              minRows={2}
               value={header.heroSubtitle}
               onChange={(e) => updateHeader('heroSubtitle', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
             />
           </div>
 

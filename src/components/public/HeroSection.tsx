@@ -52,7 +52,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
   };
 
   return (
-    <div id="beranda" className="relative text-white">
+    <div id="beranda" className="relative text-white w-full max-w-full overflow-hidden">
       
       {/* Background Hero Image with Overlays - Batas bawah tepat di tengah kartu */}
       <div className="relative overflow-hidden bg-slate-950">

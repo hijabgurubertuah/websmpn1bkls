@@ -184,7 +184,7 @@ export const ImportantNoticeBanner: React.FC<ImportantNoticeBannerProps> = ({
           {/* Marquee Running Text Track (Clickable to open popup) */}
           <div
             onClick={handleOpenDetail}
-            className="overflow-hidden whitespace-nowrap flex-1 relative cursor-pointer group/track"
+            className="overflow-hidden whitespace-nowrap flex-1 min-w-0 relative cursor-pointer group/track"
             title="Klik untuk melihat pengumuman selengkapnya"
           >
             <div

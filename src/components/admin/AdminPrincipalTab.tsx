@@ -3,6 +3,7 @@ import { SchoolConfig, PrincipalConfig } from '../../types';
 import { Award } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
 import { RichTextEditorWithImages } from '../common/RichTextEditorWithImages';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 
 interface AdminPrincipalTabProps {
   config: SchoolConfig;
@@ -86,11 +87,11 @@ export const AdminPrincipalTab: React.FC<AdminPrincipalTabProps> = ({ config, on
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Kutipan Singkat (Quote)
           </label>
-          <textarea
-            rows={2}
+          <AutoResizeTextarea
+            minRows={2}
             value={principal.quote}
             onChange={(e) => updatePrincipal('quote', e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none italic"
+            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none italic bg-white"
             placeholder="Kutipan inspiratif..."
           />
         </div>

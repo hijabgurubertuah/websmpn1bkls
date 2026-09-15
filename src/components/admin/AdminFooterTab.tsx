@@ -1,6 +1,7 @@
 import React from 'react';
 import { SchoolConfig, FooterConfig } from '../../types';
 import { Share2 } from 'lucide-react';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 
 interface AdminFooterTabProps {
   config: SchoolConfig;
@@ -46,11 +47,11 @@ export const AdminFooterTab: React.FC<AdminFooterTabProps> = ({ config, onChange
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Deskripsi Singkat (Tentang Kami)
             </label>
-            <textarea
-              rows={2}
+            <AutoResizeTextarea
+              minRows={2}
               value={footer.aboutText}
               onChange={(e) => updateFooter('aboutText', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
             />
           </div>
 
@@ -58,11 +59,11 @@ export const AdminFooterTab: React.FC<AdminFooterTabProps> = ({ config, onChange
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Alamat Lengkap
             </label>
-            <input
-              type="text"
+            <AutoResizeTextarea
+              minRows={2}
               value={footer.address}
               onChange={(e) => updateFooter('address', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
             />
           </div>
 

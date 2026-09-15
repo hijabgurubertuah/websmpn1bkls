@@ -26,9 +26,11 @@ import {
   CloudUpload,
   Pin,
   Clipboard,
+  ArrowLeft,
 } from 'lucide-react';
 import { ImageUploadButton } from './ImageUploadButton';
 import { RichTextEditorWithImages } from '../common/RichTextEditorWithImages';
+import { AutoResizeTextarea } from '../common/AutoResizeTextarea';
 import { parseEmbedUrl } from '../../lib/embedHelper';
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock';
 
@@ -59,6 +61,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'drafts' | 'cloud'>('all');
+  const [mainPostTab, setMainPostTab] = useState<'list' | 'write'>('list');
   const [isEditing, setIsEditing] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [postEditorTab, setPostEditorTab] = useState<'content' | 'embed'>('content');
@@ -133,11 +136,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     setIsEditing(false);
     setPostEditorTab('content');
     setFormError(null);
+    setMainPostTab('list');
   };
 
   const handleStartCreate = () => {
     resetForm();
     setIsEditing(true);
+    setMainPostTab('write');
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 80);
@@ -170,6 +175,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
     setPostEditorTab(art.embedUrl ? 'embed' : 'content');
     setFormError(null);
     setIsEditing(true);
+    setMainPostTab('write');
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 80);
@@ -453,54 +459,81 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         </div>
       )}
 
-      {/* Top Action: Wide Tulis Berita Baru Button */}
-      {!isEditing && (
-        <button
-          type="button"
-          onClick={handleStartCreate}
-          className="w-full inline-flex items-center justify-center gap-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3.5 px-6 rounded-2xl shadow-sm hover:shadow-md transition-all text-sm sm:text-base cursor-pointer"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Tulis Berita Baru</span>
-        </button>
-      )}
+      {/* Top Primary Sub-Tabs: Daftar Berita vs Tulis Berita */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-1.5 flex-1">
+          <button
+            type="button"
+            onClick={() => setMainPostTab('list')}
+            className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 py-2.5 px-4 sm:px-5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              mainPostTab === 'list'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Daftar Berita</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                mainPostTab === 'list' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {articles.length}
+            </span>
+          </button>
 
-      {/* Editor Modal / Inline Form */}
-      {isEditing && (
-        <div className="bg-white rounded-2xl p-5 sm:p-7 border-2 border-blue-600 shadow-lg space-y-5">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isEditing) {
+                handleStartCreate();
+              } else {
+                setMainPostTab('write');
+              }
+            }}
+            className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 py-2.5 px-4 sm:px-5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              mainPostTab === 'write'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            {editingArticleId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <span>{editingArticleId ? 'Edit Berita' : 'Tulis Berita Baru'}</span>
+          </button>
+        </div>
+
+        {mainPostTab === 'list' && (
+          <button
+            type="button"
+            onClick={handleStartCreate}
+            className="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition-all text-xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tulis Berita Baru</span>
+          </button>
+        )}
+      </div>
+
+      {/* Editor Tab / Form */}
+      {mainPostTab === 'write' && (
+        <div className="bg-white rounded-2xl p-5 sm:p-7 border border-slate-200 shadow-xs space-y-5">
           {/* Top Bar with Big Tabs & Close Button */}
-          <div className="flex items-center justify-between gap-2.5">
-            <div className="flex-1 flex bg-slate-100 p-1 rounded-2xl gap-1 border border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setPostEditorTab('content')}
-                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  postEditorTab === 'content'
-                    ? 'bg-white text-blue-700 shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
+                onClick={() => {
+                  resetForm();
+                  setMainPostTab('list');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <FileText className={`w-4 h-4 ${postEditorTab === 'content' ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span>Berita</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Kembali ke Daftar</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => setPostEditorTab('embed')}
-                className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  postEditorTab === 'embed'
-                    ? 'bg-white text-purple-700 shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Code2 className={`w-4 h-4 ${postEditorTab === 'embed' ? 'text-purple-600' : 'text-slate-400'}`} />
-                <span>Embed</span>
-                {embedUrl.trim() && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    Aktif
-                  </span>
-                )}
-              </button>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                {editingArticleId ? 'Edit Postingan Berita' : 'Tulis Postingan Berita Baru'}
+              </h3>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -528,6 +561,39 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
             </div>
           </div>
 
+          <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 border border-slate-200 max-w-md">
+            <button
+              type="button"
+              onClick={() => setPostEditorTab('content')}
+              className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                postEditorTab === 'content'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <FileText className={`w-4 h-4 ${postEditorTab === 'content' ? 'text-blue-600' : 'text-slate-400'}`} />
+              <span>Konten Berita</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPostEditorTab('embed')}
+              className={`flex-1 py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                postEditorTab === 'embed'
+                  ? 'bg-white text-purple-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <Code2 className={`w-4 h-4 ${postEditorTab === 'embed' ? 'text-purple-600' : 'text-slate-400'}`} />
+              <span>Embed</span>
+              {embedUrl.trim() && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  Aktif
+                </span>
+              )}
+            </button>
+          </div>
+
           {formError && (
             <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -544,13 +610,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Judul Berita *
                   </label>
-                  <input
-                    type="text"
+                  <AutoResizeTextarea
+                    minRows={1}
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Masukkan judul berita yang jelas dan menarik..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none font-semibold bg-white"
                   />
                 </div>
 
@@ -600,6 +666,20 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                   />
                 </div>
 
+                {/* Ringkasan Singkat */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Ringkasan Singkat (Opsional)
+                  </label>
+                  <AutoResizeTextarea
+                    minRows={2}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="Ringkasan singkat berita..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+                  />
+                </div>
+
                 {/* Full Content with Formatting & Drive Image Inserter */}
                 <RichTextEditorWithImages
                   value={content}
@@ -619,13 +699,13 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Judul Postingan / Halaman Embed *
                   </label>
-                  <input
-                    type="text"
+                  <AutoResizeTextarea
+                    minRows={1}
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Contoh: Aplikasi Kelulusan Siswa / Formulir PPDB / Sistem Informasi..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none font-semibold"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none font-semibold bg-white"
                   />
                 </div>
 
@@ -918,216 +998,247 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         </div>
       )}
 
-      {/* Articles Table & Search */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
-              Daftar Berita ({articles.length})
-            </span>
-            <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setFilterTab('all')}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                  filterTab === 'all'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Semua ({articles.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterTab('drafts')}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  filterTab === 'drafts'
-                    ? 'bg-amber-400 text-amber-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>Draf Lokal</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                    filterTab === 'drafts'
-                      ? 'bg-amber-950/20 text-amber-950'
-                      : localDrafts.length > 0
-                      ? 'bg-amber-200 text-amber-800'
-                      : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {localDrafts.length}
+      {/* VIEW 1: DAFTAR BERITA */}
+      {mainPostTab === 'list' && (
+        <div className="space-y-4">
+          {/* Top Banner with visible Tulis Berita Baru Action */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-5 text-white shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <h3 className="text-sm sm:text-base font-bold">Publikasi & Kelola Informasi Sekolah</h3>
+              <p className="text-xs text-blue-100">
+                Buat berita kegiatan, pengumuman resmi, prestasi, atau halaman embed interaktif.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartCreate}
+              className="inline-flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-blue-50 active:bg-blue-100 font-bold py-2.5 px-5 rounded-xl shadow-sm transition-all text-xs sm:text-sm cursor-pointer shrink-0 w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tulis Berita Baru</span>
+            </button>
+          </div>
+
+          {/* Articles Table & Search */}
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
+                  Daftar Berita ({articles.length})
                 </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterTab('cloud')}
-                className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                  filterTab === 'cloud'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>Cloud ({cloudArticles.length})</span>
-              </button>
+                <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setFilterTab('all')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                      filterTab === 'all'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Semua ({articles.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterTab('drafts')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      filterTab === 'drafts'
+                        ? 'bg-amber-400 text-amber-950 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Draf Lokal</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                        filterTab === 'drafts'
+                          ? 'bg-amber-950/20 text-amber-950'
+                          : localDrafts.length > 0
+                          ? 'bg-amber-200 text-amber-800'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {localDrafts.length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterTab('cloud')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      filterTab === 'cloud'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>Cloud ({cloudArticles.length})</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari berita..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[11px] tracking-wider">
+                    <th className="py-3 px-3">Berita</th>
+                    <th className="py-3 px-3">Kategori</th>
+                    <th className="py-3 px-3">Tanggal</th>
+                    <th className="py-3 px-3">Status Simpan</th>
+                    <th className="py-3 px-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400 text-xs">
+                        Tidak ada berita ditemukan. Klik &quot;Tulis Berita Baru&quot; untuk membuat berita baru.
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((art) => (
+                      <tr key={art.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3.5 px-3 max-w-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-9 rounded-md overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                              <img
+                                src={art.coverImage}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 line-clamp-1 text-sm">{art.title}</p>
+                              <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                                {art.summary || art.content?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)}
+                              </p>
+                              
+                              {/* Tags for multi-image, embed, link */}
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {art.galleryImages && art.galleryImages.length > 0 && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                                    <ImageIcon className="w-2.5 h-2.5 text-blue-600" />
+                                    {art.galleryImages.length} Foto
+                                  </span>
+                                )}
+                                {art.embedUrl && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                    <Code2 className="w-2.5 h-2.5 text-purple-600" />
+                                    Embed
+                                  </span>
+                                )}
+                                {art.actionLink?.url && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                    <LinkIcon className="w-2.5 h-2.5 text-blue-600" />
+                                    Link
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700">
+                            {art.category}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-3 text-slate-500 text-xs whitespace-nowrap">
+                          {art.date}
+                        </td>
+
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full ${
+                                  art.status === 'published' ? 'bg-emerald-500' : 'bg-slate-400'
+                                }`}
+                              />
+                              <span className="text-xs font-medium text-slate-700 capitalize">
+                                {art.status}
+                              </span>
+                            </div>
+                            {art.isLocalDraft ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                <HardDrive className="w-2.5 h-2.5 text-amber-600" />
+                                Draf Lokal
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                Cloud
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2 sm:gap-1.5">
+                            {art.isLocalDraft && (
+                              <button
+                                type="button"
+                                onClick={() => handleQuickUploadToCloud(art)}
+                                disabled={saving}
+                                title="Unggah draf lokal ini ke Firebase Cloud sekarang"
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer mr-1 disabled:opacity-50"
+                              >
+                                <CloudUpload className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                                <span className="hidden sm:inline">Unggah Cloud</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePin(art)}
+                              title={art.isPinned ? 'Lepas Pin' : 'Pasang Pin Unggulan'}
+                              className={`p-3 sm:p-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 ${
+                                art.isPinned
+                                  ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
+                                  : 'text-slate-400 hover:text-slate-700'
+                              }`}
+                            >
+                              <BookmarkCheck className="w-5 h-5 sm:w-4 sm:h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(art)}
+                              title="Edit Berita"
+                              className="p-3 sm:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
+                            >
+                              <Edit2 className="w-5 h-5 sm:w-4 sm:h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setArticleToDelete(art)}
+                              title="Hapus Berita"
+                              className="p-3 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
+                            >
+                              <Trash2 className="w-5 h-5 sm:w-4 sm:h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari berita..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
-            />
-          </div>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[11px] tracking-wider">
-                <th className="py-3 px-3">Berita</th>
-                <th className="py-3 px-3">Kategori</th>
-                <th className="py-3 px-3">Tanggal</th>
-                <th className="py-3 px-3">Status Simpan</th>
-                <th className="py-3 px-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((art) => (
-                <tr key={art.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3.5 px-3 max-w-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-9 rounded-md overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                        <img
-                          src={art.coverImage}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-900 line-clamp-1 text-sm">{art.title}</p>
-                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                          {art.summary || art.content?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)}
-                        </p>
-                        
-                        {/* Tags for multi-image, embed, link */}
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          {art.galleryImages && art.galleryImages.length > 0 && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                              <ImageIcon className="w-2.5 h-2.5 text-blue-600" />
-                              {art.galleryImages.length} Foto
-                            </span>
-                          )}
-                          {art.embedUrl && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                              <Code2 className="w-2.5 h-2.5 text-purple-600" />
-                              Embed
-                            </span>
-                          )}
-                          {art.actionLink?.url && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                              <LinkIcon className="w-2.5 h-2.5 text-blue-600" />
-                              Link
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="py-3.5 px-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700">
-                      {art.category}
-                    </span>
-                  </td>
-
-                  <td className="py-3.5 px-3 text-slate-500 text-xs whitespace-nowrap">
-                    {art.date}
-                  </td>
-
-                  <td className="py-3.5 px-3 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`inline-block w-2 h-2 rounded-full ${
-                            art.status === 'published' ? 'bg-emerald-500' : 'bg-slate-400'
-                          }`}
-                        />
-                        <span className="text-xs font-medium text-slate-700 capitalize">
-                          {art.status}
-                        </span>
-                      </div>
-                      {art.isLocalDraft ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                          <HardDrive className="w-2.5 h-2.5 text-amber-600" />
-                          Draf Lokal
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                          Cloud
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                    <div className="inline-flex items-center gap-2 sm:gap-1.5">
-                      {art.isLocalDraft && (
-                        <button
-                          type="button"
-                          onClick={() => handleQuickUploadToCloud(art)}
-                          disabled={saving}
-                          title="Unggah draf lokal ini ke Firebase Cloud sekarang"
-                          className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer mr-1 disabled:opacity-50"
-                        >
-                          <CloudUpload className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                          <span className="hidden sm:inline">Unggah Cloud</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePin(art)}
-                        title={art.isPinned ? 'Lepas Pin' : 'Pasang Pin Unggulan'}
-                        className={`p-3 sm:p-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 ${
-                          art.isPinned
-                            ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
-                            : 'text-slate-400 hover:text-slate-700'
-                        }`}
-                      >
-                        <BookmarkCheck className="w-5 h-5 sm:w-4 sm:h-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(art)}
-                        title="Edit Berita"
-                        className="p-3 sm:p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
-                      >
-                        <Edit2 className="w-5 h-5 sm:w-4 sm:h-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setArticleToDelete(art)}
-                        title="Hapus Berita"
-                        className="p-3 sm:p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0"
-                      >
-                        <Trash2 className="w-5 h-5 sm:w-4 sm:h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
 
       {/* In-UI Delete Confirmation Modal */}
       {articleToDelete && (
