@@ -770,20 +770,29 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Kategori
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Kategori Berita
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryModalOpen(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 hover:text-purple-800 hover:underline cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Kelola Kategori</span>
+                      </button>
+                    </div>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none bg-white"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-600 focus:outline-none bg-white font-medium"
                     >
-                      <option value="Pengumuman">Pengumuman</option>
-                      <option value="Kegiatan">Kegiatan</option>
-                      <option value="Prestasi">Prestasi</option>
-                      <option value="Akademik">Akademik</option>
-                      <option value="Ekstrakurikuler">Ekstrakurikuler</option>
-                      <option value="Alumni">Alumni</option>
+                      {activeCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
