@@ -1001,24 +1001,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       {/* VIEW 1: DAFTAR BERITA */}
       {mainPostTab === 'list' && (
         <div className="space-y-4">
-          {/* Top Banner with visible Tulis Berita Baru Action */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-5 text-white shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="space-y-0.5">
-              <h3 className="text-sm sm:text-base font-bold">Publikasi & Kelola Informasi Sekolah</h3>
-              <p className="text-xs text-blue-100">
-                Buat berita kegiatan, pengumuman resmi, prestasi, atau halaman embed interaktif.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleStartCreate}
-              className="inline-flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-blue-50 active:bg-blue-100 font-bold py-2.5 px-5 rounded-xl shadow-sm transition-all text-xs sm:text-sm cursor-pointer shrink-0 w-full sm:w-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tulis Berita Baru</span>
-            </button>
-          </div>
-
           {/* Articles Table & Search */}
           <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
