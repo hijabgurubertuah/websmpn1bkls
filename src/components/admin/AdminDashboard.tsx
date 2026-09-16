@@ -189,21 +189,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const localDraftsCount = articles.filter((a) => Boolean(a.isLocalDraft)).length;
 
-  // Kategori: Konten & Informasi
+  // Kategori 1: Konten Utama & Informasi Sekolah
   const contentTabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
     { id: 'posts', label: 'Postingan Berita', icon: <FileText className="w-4 h-4" /> },
     { id: 'comments', label: 'Pengelola Komentar', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'agenda', label: 'Agenda & Jadwal', icon: <Calendar className="w-4 h-4" /> },
     { id: 'ppdb', label: 'PPDB Online', icon: <GraduationCap className="w-4 h-4" /> },
-    { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
     { id: 'principal', label: 'Sambutan Pimpinan', icon: <Award className="w-4 h-4" /> },
+  ];
+
+  // Kategori 2: Sistem (Sub-Sistem Website & Konfigurasi Modul)
+  const systemTabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
+    { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
     { id: 'facilities', label: 'Fasilitas & Ekskul', icon: <Building2 className="w-4 h-4" /> },
     { id: 'embeds', label: 'Video Profil dan Peta', icon: <Video className="w-4 h-4" /> },
     { id: 'footer', label: 'Footer & Kontak', icon: <Share2 className="w-4 h-4" /> },
-  ];
-
-  // Kategori: Sistem (Dapat disembunyikan / dropdown)
-  const systemTabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
     { id: 'header', label: 'Header & Identitas', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'theme', label: 'Warna & Tema Website', icon: <Palette className="w-4 h-4" /> },
     { id: 'ticker', label: 'Teks Berjalan (Ticker)', icon: <Volume2 className="w-4 h-4" /> },
@@ -217,7 +217,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ...systemTabs,
   ];
 
-  const systemTabIds = new Set<AdminTab>(['header', 'theme', 'ticker', 'layout', 'appscript', 'sync']);
+  const systemTabIds = new Set<AdminTab>([
+    'menus',
+    'facilities',
+    'embeds',
+    'footer',
+    'header',
+    'theme',
+    'ticker',
+    'layout',
+    'appscript',
+    'sync',
+  ]);
   const isSystemActive = systemTabIds.has(activeTab);
   const systemUnsavedCount = systemTabs.filter((t) => Boolean(unsavedTabs[t.id])).length;
 

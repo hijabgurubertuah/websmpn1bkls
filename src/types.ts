@@ -207,6 +207,7 @@ export interface AgendaItem {
   time: string;
   location: string;
   category: string;
+  isVisible?: boolean;
 }
 
 export interface FooterConfig {

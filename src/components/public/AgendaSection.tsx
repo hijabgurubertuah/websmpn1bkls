@@ -7,6 +7,8 @@ interface AgendaSectionProps {
 }
 
 export const AgendaSection: React.FC<AgendaSectionProps> = ({ agendas }) => {
+  const visibleAgendas = (agendas || []).filter((item) => item.isVisible !== false);
+
   return (
     <section id="agenda" className="py-16 sm:py-20 bg-white border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,8 +28,14 @@ export const AgendaSection: React.FC<AgendaSectionProps> = ({ agendas }) => {
         </div>
 
         {/* Agendas List */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {agendas.map((item, idx) => (
+        {visibleAgendas.length === 0 ? (
+          <div className="bg-slate-50 rounded-2xl p-10 text-center border border-slate-200 max-w-lg mx-auto">
+            <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-600 font-semibold text-sm">Belum ada agenda publik yang ditampilkan.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {visibleAgendas.map((item, idx) => (
             <div
               key={item.id || idx}
               className="bg-slate-50 hover:bg-blue-50/40 border border-slate-200/80 rounded-2xl p-6 transition-all duration-200 hover:shadow-md flex flex-col justify-between"
@@ -65,6 +73,7 @@ export const AgendaSection: React.FC<AgendaSectionProps> = ({ agendas }) => {
             </div>
           ))}
         </div>
+        )}
 
       </div>
     </section>
