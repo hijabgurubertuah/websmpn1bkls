@@ -308,6 +308,56 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
   const [editingNode, setEditingNode] = useState<HTMLElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
 
+  // Helper & Effect: Auto-close active popovers when tapping/clicking outside popover area
+  const closeAllPopovers = () => {
+    setShowFontMenu(false);
+    setShowFontSizeMenu(false);
+    setShowColorPicker(false);
+    setShowHighlightPicker(false);
+    setShowBulletMenu(false);
+    setShowNumberMenu(false);
+    setShowEmojiPicker(false);
+    setShowLinkModal(false);
+  };
+
+  useEffect(() => {
+    const isAnyPopoverOpen =
+      showFontMenu ||
+      showFontSizeMenu ||
+      showColorPicker ||
+      showHighlightPicker ||
+      showBulletMenu ||
+      showNumberMenu ||
+      showEmojiPicker ||
+      showLinkModal;
+
+    if (!isAnyPopoverOpen) return;
+
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('[data-popover-area="true"]')) {
+        closeAllPopovers();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [
+    showFontMenu,
+    showFontSizeMenu,
+    showColorPicker,
+    showHighlightPicker,
+    showBulletMenu,
+    showNumberMenu,
+    showEmojiPicker,
+    showLinkModal,
+  ]);
+
   // Stored articles list for internal link selector
   const [internalList, setInternalList] = useState<InternalPostItem[]>(articles);
 
@@ -1402,9 +1452,6 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
             {label}
           </label>
         )}
-        <span className="text-[10px] text-slate-400 font-medium italic">
-          (Mode WYSIWYG Terpadu: Edit & Pratinjau Langsung Secara Real-time)
-        </span>
       </div>
 
       {/* Unified Editor & Preview Panel */}
@@ -1473,6 +1520,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               {/* Custom Font Family Popover Button */}
               <button
                 type="button"
+                data-popover-area="true"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   saveSelection();
@@ -1499,7 +1547,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
 
               {/* Font Family Dropdown Popover */}
               {showFontMenu && (
-                <div className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 max-h-64 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                <div data-popover-area="true" className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 max-h-64 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
                     Pilih Jenis Font
                   </div>
@@ -1549,7 +1597,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </button>
 
               {/* Numeric Font Size Input & Custom Preset Dropdown */}
-              <div className="flex items-center relative">
+              <div data-popover-area="true" className="flex items-center relative">
                 <input
                   type="number"
                   min={8}
@@ -1592,7 +1640,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
 
                 {/* Custom Font Size Popover Menu */}
                 {showFontSizeMenu && (
-                  <div className="absolute top-8 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-28 max-h-52 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div data-popover-area="true" className="absolute top-8 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-28 max-h-52 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
                       Ukuran Preset
                     </div>
@@ -1639,7 +1687,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
             {/* Group: Text Color & Stabilo Highlight Picker */}
             <div className="flex items-center gap-1">
               {/* Text Color Button */}
-              <div className="relative">
+              <div data-popover-area="true" className="relative">
                 <button
                   type="button"
                   onMouseDown={(e) => {
@@ -1722,7 +1770,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </div>
 
               {/* Stabilo / Highlight Button */}
-              <div className="relative">
+              <div data-popover-area="true" className="relative">
                 <button
                   type="button"
                   onMouseDown={(e) => {
@@ -1890,7 +1938,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
             {/* Group: Bullet & Numbering Lists with Variations */}
             <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200 relative">
               {/* Bullet List Button & Popover */}
-              <div className="relative">
+              <div data-popover-area="true" className="relative">
                 <button
                   type="button"
                   onMouseDown={(e) => {
@@ -1940,7 +1988,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               </div>
 
               {/* Numbering List Button & Popover */}
-              <div className="relative">
+              <div data-popover-area="true" className="relative">
                 <button
                   type="button"
                   onMouseDown={(e) => {
@@ -2020,6 +2068,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               {/* Text Link Button */}
               <button
                 type="button"
+                data-popover-area="true"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   saveSelection();
@@ -2039,6 +2088,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
               {/* Emoticon Button */}
               <button
                 type="button"
+                data-popover-area="true"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   saveSelection();
@@ -2104,7 +2154,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
 
           {/* Floating Minimalist Text Link Popover */}
           {showLinkModal && (
-            <div className="absolute top-12 left-2 right-2 sm:left-auto sm:right-4 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-150 sm:w-96">
+            <div data-popover-area="true" className="absolute top-12 left-2 right-2 sm:left-auto sm:right-4 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-150 sm:w-96">
               <div className="flex items-center gap-1.5">
                 <div className="relative flex-1">
                   <input
@@ -2230,7 +2280,7 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
 
           {/* Floating Emoticon Picker Popover */}
           {showEmojiPicker && (
-            <div className="absolute top-12 left-2 sm:left-48 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-2 space-y-2 animate-in fade-in zoom-in-95 duration-150 max-w-[280px]">
+            <div data-popover-area="true" className="absolute top-12 left-2 sm:left-48 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-2 space-y-2 animate-in fade-in zoom-in-95 duration-150 max-w-[280px]">
               <div className="flex items-center justify-between border-b border-slate-100 pb-1 px-1">
                 <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                   <Smile className="w-3.5 h-3.5 text-blue-600" />

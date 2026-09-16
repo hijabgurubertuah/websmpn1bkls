@@ -858,9 +858,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className={activeTab === 'posts' ? 'block' : 'hidden'}>
             <AdminPostsTab
               articles={articles}
+              categories={config.newsCategories}
               onSaveArticle={onSaveArticle}
               onSaveArticleLocally={onSaveArticleLocally}
               onDeleteArticle={onDeleteArticle}
+              onUpdateCategories={(newCats) => handleConfigUpdate({ ...config, newsCategories: newCats })}
             />
           </div>
 

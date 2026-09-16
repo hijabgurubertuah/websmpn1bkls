@@ -46,29 +46,51 @@ const getTodayDateIndo = (): string => {
   return `${day} ${month} ${year}`;
 };
 
+const DEFAULT_CATEGORIES = [
+  'Prestasi',
+  'Pengumuman',
+  'Kegiatan',
+  'Akademik',
+  'Ekstrakurikuler',
+  'Alumni',
+];
+
 interface AdminPostsTabProps {
   articles: NewsArticle[];
+  categories?: string[];
   onSaveArticle: (article: NewsArticle) => Promise<void>;
   onSaveArticleLocally?: (article: NewsArticle) => Promise<void>;
   onDeleteArticle: (articleId: string) => Promise<void>;
+  onUpdateCategories?: (categories: string[]) => void;
 }
 
 export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   articles,
+  categories,
   onSaveArticle,
   onSaveArticleLocally,
   onDeleteArticle,
+  onUpdateCategories,
 }) => {
+  const activeCategories =
+    categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'drafts' | 'cloud'>('all');
-  const [mainPostTab, setMainPostTab] = useState<'list' | 'write'>('list');
-  const [isEditing, setIsEditing] = useState(false);
+  const [mainPostTab, setMainPostTab] = useState<'list' | 'write'>('write');
+  const [isEditing, setIsEditing] = useState(true);
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [postEditorTab, setPostEditorTab] = useState<'content' | 'embed'>('content');
 
+  // Category Management Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [editingCatIndex, setEditingCatIndex] = useState<number | null>(null);
+  const [editingCatValue, setEditingCatValue] = useState('');
+
   // Form states
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Prestasi');
+  const [category, setCategory] = useState(() => activeCategories[0] || 'Prestasi');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
   const [coverImage, setCoverImage] = useState('');
@@ -94,13 +116,99 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
   const [articleToDelete, setArticleToDelete] = useState<NewsArticle | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Lock body scroll when delete confirmation modal is open
-  useBodyScrollLock(!!articleToDelete);
+  // Lock body scroll when modal is open
+  useBodyScrollLock(!!articleToDelete || isCategoryModalOpen);
 
   const [feedbackToast, setFeedbackToast] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  // --- CATEGORY MANAGEMENT HANDLERS ---
+  const handleAddCategory = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newCategoryInput.trim();
+    if (!trimmed) return;
+    if (activeCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setFeedbackToast({
+        type: 'error',
+        message: `Kategori "${trimmed}" sudah ada.`,
+      });
+      setTimeout(() => setFeedbackToast(null), 2500);
+      return;
+    }
+    const updated = [...activeCategories, trimmed];
+    if (onUpdateCategories) {
+      onUpdateCategories(updated);
+    }
+    setNewCategoryInput('');
+    setCategory(trimmed);
+    setFeedbackToast({
+      type: 'success',
+      message: `Kategori "${trimmed}" berhasil ditambahkan.`,
+    });
+    setTimeout(() => setFeedbackToast(null), 2500);
+  };
+
+  const handleStartEditCategory = (index: number) => {
+    setEditingCatIndex(index);
+    setEditingCatValue(activeCategories[index]);
+  };
+
+  const handleSaveEditCategory = (index: number) => {
+    const trimmed = editingCatValue.trim();
+    if (!trimmed) return;
+    const oldName = activeCategories[index];
+    const updated = [...activeCategories];
+    updated[index] = trimmed;
+
+    if (onUpdateCategories) {
+      onUpdateCategories(updated);
+    }
+
+    // Automatically update existing articles matching old category name
+    articles.forEach((art) => {
+      if (art.category === oldName) {
+        onSaveArticle({ ...art, category: trimmed });
+      }
+    });
+
+    if (category === oldName) {
+      setCategory(trimmed);
+    }
+
+    setEditingCatIndex(null);
+    setEditingCatValue('');
+    setFeedbackToast({
+      type: 'success',
+      message: `Kategori "${oldName}" berhasil diubah menjadi "${trimmed}".`,
+    });
+    setTimeout(() => setFeedbackToast(null), 2500);
+  };
+
+  const handleDeleteCategory = (index: number) => {
+    if (activeCategories.length <= 1) {
+      setFeedbackToast({
+        type: 'error',
+        message: 'Minimal harus ada 1 kategori berita.',
+      });
+      setTimeout(() => setFeedbackToast(null), 2500);
+      return;
+    }
+    const catToRemove = activeCategories[index];
+    const updated = activeCategories.filter((_, i) => i !== index);
+    if (onUpdateCategories) {
+      onUpdateCategories(updated);
+    }
+    if (category === catToRemove) {
+      setCategory(updated[0] || 'Umum');
+    }
+    setFeedbackToast({
+      type: 'success',
+      message: `Kategori "${catToRemove}" dihapus.`,
+    });
+    setTimeout(() => setFeedbackToast(null), 2500);
+  };
 
   const handleIframeInputChange = (rawHtml: string) => {
     setRawIframeInput(rawHtml);
@@ -116,7 +224,7 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
 
   const resetForm = () => {
     setTitle('');
-    setCategory('Prestasi');
+    setCategory(activeCategories[0] || 'Prestasi');
     setSummary('');
     setContent('');
     setCoverImage('');
@@ -459,9 +567,28 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
         </div>
       )}
 
-      {/* Top Primary Sub-Tabs: Daftar Berita vs Tulis Berita */}
+      {/* Top Primary Sub-Tabs: Tulis Berita Baru vs Daftar Berita */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-1.5 flex-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isEditing) {
+                handleStartCreate();
+              } else {
+                setMainPostTab('write');
+              }
+            }}
+            className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 py-2.5 px-4 sm:px-5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              mainPostTab === 'write'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            {editingArticleId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            <span>{editingArticleId ? 'Edit Berita' : 'Tulis Berita Baru'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setMainPostTab('list')}
@@ -481,25 +608,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
               {articles.length}
             </span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (!isEditing) {
-                handleStartCreate();
-              } else {
-                setMainPostTab('write');
-              }
-            }}
-            className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 py-2.5 px-4 sm:px-5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              mainPostTab === 'write'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            {editingArticleId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            <span>{editingArticleId ? 'Edit Berita' : 'Tulis Berita Baru'}</span>
-          </button>
         </div>
 
         {mainPostTab === 'list' && (
@@ -517,50 +625,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
       {/* Editor Tab / Form */}
       {mainPostTab === 'write' && (
         <div className="bg-white rounded-2xl p-5 sm:p-7 border border-slate-200 shadow-xs space-y-5">
-          {/* Top Bar with Big Tabs & Close Button */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  setMainPostTab('list');
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Kembali ke Daftar</span>
-              </button>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                {editingArticleId ? 'Edit Postingan Berita' : 'Tulis Postingan Berita Baru'}
-              </h3>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {editingArticleId && (
-                isCurrentDraftLocal ? (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300">
-                    <HardDrive className="w-3 h-3 text-amber-600" />
-                    Draf Lokal
-                  </span>
-                ) : (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    Cloud
-                  </span>
-                )
-              )}
-              <button
-                type="button"
-                onClick={resetForm}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer border border-slate-200 transition-colors"
-                title="Tutup Form Editor"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
           <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 border border-slate-200 max-w-md">
             <button
               type="button"
@@ -622,20 +686,29 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Kategori Berita
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Kategori Berita
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCategoryModalOpen(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Kelola Kategori</span>
+                      </button>
+                    </div>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white font-medium"
                     >
-                      <option value="Prestasi">Prestasi</option>
-                      <option value="Pengumuman">Pengumuman</option>
-                      <option value="Kegiatan">Kegiatan</option>
-                      <option value="Akademik">Akademik</option>
-                      <option value="Ekstrakurikuler">Ekstrakurikuler</option>
-                      <option value="Alumni">Alumni</option>
+                      {activeCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -663,20 +736,6 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                     aspectRatio="wide"
                     placeholder="https://... atau tempel link Google Drive"
                     allowDriveConverter={true}
-                  />
-                </div>
-
-                {/* Ringkasan Singkat */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Ringkasan Singkat (Opsional)
-                  </label>
-                  <AutoResizeTextarea
-                    minRows={2}
-                    value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
-                    placeholder="Ringkasan singkat berita..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                   />
                 </div>
 
@@ -1273,6 +1332,132 @@ export const AdminPostsTab: React.FC<AdminPostsTabProps> = ({
                     <span>Ya, Hapus Sekarang</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Management Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overscroll-contain touch-none animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Kelola Kategori Berita</h3>
+                  <p className="text-xs text-slate-500">Tambah, ubah nama, atau hapus kategori</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCategoryModalOpen(false);
+                  setEditingCatIndex(null);
+                  setNewCategoryInput('');
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form Tambah Kategori */}
+            <form onSubmit={handleAddCategory} className="flex gap-2">
+              <input
+                type="text"
+                value={newCategoryInput}
+                onChange={(e) => setNewCategoryInput(e.target.value)}
+                placeholder="Nama kategori baru..."
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
+              />
+              <button
+                type="submit"
+                disabled={!newCategoryInput.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah</span>
+              </button>
+            </form>
+
+            {/* Daftar Kategori */}
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Daftar Kategori ({activeCategories.length})
+              </label>
+              <div className="space-y-1.5">
+                {activeCategories.map((cat, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white transition-colors"
+                  >
+                    {editingCatIndex === idx ? (
+                      <div className="flex items-center gap-2 flex-1 mr-2">
+                        <input
+                          type="text"
+                          value={editingCatValue}
+                          onChange={(e) => setEditingCatValue(e.target.value)}
+                          className="flex-1 px-3 py-1 rounded-lg border border-blue-500 text-xs font-bold focus:outline-none bg-white"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEditCategory(idx)}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg cursor-pointer"
+                        >
+                          Simpan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingCatIndex(null)}
+                          className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-xs font-bold text-slate-800">{cat}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditCategory(idx)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors"
+                            title="Edit nama kategori"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(idx)}
+                            className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                            title="Hapus kategori"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCategoryModalOpen(false);
+                  setEditingCatIndex(null);
+                  setNewCategoryInput('');
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Selesai
               </button>
             </div>
           </div>

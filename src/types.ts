@@ -268,6 +268,7 @@ export interface SchoolConfig {
   themeConfig?: ThemeConfig;
   googleAppsScript?: GoogleAppsScriptConfig;
   commentsConfig?: CommentModerationConfig;
+  newsCategories?: string[];
   facilitiesTabTitle?: string;
   ekskulTabTitle?: string;
   facilitiesSectionTitle?: string;
