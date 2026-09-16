@@ -46,6 +46,7 @@ import { AdminEmbedsTab } from './AdminEmbedsTab';
 import { AdminFooterTab } from './AdminFooterTab';
 import { AdminSyncTab } from './AdminSyncTab';
 import { AdminGoogleAppsScriptTab } from './AdminGoogleAppsScriptTab';
+import { AdminUsersTab } from './AdminUsersTab';
 import {
   saveSchoolTabConfig,
   syncAdminWithFirebaseIfDifferent,
@@ -80,7 +81,8 @@ export type AdminTab =
   | 'embeds'
   | 'footer'
   | 'appscript'
-  | 'sync';
+  | 'sync'
+  | 'users';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   config,
@@ -101,6 +103,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [toastMessage, setToastMessage] = useState('Perubahan Tersimpan!');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSystemCategoryOpen, setIsSystemCategoryOpen] = useState(false);
+
+  const [adminRole, setAdminRole] = useState<'superadmin' | 'admin'>('admin');
+  const [adminName, setAdminName] = useState<string>('Admin Utama');
+
+  useEffect(() => {
+    const role = localStorage.getItem('admin_role') as 'superadmin' | 'admin';
+    const name = localStorage.getItem('admin_user_name');
+    if (role) setAdminRole(role);
+    if (name) setAdminName(name);
+  }, []);
 
   // Cross-device synchronization state
   const [isCrossDeviceSyncing, setIsCrossDeviceSyncing] = useState(false);
@@ -198,6 +210,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'principal', label: 'Sambutan Pimpinan', icon: <Award className="w-4 h-4" /> },
   ];
 
+  if (adminRole === 'superadmin') {
+    contentTabs.push({ id: 'users', label: 'Kelola Pengguna', icon: <ShieldCheck className="w-4 h-4 text-purple-500" /> });
+  }
+
   // Kategori 2: Sistem (Sub-Sistem Website & Konfigurasi Modul)
   const systemTabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
     { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
@@ -209,7 +225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'ticker', label: 'Teks Berjalan (Ticker)', icon: <Volume2 className="w-4 h-4" /> },
     { id: 'layout', label: 'Tata Letak', icon: <Layout className="w-4 h-4" /> },
     { id: 'appscript', label: 'Google Drive & Sheets', icon: <FileSpreadsheet className="w-4 h-4" /> },
-    { id: 'sync', label: 'Firebase & Backup', icon: <Database className="w-4 h-4" /> },
+    { id: 'sync', label: 'Firebase & Backup', icon: <Database className="w-4 h-4 text-blue-400" /> },
   ];
 
   const tabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
@@ -312,7 +328,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                     <span className="inline-flex items-center gap-1 bg-blue-900/80 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-700">
                       <ShieldCheck className="w-3 h-3" />
-                      v2.0
+                      {adminRole === 'superadmin' ? 'Superadmin' : 'Admin'}
+                    </span>
+                    <span className="text-[11px] text-slate-300 bg-slate-800 px-2.5 py-0.5 rounded-md font-bold truncate max-w-[150px]" title={adminName}>
+                      {adminName}
                     </span>
                   </div>
                   <span className="text-xs text-slate-400 font-medium truncate max-w-xs">
@@ -511,101 +530,103 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             })}
           </div>
 
-          {/* Kategori 2: Sistem (Dropdown / Collapsible) */}
-          <div className="pt-2 border-t border-slate-800 space-y-1">
-            <button
-              type="button"
-              onClick={() => setIsSystemCategoryOpen((prev) => !prev)}
-              className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${
-                isSystemActive
-                  ? 'bg-blue-950/70 border border-blue-800/80 text-blue-200 shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-              }`}
-              aria-expanded={isSystemCategoryOpen}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                  isSystemActive ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
-                }`}>
-                  <Settings className="w-4 h-4" />
+          {/* Kategori 2: Sistem (Dropdown / Collapsible) - HANYA UNTUK SUPERADMIN */}
+          {adminRole === 'superadmin' && (
+            <div className="pt-2 border-t border-slate-800 space-y-1">
+              <button
+                type="button"
+                onClick={() => setIsSystemCategoryOpen((prev) => !prev)}
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left select-none ${
+                  isSystemActive
+                    ? 'bg-blue-950/70 border border-blue-800/80 text-blue-200 shadow-xs'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                }`}
+                aria-expanded={isSystemCategoryOpen}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    isSystemActive ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    <Settings className="w-4 h-4" />
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-extrabold uppercase tracking-wider text-xs">Sistem</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">
+                      {systemTabs.length} Menu
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-extrabold uppercase tracking-wider text-xs">Sistem</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">
-                    {systemTabs.length} Menu
-                  </span>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {!isSystemCategoryOpen && systemUnsavedCount > 0 && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      {systemUnsavedCount} Lokal
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                      isSystemCategoryOpen ? 'rotate-180 text-blue-400' : ''
+                    }`}
+                  />
                 </div>
-              </div>
+              </button>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {!isSystemCategoryOpen && systemUnsavedCount > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    {systemUnsavedCount} Lokal
-                  </span>
-                )}
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                    isSystemCategoryOpen ? 'rotate-180 text-blue-400' : ''
-                  }`}
-                />
-              </div>
-            </button>
+              {/* Dropdown Items (Header, Warna & Tema, Teks Berjalan, Tata Letak, Google Drive & Sheets, Firebase) */}
+              {isSystemCategoryOpen && (
+                <div className="pl-2 space-y-1 border-l-2 border-blue-500/40 ml-3.5 pt-1 animate-in slide-in-from-top-2 duration-150">
+                  {systemTabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    const isUnsaved = Boolean(unsavedTabs[tab.id]);
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left ${
+                          isActive
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`p-1.5 rounded-lg shrink-0 ${
+                              isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {tab.icon}
+                          </span>
+                          <span className="truncate">{tab.label}</span>
+                        </div>
 
-            {/* Dropdown Items (Header, Warna & Tema, Teks Berjalan, Tata Letak, Google Drive & Sheets, Firebase) */}
-            {isSystemCategoryOpen && (
-              <div className="pl-2 space-y-1 border-l-2 border-blue-500/40 ml-3.5 pt-1 animate-in slide-in-from-top-2 duration-150">
-                {systemTabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  const isUnsaved = Boolean(unsavedTabs[tab.id]);
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-left ${
-                        isActive
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span
-                          className={`p-1.5 rounded-lg shrink-0 ${
-                            isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
-                          }`}
-                        >
-                          {tab.icon}
-                        </span>
-                        <span className="truncate">{tab.label}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        {tab.id !== 'sync' && (
-                          isUnsaved ? (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                              Lokal
-                            </span>
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          {tab.id !== 'sync' && (
+                            isUnsaved ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                Lokal
+                              </span>
+                            ) : (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Tersinkron" />
+                            )
+                          )}
+                          {isActive ? (
+                            <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
                           ) : (
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Tersinkron" />
-                          )
-                        )}
-                        {isActive ? (
-                          <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                            <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Drawer Footer Actions */}
@@ -704,98 +725,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               })}
             </div>
 
-            {/* Kategori 2: Sistem (Dropdown Collapsible) */}
-            <div className="pt-2 border-t border-slate-200 space-y-1">
-              <button
-                type="button"
-                onClick={() => setIsSystemCategoryOpen((prev) => !prev)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
-                  isSystemActive
-                    ? 'bg-blue-50 text-blue-900 font-extrabold border border-blue-200 shadow-2xs'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-                aria-expanded={isSystemCategoryOpen}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
-                    isSystemActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    <Settings className="w-3.5 h-3.5" />
+            {/* Kategori 2: Sistem (Dropdown Collapsible) - HANYA UNTUK SUPERADMIN */}
+            {adminRole === 'superadmin' && (
+              <div className="pt-2 border-t border-slate-200 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setIsSystemCategoryOpen((prev) => !prev)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
+                    isSystemActive
+                      ? 'bg-blue-50 text-blue-900 font-extrabold border border-blue-200 shadow-2xs'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                  aria-expanded={isSystemCategoryOpen}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                      isSystemActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      <Settings className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate tracking-wide text-xs">Sistem</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500 font-semibold border border-slate-200">
+                        {systemTabs.length}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="truncate tracking-wide text-xs">Sistem</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-500 font-semibold border border-slate-200">
-                      {systemTabs.length}
-                    </span>
+
+                  <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                    {!isSystemCategoryOpen && systemUnsavedCount > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Ada tab sistem belum disinkronkan" />
+                    )}
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                        isSystemCategoryOpen ? 'rotate-180 text-blue-600' : ''
+                      }`}
+                    />
                   </div>
-                </div>
+                </button>
 
-                <div className="flex items-center gap-1.5 shrink-0 ml-1">
-                  {!isSystemCategoryOpen && systemUnsavedCount > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Ada tab sistem belum disinkronkan" />
-                  )}
-                  <ChevronDown
-                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                      isSystemCategoryOpen ? 'rotate-180 text-blue-600' : ''
-                    }`}
-                  />
-                </div>
-              </button>
+                {/* Dropdown Items (Header, Warna & Tema, Teks Berjalan, Tata Letak, Google Drive & Sheets, Firebase) */}
+                {isSystemCategoryOpen && (
+                  <div className="space-y-1 pl-2 ml-2.5 border-l-2 border-blue-200/70 pt-1 animate-in slide-in-from-top-2 duration-150">
+                    {systemTabs.map((tab) => {
+                      const isActive = activeTab === tab.id;
+                      const isUnsaved = Boolean(unsavedTabs[tab.id]);
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left ${
+                            isActive
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={isActive ? 'text-white' : 'text-slate-500'}>
+                              {tab.icon}
+                            </span>
+                            <span className="truncate">{tab.label}</span>
+                          </div>
 
-              {/* Dropdown Items (Header, Warna & Tema, Teks Berjalan, Tata Letak, Google Drive & Sheets, Firebase) */}
-              {isSystemCategoryOpen && (
-                <div className="space-y-1 pl-2 ml-2.5 border-l-2 border-blue-200/70 pt-1 animate-in slide-in-from-top-2 duration-150">
-                  {systemTabs.map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    const isUnsaved = Boolean(unsavedTabs[tab.id]);
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-left ${
-                          isActive
-                            ? 'bg-blue-600 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={isActive ? 'text-white' : 'text-slate-500'}>
-                            {tab.icon}
-                          </span>
-                          <span className="truncate">{tab.label}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
-                          {tab.id !== 'sync' && (
-                            isUnsaved ? (
-                              <span
-                                className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
-                                  isActive
-                                    ? 'bg-amber-400 text-amber-950'
-                                    : 'bg-amber-100 text-amber-800 border border-amber-300'
-                                }`}
-                                title="Hanya tersimpan di lokal (belum disinkronkan ke Firebase)"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
-                                Lokal
-                              </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center"
-                                title="Tersinkron dengan Firebase"
-                              >
-                                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-300' : 'bg-emerald-500'}`} />
-                              </span>
-                            )
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                          <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+                            {tab.id !== 'sync' && (
+                              isUnsaved ? (
+                                <span
+                                  className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                                    isActive
+                                      ? 'bg-amber-400 text-amber-950'
+                                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  }`}
+                                  title="Hanya tersimpan di lokal (belum disinkronkan ke Firebase)"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+                                  Lokal
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center"
+                                  title="Tersinkron dengan Firebase"
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-300' : 'bg-emerald-500'}`} />
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
 
@@ -896,6 +919,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {activeTab === 'appscript' && (
             <AdminGoogleAppsScriptTab config={config} onChange={handleConfigUpdate} />
+          )}
+
+          {activeTab === 'users' && (
+            <AdminUsersTab config={config} onChange={handleConfigUpdate} />
           )}
 
           {activeTab === 'sync' && (

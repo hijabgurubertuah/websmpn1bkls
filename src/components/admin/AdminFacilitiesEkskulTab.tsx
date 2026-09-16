@@ -61,6 +61,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
     schedule: '',
     icon: 'Trophy',
     description: '',
+    imageUrl: '',
   });
 
   const facilityCategories = ['Teknologi', 'Literasi', 'Sains', 'Olahraga', 'Laboratorium', 'Seni', 'Umum'];
@@ -160,6 +161,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
       schedule: 'Setiap Jumat, 15:00 WIB',
       icon: 'Flag',
       description: '',
+      imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80',
     });
     setIsEkskulModalOpen(true);
   };
@@ -173,6 +175,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
       schedule: ekskul.schedule,
       icon: ekskul.icon,
       description: ekskul.description,
+      imageUrl: ekskul.imageUrl || '',
     });
     setIsEkskulModalOpen(true);
   };
@@ -800,6 +803,18 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <ImageUploadButton
+                  label="Foto Cover Kegiatan"
+                  value={ekskulFormData.imageUrl || ''}
+                  onChange={(url) => setEkskulFormData({ ...ekskulFormData, imageUrl: url })}
+                  preset="post"
+                  aspectRatio="wide"
+                  placeholder="https://... atau tempel link foto cover"
+                  allowDriveConverter={true}
+                />
               </div>
 
               <div>

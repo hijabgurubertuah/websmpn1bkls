@@ -8,6 +8,7 @@ interface AdminLoginModalProps {
   onSuccess: () => void;
   configuredPassword?: string;
   schoolName: string;
+  users?: Array<{ name: string; password: string }>;
 }
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
@@ -15,6 +16,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onClose,
   onSuccess,
   configuredPassword = 'smpn1bks',
+  users = [],
 }) => {
   // Lock body scroll while login modal is open
   useBodyScrollLock(isOpen);
@@ -31,11 +33,33 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     setErrorMsg('');
     setIsSubmitting(true);
 
-    const targetPassword = (configuredPassword || 'smpn1bks').trim();
+    const inputVal = inputPassword.trim().toLowerCase();
+    const defaultAdminPassword = (configuredPassword || 'smpn1bks').trim().toLowerCase();
 
     setTimeout(() => {
-      if (inputPassword.trim() === targetPassword) {
+      let matchedRole: 'superadmin' | 'admin' | null = null;
+      let matchedName = '';
+
+      if (inputVal === 'superadmin123') {
+        matchedRole = 'superadmin';
+        matchedName = 'Super Admin';
+      } else if (users && users.length > 0) {
+        const foundUser = users.find((u) => u.password?.trim().toLowerCase() === inputVal);
+        if (foundUser) {
+          matchedRole = 'admin';
+          matchedName = foundUser.name;
+        }
+      }
+
+      if (!matchedRole && inputVal === defaultAdminPassword) {
+        matchedRole = 'admin';
+        matchedName = 'Admin Utama';
+      }
+
+      if (matchedRole) {
         localStorage.setItem('admin_authenticated', 'true');
+        localStorage.setItem('admin_role', matchedRole);
+        localStorage.setItem('admin_user_name', matchedName);
         setIsSubmitting(false);
         setInputPassword('');
         onSuccess();

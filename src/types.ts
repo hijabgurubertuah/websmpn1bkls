@@ -198,6 +198,7 @@ export interface ExtracurricularItem {
   schedule: string;
   icon: string;
   description: string;
+  imageUrl?: string;
 }
 
 export interface AgendaItem {
@@ -250,8 +251,14 @@ export interface GoogleAppsScriptConfig {
   testMessage?: string;
 }
 
+export interface SchoolUser {
+  name: string;
+  password: string;
+}
+
 export interface SchoolConfig {
   adminPassword?: string;
+  users?: SchoolUser[];
   identity: SchoolIdentity;
   importantAnnouncement?: ImportantAnnouncement;
   header: HeaderConfig;

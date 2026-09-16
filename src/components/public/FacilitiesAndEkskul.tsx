@@ -15,6 +15,7 @@ import {
   BookOpen,
   Users,
   Target,
+  X,
 } from 'lucide-react';
 
 interface FacilitiesAndEkskulProps {
@@ -35,6 +36,9 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
   facilitiesSectionSubtitle = 'Dukungan penuh sarana fisik berstandar tinggi serta wadah pengembangan talenta generasi muda.',
 }) => {
   const [activeTab, setActiveTab] = useState<'facilities' | 'ekskul'>('facilities');
+
+  const [selectedFacility, setSelectedFacility] = useState<FacilityItem | null>(null);
+  const [selectedEkskul, setSelectedEkskul] = useState<ExtracurricularItem | null>(null);
 
   useEffect(() => {
     const handleSelectTab = (e: Event) => {
@@ -123,13 +127,14 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
 
         {/* Facilities Tab Content - 2 columns on Mobile grid-cols-2 */}
         {activeTab === 'facilities' && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 animate-in fade-in duration-300">
             {facilities.map((fac) => (
               <div
                 key={fac.id}
-                className="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col"
+                onClick={() => setSelectedFacility(fac)}
+                className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col cursor-pointer transform hover:-translate-y-1 duration-300"
               >
-                <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
+                <div className="relative aspect-16/10 sm:aspect-4/3 overflow-hidden bg-slate-100">
                   <img
                     src={fac.imageUrl}
                     alt={fac.title}
@@ -140,13 +145,14 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
                     {fac.category}
                   </span>
                 </div>
-                <div className="p-3 sm:p-5 flex flex-col flex-1">
-                  <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-tight mb-1 sm:mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">
+                <div className="p-3 sm:p-5 flex flex-col flex-1 justify-between">
+                  <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {fac.title}
                   </h3>
-                  <p className="text-slate-600 text-[10px] sm:text-xs md:text-sm leading-relaxed flex-1 line-clamp-2 sm:line-clamp-none">
-                    {fac.description}
-                  </p>
+                  <div className="mt-2 text-[10px] sm:text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-1">
+                    <span>Lihat Detail</span>
+                    <span>&rarr;</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -155,38 +161,39 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
 
         {/* Extracurriculars Tab Content - 2 columns on Mobile grid-cols-2 */}
         {activeTab === 'ekskul' && (
-          <div id="ekskul" className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in duration-300">
+          <div id="ekskul" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 animate-in fade-in duration-300">
             {extracurriculars.map((ekskul) => (
               <div
                 key={ekskul.id}
-                className="bg-white rounded-2xl p-3 sm:p-6 border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between"
+                onClick={() => setSelectedEkskul(ekskul)}
+                className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-lg transition-all flex flex-col cursor-pointer transform hover:-translate-y-1 duration-300"
               >
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 sm:mb-4">
-                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-blue-50 border border-blue-100 self-start">
-                      {getEkskulIcon(ekskul.icon)}
+                <div className="relative aspect-16/10 sm:aspect-4/3 overflow-hidden bg-slate-100 flex items-center justify-center">
+                  {ekskul.imageUrl ? (
+                    <img
+                      src={ekskul.imageUrl}
+                      alt={ekskul.name}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                      <div className="p-3 rounded-2xl bg-white shadow-xs border border-indigo-50">
+                        {getEkskulIcon(ekskul.icon)}
+                      </div>
                     </div>
-                    <span className="text-[9px] sm:text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full w-fit">
-                      {ekskul.category}
-                    </span>
-                  </div>
-
-                  <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 mb-1 sm:mb-2 line-clamp-1">
+                  )}
+                  <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-slate-900/85 backdrop-blur-md text-white text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md">
+                    {ekskul.category}
+                  </span>
+                </div>
+                <div className="p-3 sm:p-5 flex flex-col flex-1 justify-between">
+                  <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {ekskul.name}
                   </h3>
-                  <p className="text-slate-600 text-[10px] sm:text-xs md:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-2 sm:line-clamp-none">
-                    {ekskul.description}
-                  </p>
-                </div>
-
-                <div className="pt-2 sm:pt-4 border-t border-slate-100 space-y-1 sm:space-y-1.5 text-[9px] sm:text-xs text-slate-500">
-                  <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                    <UserCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">Pembina: {ekskul.coach}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">Jadwal: {ekskul.schedule}</span>
+                  <div className="mt-2 text-[10px] sm:text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-1">
+                    <span>Lihat Detail</span>
+                    <span>&rarr;</span>
                   </div>
                 </div>
               </div>
@@ -195,6 +202,145 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
         )}
 
       </div>
+
+      {/* ================= DETAIL MODAL: FASILITAS ================= */}
+      {selectedFacility && (
+        <div
+          onClick={() => setSelectedFacility(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+          >
+            {/* Image Header Area */}
+            <div className="relative aspect-16/10 bg-slate-100 w-full shrink-0">
+              <img
+                src={selectedFacility.imageUrl}
+                alt={selectedFacility.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+              <span className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-md">
+                {selectedFacility.category}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedFacility(null)}
+                className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 backdrop-blur-xs text-white rounded-full transition-all cursor-pointer"
+                aria-label="Tutup detail"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug">
+                {selectedFacility.title}
+              </h3>
+              <div className="h-px bg-slate-100 w-full" />
+              <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                {selectedFacility.description}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedFacility(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= DETAIL MODAL: EKSTRAKURIKULER ================= */}
+      {selectedEkskul && (
+        <div
+          onClick={() => setSelectedEkskul(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+          >
+            {/* Image/Icon Header Area */}
+            <div className="relative aspect-16/10 bg-slate-100 w-full shrink-0 flex items-center justify-center">
+              {selectedEkskul.imageUrl ? (
+                <img
+                  src={selectedEkskul.imageUrl}
+                  alt={selectedEkskul.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                  <div className="p-4 rounded-3xl bg-white shadow-md border border-indigo-50">
+                    {getEkskulIcon(selectedEkskul.icon)}
+                  </div>
+                </div>
+              )}
+              <span className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-md">
+                {selectedEkskul.category}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedEkskul(null)}
+                className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 backdrop-blur-xs text-white rounded-full transition-all cursor-pointer"
+                aria-label="Tutup detail"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug">
+                {selectedEkskul.name}
+              </h3>
+              
+              {/* Meta Info Box */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs text-slate-600">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pembina</span>
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                    <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span className="truncate">{selectedEkskul.coach || '-'}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jadwal</span>
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                    <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="truncate">{selectedEkskul.schedule || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-slate-100 w-full" />
+              <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                {selectedEkskul.description}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedEkskul(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

@@ -341,10 +341,12 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('touchstart', handlePointerDown);
 
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('touchstart', handlePointerDown);
     };
   }, [

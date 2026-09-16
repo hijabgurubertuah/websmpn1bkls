@@ -500,6 +500,7 @@ export default function App() {
         }}
         configuredPassword={config.adminPassword || 'smpn1bks'}
         schoolName={config.identity.name}
+        users={config.users || []}
       />
 
       {/* Main Navigation Bar with Dynamic Dropdown Menus and Single Gear Admin Button */}
