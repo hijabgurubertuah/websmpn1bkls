@@ -1,19 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { NewsArticle } from '../../types';
 import {
-  Calendar,
-  User,
-  ChevronRight,
   BookmarkCheck,
   Newspaper,
   Search,
-  Eye,
   Image as ImageIcon,
   Code2,
-  ExternalLink,
 } from 'lucide-react';
 import { NewsDetailModal } from './NewsDetailModal';
-import { getArticleViewsCount } from '../../lib/comments';
 
 interface NewsSectionProps {
   articles: NewsArticle[];
@@ -107,7 +101,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
     return () => window.removeEventListener('popstate', checkUrlForPost);
   }, [articles, onSelectArticle]);
 
-  // Layout Columns state (1, 2, 3, or 4 columns)
+  // Layout Columns state (1, 2, 3, or 4 columns, default 2)
   const [layoutColumns, setLayoutColumns] = useState<1 | 2 | 3 | 4>(() => {
     try {
       const saved = localStorage.getItem('public_news_layout_cols');
@@ -117,7 +111,7 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
     } catch {
       // ignore
     }
-    return 3;
+    return 2;
   });
 
   const handleCycleLayout = () => {
@@ -377,89 +371,31 @@ export const NewsSection: React.FC<NewsSectionProps> = ({
                   </div>
                 </div>
 
-                {/* Content */}
+                {/* Content - Cover & Title only across all column layouts */}
                 <div
-                  className={`flex flex-col flex-1 justify-between ${
+                  className={`flex flex-col flex-1 justify-center ${
                     layoutColumns === 4
-                      ? 'p-1.5 sm:p-3.5'
+                      ? 'p-2 sm:p-3'
                       : layoutColumns === 3
-                      ? 'p-2 sm:p-5'
+                      ? 'p-2.5 sm:p-4'
                       : layoutColumns === 2
                       ? 'p-2.5 sm:p-4'
-                      : 'p-4 sm:p-6'
+                      : 'p-3.5 sm:p-5'
                   }`}
                 >
-                  <div>
-                    {/* Meta (Date & Views - Hidden in 2-column or 4-column mode) */}
-                    {layoutColumns !== 2 && layoutColumns !== 4 && (
-                      <div
-                        className={`flex items-center gap-1.5 sm:gap-3 text-slate-400 mb-1.5 sm:mb-2.5 ${
-                          layoutColumns === 3
-                            ? 'text-[9px] sm:text-xs'
-                            : 'text-xs'
-                        }`}
-                      >
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          {article.date}
-                        </span>
-                        <span className={layoutColumns === 3 ? 'hidden sm:inline' : 'inline'}>•</span>
-                        <span className={`items-center gap-1 ${layoutColumns === 3 ? 'hidden sm:flex' : 'flex'}`}>
-                          <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          {getArticleViewsCount(article.id, article.views || 0)} dibaca
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Title */}
-                    <h3
-                      className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 ${
-                        layoutColumns === 4
-                          ? 'text-[10px] sm:text-sm mb-0.5 leading-tight'
-                          : layoutColumns === 3
-                          ? 'text-xs sm:text-lg mb-1 sm:mb-2'
-                          : layoutColumns === 2
-                          ? 'text-xs sm:text-base'
-                          : 'text-base sm:text-lg mb-1 sm:mb-2'
-                      }`}
-                    >
-                      {article.title}
-                    </h3>
-                  </div>
-
-                  {/* Author & Read More */}
-                  {layoutColumns !== 2 && (
-                    <div
-                      className={`border-t border-slate-100 flex items-center justify-between text-xs ${
-                        layoutColumns === 4 ? 'pt-1 sm:pt-3' : 'pt-2 sm:pt-3'
-                      }`}
-                    >
-                      {article.author ? (
-                        <span
-                          className={`text-slate-500 font-medium items-center gap-1 truncate ${
-                            layoutColumns === 4
-                              ? 'hidden'
-                              : layoutColumns === 3
-                              ? 'hidden sm:flex max-w-[150px]'
-                              : 'flex max-w-[120px] sm:max-w-[180px]'
-                          }`}
-                        >
-                          <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
-                          {article.author}
-                        </span>
-                      ) : (
-                        <span />
-                      )}
-                      <span
-                        className={`text-blue-600 font-bold items-center gap-0.5 sm:gap-1 group-hover:translate-x-1 transition-transform ml-auto sm:ml-0 ${
-                          layoutColumns === 4 || layoutColumns === 3 ? 'text-[10px] sm:text-xs' : 'text-xs'
-                        }`}
-                      >
-                        <span className={layoutColumns === 3 || layoutColumns === 4 ? 'hidden sm:inline' : 'inline'}>Baca</span>
-                        <ChevronRight className={layoutColumns === 4 ? 'w-3 h-3 sm:w-4 sm:h-4' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'} />
-                      </span>
-                    </div>
-                  )}
+                  <h3
+                    className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 ${
+                      layoutColumns === 4
+                        ? 'text-xs sm:text-sm leading-tight'
+                        : layoutColumns === 3
+                        ? 'text-xs sm:text-base'
+                        : layoutColumns === 2
+                        ? 'text-xs sm:text-base'
+                        : 'text-sm sm:text-lg'
+                    }`}
+                  >
+                    {article.title}
+                  </h3>
                 </div>
               </div>
             ))}
