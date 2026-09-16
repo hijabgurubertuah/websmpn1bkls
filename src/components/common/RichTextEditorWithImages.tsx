@@ -1460,66 +1460,69 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
       <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-2xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:border-blue-600 transition-all relative">
           
           {/* Formatting Toolbar */}
-          <div className="bg-slate-50 border-b border-slate-200 p-2 flex flex-wrap items-center gap-1.5 relative">
+          <div className="bg-slate-50 border-b border-slate-200 p-1.5 flex flex-wrap items-center gap-1 relative">
             
-            {/* Group 1: Text Style Buttons */}
-            <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('bold')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.bold
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Tebal (Bold)"
-                aria-label="Tebal"
-              >
-                <Bold className="w-4 h-4 stroke-[3]" />
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('italic')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.italic
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Miring (Italic)"
-                aria-label="Miring"
-              >
-                <Italic className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('underline')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.underline
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Garis Bawah (Underline)"
-                aria-label="Garis Bawah"
-              >
-                <Underline className="w-4 h-4" />
-              </button>
-            </div>
+            {/* 1. Bold Button */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('bold')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.bold
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Tebal (Bold)"
+              aria-label="Tebal"
+            >
+              <Bold className="w-4 h-4 stroke-[3]" />
+            </button>
 
-            {/* Group: Font Family & Size Step (A+ / A-) */}
-            <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 relative">
-              {/* Custom Font Family Popover Button */}
+            {/* 2. Italic Button */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('italic')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.italic
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Miring (Italic)"
+              aria-label="Miring"
+            >
+              <Italic className="w-4 h-4" />
+            </button>
+
+            {/* 3. Underline Button */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('underline')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.underline
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Garis Bawah (Underline)"
+              aria-label="Garis Bawah"
+            >
+              <Underline className="w-4 h-4" />
+            </button>
+
+            <div className="h-5 w-px bg-slate-300 mx-0.5 shrink-0" />
+
+            {/* 4. Font Family Selector */}
+            <div className="relative shrink-0">
               <button
                 type="button"
                 data-popover-area="true"
@@ -1533,13 +1536,17 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                   setShowColorPicker(false);
                   setShowEmojiPicker(false);
                   setShowLinkModal(false);
+                  setShowFontSizeMenu(false);
+                  setShowHighlightPicker(false);
+                  setShowBulletMenu(false);
+                  setShowNumberMenu(false);
                 }}
-                className={`px-2 py-1 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1 text-xs font-bold text-slate-700 max-w-[120px] sm:max-w-[140px] ${
+                className={`px-2.5 py-1 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold text-slate-700 max-w-[130px] ${
                   showFontMenu
                     ? 'border-blue-500 ring-2 ring-blue-500/20 text-blue-600'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
-                title="Pilih Jenis Font Teks Yang Di-blok"
+                title="Pilih Jenis Font"
                 aria-label="Pilih Jenis Font"
               >
                 <Type className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -1547,9 +1554,8 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-auto" />
               </button>
 
-              {/* Font Family Dropdown Popover */}
               {showFontMenu && (
-                <div data-popover-area="true" className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 max-h-64 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                <div data-popover-area="true" className="absolute top-9 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 max-h-64 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
                     Pilih Jenis Font
                   </div>
@@ -1579,539 +1585,363 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                   ))}
                 </div>
               )}
+            </div>
 
-              <div className="h-4 w-px bg-slate-200 mx-0.5" />
+            {/* 5. Font Size Decrement (A-) */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => handleStepFontSize(-1)}
+              className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50 transition-all cursor-pointer font-black text-xs flex items-center shrink-0"
+              title="Perkecil Ukuran Font (A-)"
+              aria-label="Perkecil Ukuran Font"
+            >
+              <span className="text-xs font-bold leading-none">A</span>
+              <span className="text-[10px] font-black leading-none text-blue-600 ml-0.5">-</span>
+            </button>
 
-              {/* A- Button */}
+            {/* 6. Numeric Font Size Input & Preset Menu */}
+            <div data-popover-area="true" className="flex items-center relative shrink-0">
+              <input
+                type="number"
+                min={8}
+                max={96}
+                value={fontSizePx || ''}
+                onFocus={() => saveSelection()}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (!isNaN(val)) {
+                    handleApplyExactFontSize(val);
+                  } else {
+                    setFontSizePx(0);
+                  }
+                }}
+                className="w-10 text-center py-1 px-1 text-xs font-extrabold text-blue-700 bg-white border border-slate-200 rounded-l-lg focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                title="Ketik Ukuran Font Teks"
+              />
               <button
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   saveSelection();
                 }}
-                onClick={() => handleStepFontSize(-1)}
-                className="px-1.5 py-1 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-all cursor-pointer font-black text-xs flex items-center leading-none"
-                title="Perkecil Ukuran Font (A-)"
-                aria-label="Perkecil Ukuran Font"
+                onClick={() => {
+                  saveSelection();
+                  setShowFontSizeMenu(!showFontSizeMenu);
+                  setShowFontMenu(false);
+                  setShowColorPicker(false);
+                  setShowHighlightPicker(false);
+                  setShowBulletMenu(false);
+                  setShowNumberMenu(false);
+                  setShowEmojiPicker(false);
+                  setShowLinkModal(false);
+                }}
+                className="px-1.5 py-1 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 border border-l-0 border-slate-200 rounded-r-lg transition-colors flex items-center justify-center cursor-pointer h-full"
+                title="Pilih Preset Ukuran Font"
+                aria-label="Preset Ukuran Font"
               >
-                <span className="text-xs font-bold leading-none">A</span>
-                <span className="text-[10px] font-black leading-none text-blue-600 ml-0.5">-</span>
+                <ChevronDown className="w-3 h-3 text-slate-600" />
               </button>
 
-              {/* Numeric Font Size Input & Custom Preset Dropdown */}
-              <div data-popover-area="true" className="flex items-center relative">
-                <input
-                  type="number"
-                  min={8}
-                  max={96}
-                  value={fontSizePx || ''}
-                  onFocus={() => saveSelection()}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val)) {
-                      handleApplyExactFontSize(val);
-                    } else {
-                      setFontSizePx(0);
-                    }
-                  }}
-                  className="w-9 text-center py-0.5 px-0.5 text-xs font-extrabold text-blue-700 bg-slate-50 border border-slate-200 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  title="Ketik Ukuran Font Teks"
+              {showFontSizeMenu && (
+                <div data-popover-area="true" className="absolute top-9 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-28 max-h-52 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    Ukuran Preset
+                  </div>
+                  {[10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64].map((sz) => (
+                    <button
+                      key={sz}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        handleApplyExactFontSize(sz);
+                        setShowFontSizeMenu(false);
+                      }}
+                      className={`w-full text-left px-2 py-1 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer font-bold ${
+                        fontSizePx === sz
+                          ? 'bg-blue-600 text-white font-extrabold'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{sz}</span>
+                      <span className={`text-[9px] ${fontSizePx === sz ? 'text-blue-100' : 'text-slate-400'}`}>pt</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 7. Font Size Increment (A+) */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => handleStepFontSize(+1)}
+              className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50 transition-all cursor-pointer font-black text-xs flex items-center shrink-0"
+              title="Perbesar Ukuran Font (A+)"
+              aria-label="Perbesar Ukuran Font"
+            >
+              <span className="text-sm font-black leading-none">A</span>
+              <span className="text-[10px] font-black leading-none text-blue-600 ml-0.5">+</span>
+            </button>
+
+            <div className="h-5 w-px bg-slate-300 mx-0.5 shrink-0" />
+
+            {/* 8. Text Color Picker */}
+            <div data-popover-area="true" className="relative shrink-0">
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
+                onClick={() => {
+                  saveSelection();
+                  setShowColorPicker(!showColorPicker);
+                  setShowHighlightPicker(false);
+                  setShowFontMenu(false);
+                  setShowBulletMenu(false);
+                  setShowNumberMenu(false);
+                  setShowEmojiPicker(false);
+                  setShowLinkModal(false);
+                  setShowFontSizeMenu(false);
+                }}
+                className={`p-1.5 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  showColorPicker
+                    ? 'border-blue-500 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Ubah Warna Teks"
+                aria-label="Warna Teks"
+              >
+                <Palette className="w-4 h-4 text-slate-700" />
+                <span
+                  className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                  style={{ backgroundColor: activeColor }}
                 />
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    saveSelection();
-                  }}
-                  onClick={() => {
-                    saveSelection();
-                    setShowFontSizeMenu(!showFontSizeMenu);
-                    setShowFontMenu(false);
-                    setShowColorPicker(false);
-                    setShowHighlightPicker(false);
-                    setShowBulletMenu(false);
-                    setShowNumberMenu(false);
-                    setShowEmojiPicker(false);
-                  }}
-                  className="px-1 py-1 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 border border-l-0 border-slate-200 rounded-r-md transition-colors flex items-center justify-center cursor-pointer h-full"
-                  title="Pilih Preset Ukuran Font"
-                  aria-label="Preset Ukuran Font"
-                >
-                  <ChevronDown className="w-3 h-3 text-slate-600" />
-                </button>
+              </button>
 
-                {/* Custom Font Size Popover Menu */}
-                {showFontSizeMenu && (
-                  <div data-popover-area="true" className="absolute top-8 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-28 max-h-52 overflow-y-auto space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
-                      Ukuran Preset
-                    </div>
-                    {[10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64].map((sz) => (
+              {showColorPicker && (
+                <div className="absolute top-9 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                    <span className="text-xs font-bold text-slate-800">Warna Teks</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowColorPicker(false)}
+                      className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {COLOR_PALETTE.map((c) => (
                       <button
-                        key={sz}
+                        key={c.hex}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleApplyTextColor(c.hex)}
+                        className="w-7 h-7 rounded-lg border border-slate-200/80 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow-2xs"
+                        style={{ backgroundColor: c.hex }}
+                        title={c.label}
+                      >
+                        {activeColor === c.hex && (
+                          <Check className={`w-3.5 h-3.5 ${c.isLight ? 'text-slate-900' : 'text-white'}`} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-slate-500">Warna Bebas:</span>
+                    <input
+                      type="color"
+                      value={activeColor}
+                      onFocus={saveSelection}
+                      onChange={(e) => handleApplyTextColor(e.target.value)}
+                      className="w-8 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 9. Stabilo / Highlight Picker */}
+            <div data-popover-area="true" className="relative shrink-0">
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  saveSelection();
+                }}
+                onClick={() => {
+                  saveSelection();
+                  setShowHighlightPicker(!showHighlightPicker);
+                  setShowColorPicker(false);
+                  setShowFontMenu(false);
+                  setShowBulletMenu(false);
+                  setShowNumberMenu(false);
+                  setShowEmojiPicker(false);
+                  setShowLinkModal(false);
+                  setShowFontSizeMenu(false);
+                }}
+                className={`p-1.5 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                  showHighlightPicker
+                    ? 'border-amber-500 ring-2 ring-amber-500/20'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Stabilo / Highlight Teks"
+                aria-label="Stabilo Teks"
+              >
+                <Highlighter className="w-4 h-4 text-slate-700" />
+                <span
+                  className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
+                  style={{ backgroundColor: activeHighlightColor === 'transparent' ? '#fef08a' : activeHighlightColor }}
+                />
+              </button>
+
+              {showHighlightPicker && (
+                <div className="absolute top-9 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                      <Highlighter className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Warna Stabilo</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowHighlightPicker(false)}
+                      className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {HIGHLIGHT_PALETTE.map((c) => (
+                      <button
+                        key={c.hex}
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
-                          handleApplyExactFontSize(sz);
-                          setShowFontSizeMenu(false);
+                          handleApplyHighlightColor(c.hex);
+                          setShowHighlightPicker(false);
                         }}
-                        className={`w-full text-left px-2 py-1 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer font-bold ${
-                          fontSizePx === sz
-                            ? 'bg-blue-600 text-white font-extrabold'
-                            : 'text-slate-700 hover:bg-slate-100'
+                        className={`h-7 rounded-lg border border-slate-200 flex items-center justify-center transition-transform hover:scale-105 cursor-pointer text-[10px] font-bold ${
+                          c.isClear ? 'col-span-4 bg-slate-100 text-slate-600 hover:bg-slate-200' : ''
                         }`}
+                        style={{ backgroundColor: !c.isClear ? c.hex : undefined }}
+                        title={c.label}
                       >
-                        <span>{sz}</span>
-                        <span className={`text-[9px] ${fontSizePx === sz ? 'text-blue-100' : 'text-slate-400'}`}>pt</span>
+                        {c.isClear ? (
+                          '🚫 Hapus Stabilo'
+                        ) : (
+                          activeHighlightColor === c.hex && <Check className="w-3.5 h-3.5 text-slate-900" />
+                        )}
                       </button>
                     ))}
                   </div>
-                )}
-              </div>
 
-              {/* A+ Button */}
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => handleStepFontSize(+1)}
-                className="px-1.5 py-1 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-all cursor-pointer font-black text-xs flex items-center leading-none"
-                title="Perbesar Ukuran Font (A+)"
-                aria-label="Perbesar Ukuran Font"
-              >
-                <span className="text-sm font-black leading-none">A</span>
-                <span className="text-[10px] font-black leading-none text-blue-600 ml-0.5">+</span>
-              </button>
-            </div>
-
-            {/* Group: Text Color & Stabilo Highlight Picker */}
-            <div className="flex items-center gap-1">
-              {/* Text Color Button */}
-              <div data-popover-area="true" className="relative">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    saveSelection();
-                  }}
-                  onClick={() => {
-                    saveSelection();
-                    setShowColorPicker(!showColorPicker);
-                    setShowHighlightPicker(false);
-                    setShowFontMenu(false);
-                    setShowBulletMenu(false);
-                    setShowNumberMenu(false);
-                    setShowEmojiPicker(false);
-                    setShowLinkModal(false);
-                  }}
-                  className={`p-1.5 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                    showColorPicker
-                      ? 'border-blue-500 ring-2 ring-blue-500/20'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                  title="Ubah Warna Teks Yang Di-blok"
-                  aria-label="Warna Teks"
-                >
-                  <Palette className="w-4 h-4 text-slate-700" />
-                  <span
-                    className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
-                    style={{ backgroundColor: activeColor }}
-                  />
-                </button>
-
-                {/* Color Picker Popover */}
-                {showColorPicker && (
-                  <div className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                      <span className="text-xs font-bold text-slate-800">Warna Teks</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowColorPicker(false)}
-                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Palette Swatches */}
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {COLOR_PALETTE.map((c) => (
-                        <button
-                          key={c.hex}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            handleApplyTextColor(c.hex);
-                          }}
-                          className="w-7 h-7 rounded-lg border border-slate-200/80 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow-2xs"
-                          style={{ backgroundColor: c.hex }}
-                          title={c.label}
-                        >
-                          {activeColor === c.hex && (
-                            <Check className={`w-3.5 h-3.5 ${c.isLight ? 'text-slate-900' : 'text-white'}`} />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Custom Input Color */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-slate-500">Pilih Warna Bebas:</span>
-                      <input
-                        type="color"
-                        value={activeColor}
-                        onFocus={saveSelection}
-                        onChange={(e) => handleApplyTextColor(e.target.value)}
-                        className="w-8 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5"
-                      />
-                    </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-slate-500">Warna Bebas:</span>
+                    <input
+                      type="color"
+                      value={activeHighlightColor === 'transparent' ? '#fef08a' : activeHighlightColor}
+                      onFocus={saveSelection}
+                      onChange={(e) => handleApplyHighlightColor(e.target.value)}
+                      className="w-8 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5"
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Stabilo / Highlight Button */}
-              <div data-popover-area="true" className="relative">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    saveSelection();
-                  }}
-                  onClick={() => {
-                    saveSelection();
-                    setShowHighlightPicker(!showHighlightPicker);
-                    setShowColorPicker(false);
-                    setShowFontMenu(false);
-                    setShowBulletMenu(false);
-                    setShowNumberMenu(false);
-                    setShowEmojiPicker(false);
-                    setShowLinkModal(false);
-                  }}
-                  className={`p-1.5 bg-white border rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                    showHighlightPicker
-                      ? 'border-amber-500 ring-2 ring-amber-500/20'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                  title="Stabilo / Highlight Latar Belakang Teks"
-                  aria-label="Stabilo Teks"
-                >
-                  <Highlighter className="w-4 h-4 text-slate-700" />
-                  <span
-                    className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs shrink-0"
-                    style={{ backgroundColor: activeHighlightColor === 'transparent' ? '#fef08a' : activeHighlightColor }}
-                  />
-                </button>
-
-                {/* Highlight Color Popover */}
-                {showHighlightPicker && (
-                  <div className="absolute top-11 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-3 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                        <Highlighter className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Warna Stabilo</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowHighlightPicker(false)}
-                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Swatches */}
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {HIGHLIGHT_PALETTE.map((c) => (
-                        <button
-                          key={c.hex}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            handleApplyHighlightColor(c.hex);
-                            setShowHighlightPicker(false);
-                          }}
-                          className={`h-7 rounded-lg border border-slate-200 flex items-center justify-center transition-transform hover:scale-105 cursor-pointer text-[10px] font-bold ${
-                            c.isClear ? 'col-span-4 bg-slate-100 text-slate-600 hover:bg-slate-200' : ''
-                          }`}
-                          style={{ backgroundColor: !c.isClear ? c.hex : undefined }}
-                          title={c.label}
-                        >
-                          {c.isClear ? (
-                            '🚫 Hapus Stabilo'
-                          ) : (
-                            activeHighlightColor === c.hex && <Check className="w-3.5 h-3.5 text-slate-900" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Custom Color Input */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-slate-500">Warna Bebas:</span>
-                      <input
-                        type="color"
-                        value={activeHighlightColor === 'transparent' ? '#fef08a' : activeHighlightColor}
-                        onFocus={saveSelection}
-                        onChange={(e) => handleApplyHighlightColor(e.target.value)}
-                        className="w-8 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            <div className="h-5 w-px bg-slate-300 mx-0.5 hidden sm:block" />
+            <div className="h-5 w-px bg-slate-300 mx-0.5 shrink-0" />
 
-            {/* Group 2: Alignment Buttons */}
-            <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('justifyLeft')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.justifyLeft
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Rata Kiri"
-                aria-label="Rata Kiri"
-              >
-                <AlignLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('justifyCenter')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.justifyCenter
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Rata Tengah"
-                aria-label="Rata Tengah"
-              >
-                <AlignCenter className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('justifyRight')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.justifyRight
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Rata Kanan"
-                aria-label="Rata Kanan"
-              >
-                <AlignRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => execCommand('justifyFull')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                  activeFormats.justifyFull
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Rata Kanan-Kiri (Justify)"
-                aria-label="Rata Kanan-Kiri"
-              >
-                <AlignJustify className="w-4 h-4" />
-              </button>
-            </div>
+            {/* 10. Align Left */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('justifyLeft')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.justifyLeft
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Rata Kiri"
+              aria-label="Rata Kiri"
+            >
+              <AlignLeft className="w-4 h-4" />
+            </button>
 
-            {/* Group: Bullet & Numbering Lists with Variations */}
-            <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200 relative">
-              {/* Bullet List Button & Popover */}
-              <div data-popover-area="true" className="relative">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    saveSelection();
-                  }}
-                  onClick={() => {
-                    saveSelection();
-                    setShowBulletMenu(!showBulletMenu);
-                    setShowNumberMenu(false);
-                    setShowHighlightPicker(false);
-                    setShowColorPicker(false);
-                    setShowFontMenu(false);
-                  }}
-                  className={`p-1.5 rounded-md transition-all cursor-pointer text-slate-700 flex items-center gap-0.5 ${
-                    showBulletMenu ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100'
-                  }`}
-                  title="Daftar Simbol / Bullet List"
-                  aria-label="Bullet List"
-                >
-                  <List className="w-4 h-4" />
-                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-                </button>
+            {/* 11. Align Center */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('justifyCenter')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.justifyCenter
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Rata Tengah"
+              aria-label="Rata Tengah"
+            >
+              <AlignCenter className="w-4 h-4" />
+            </button>
 
-                {showBulletMenu && (
-                  <div className="absolute top-10 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-48 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
-                      Gaya Bullet
-                    </div>
-                    {BULLET_VARIATIONS.map((b) => (
-                      <button
-                        key={b.style}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          handleApplyList('ul', b.style);
-                          setShowBulletMenu(false);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer font-medium text-slate-700"
-                      >
-                        <span className="text-base leading-none w-4 text-center font-extrabold text-blue-600">{b.icon}</span>
-                        <span>{b.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* 12. Align Right */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('justifyRight')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.justifyRight
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Rata Kanan"
+              aria-label="Rata Kanan"
+            >
+              <AlignRight className="w-4 h-4" />
+            </button>
 
-              {/* Numbering List Button & Popover */}
-              <div data-popover-area="true" className="relative">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    saveSelection();
-                  }}
-                  onClick={() => {
-                    saveSelection();
-                    setShowNumberMenu(!showNumberMenu);
-                    setShowBulletMenu(false);
-                    setShowHighlightPicker(false);
-                    setShowColorPicker(false);
-                    setShowFontMenu(false);
-                  }}
-                  className={`p-1.5 rounded-md transition-all cursor-pointer text-slate-700 flex items-center gap-0.5 ${
-                    showNumberMenu ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100'
-                  }`}
-                  title="Daftar Penomoran / Numbering List"
-                  aria-label="Numbering List"
-                >
-                  <ListOrdered className="w-4 h-4" />
-                  <ChevronDown className="w-2.5 h-2.5 text-slate-400" />
-                </button>
+            {/* 13. Justify */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => execCommand('justifyFull')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                activeFormats.justifyFull
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Rata Kanan-Kiri (Justify)"
+              aria-label="Rata Kanan-Kiri"
+            >
+              <AlignJustify className="w-4 h-4" />
+            </button>
 
-                {showNumberMenu && (
-                  <div className="absolute top-10 left-0 z-40 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
-                      Gaya Penomoran
-                    </div>
-                    {NUMBER_VARIATIONS.map((n) => (
-                      <button
-                        key={n.style}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          handleApplyList('ol', n.style);
-                          setShowNumberMenu(false);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer font-medium text-slate-700"
-                      >
-                        <span className="text-xs font-extrabold text-blue-600 w-5">{n.sample}</span>
-                        <span>{n.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <div className="h-5 w-px bg-slate-300 mx-0.5 shrink-0" />
 
-            <div className="h-5 w-px bg-slate-300 mx-0.5 hidden sm:block" />
-
-            {/* Group 3: Quote */}
-            <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
-              <button
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => handleBlockFormat('blockquote')}
-                className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
-                  activeFormats.blockquote
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Kotak Kutipan (Quote)"
-                aria-label="Kotak Kutipan"
-              >
-                <Quote className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="h-5 w-px bg-slate-300 mx-0.5 hidden sm:block" />
-
-            {/* Group 4: Insertions (Link, Emoji, Image) */}
-            <div className="flex items-center gap-0.5 bg-white p-0.5 rounded-lg border border-slate-200">
-              {/* Text Link Button */}
-              <button
-                type="button"
-                data-popover-area="true"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={handleOpenLinkModal}
-                className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
-                  activeFormats.link || showLinkModal
-                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Sisipkan / Edit Teks Link"
-                aria-label="Teks Link"
-              >
-                <LinkIcon className="w-4 h-4" />
-              </button>
-
-              {/* Emoticon Button */}
-              <button
-                type="button"
-                data-popover-area="true"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  saveSelection();
-                }}
-                onClick={() => {
-                  saveSelection();
-                  setShowEmojiPicker(!showEmojiPicker);
-                  setShowLinkModal(false);
-                }}
-                className={`p-1.5 rounded-md transition-all cursor-pointer flex items-center justify-center ${
-                  showEmojiPicker
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-700 hover:text-blue-600 hover:bg-slate-100'
-                }`}
-                title="Sisipkan Emoticon"
-                aria-label="Emoticon"
-              >
-                <Smile className="w-4 h-4" />
-              </button>
-
-              {/* Image Inserter Button */}
+            {/* 14. Bullet List */}
+            <div data-popover-area="true" className="relative shrink-0">
               <button
                 type="button"
                 onMouseDown={(e) => {
@@ -2120,18 +1950,51 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 }}
                 onClick={() => {
                   saveSelection();
-                  setShowImageModal(true);
-                  setShowEmojiPicker(false);
-                  setShowLinkModal(false);
+                  setShowBulletMenu(!showBulletMenu);
+                  setShowNumberMenu(false);
+                  setShowHighlightPicker(false);
+                  setShowColorPicker(false);
+                  setShowFontMenu(false);
+                  setShowFontSizeMenu(false);
                 }}
-                className="p-1.5 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-center"
-                title="Sisipkan Gambar (Layout 1, 2, 3)"
-                aria-label="Sisipkan Gambar"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer text-slate-700 flex items-center gap-0.5 ${
+                  showBulletMenu
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Daftar Simbol / Bullet List"
+                aria-label="Bullet List"
               >
-                <ImageIcon className="w-4 h-4" />
+                <List className="w-4 h-4" />
+                <ChevronDown className="w-2.5 h-2.5 opacity-70" />
               </button>
 
-              {/* Video Embed Button */}
+              {showBulletMenu && (
+                <div className="absolute top-9 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-48 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    Gaya Bullet
+                  </div>
+                  {BULLET_VARIATIONS.map((b) => (
+                    <button
+                      key={b.style}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        handleApplyList('ul', b.style);
+                        setShowBulletMenu(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer font-medium text-slate-700"
+                    >
+                      <span className="text-base leading-none w-4 text-center font-extrabold text-blue-600">{b.icon}</span>
+                      <span>{b.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 15. Numbering List */}
+            <div data-popover-area="true" className="relative shrink-0">
               <button
                 type="button"
                 onMouseDown={(e) => {
@@ -2140,17 +2003,155 @@ export const RichTextEditorWithImages: React.FC<RichTextEditorWithImagesProps> =
                 }}
                 onClick={() => {
                   saveSelection();
-                  setShowEmbedModal(true);
-                  setShowEmojiPicker(false);
-                  setShowLinkModal(false);
+                  setShowNumberMenu(!showNumberMenu);
+                  setShowBulletMenu(false);
+                  setShowHighlightPicker(false);
+                  setShowColorPicker(false);
+                  setShowFontMenu(false);
+                  setShowFontSizeMenu(false);
                 }}
-                className="p-1.5 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-center"
-                title="Sisipkan Video (YouTube / Embed Link)"
-                aria-label="Sisipkan Video"
+                className={`p-1.5 rounded-lg border transition-all cursor-pointer text-slate-700 flex items-center gap-0.5 ${
+                  showNumberMenu
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+                title="Daftar Penomoran / Numbering List"
+                aria-label="Numbering List"
               >
-                <Video className="w-4 h-4" />
+                <ListOrdered className="w-4 h-4" />
+                <ChevronDown className="w-2.5 h-2.5 opacity-70" />
               </button>
+
+              {showNumberMenu && (
+                <div className="absolute top-9 left-0 z-50 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 w-52 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                    Gaya Penomoran
+                  </div>
+                  {NUMBER_VARIATIONS.map((n) => (
+                    <button
+                      key={n.style}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        handleApplyList('ol', n.style);
+                        setShowNumberMenu(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 transition-colors flex items-center gap-2 cursor-pointer font-medium text-slate-700"
+                    >
+                      <span className="text-xs font-extrabold text-blue-600 w-5">{n.sample}</span>
+                      <span>{n.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            <div className="h-5 w-px bg-slate-300 mx-0.5 shrink-0" />
+
+            {/* 16. Quote Button */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => handleBlockFormat('blockquote')}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                activeFormats.blockquote
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Kotak Kutipan (Quote)"
+              aria-label="Kotak Kutipan"
+            >
+              <Quote className="w-4 h-4" />
+            </button>
+
+            <div className="h-5 w-px bg-slate-300 mx-0.5 shrink-0" />
+
+            {/* 17. Link Button */}
+            <button
+              type="button"
+              data-popover-area="true"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={handleOpenLinkModal}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                activeFormats.link || showLinkModal
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-bold'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Sisipkan / Edit Teks Link"
+              aria-label="Teks Link"
+            >
+              <LinkIcon className="w-4 h-4" />
+            </button>
+
+            {/* 18. Emoticon Button */}
+            <button
+              type="button"
+              data-popover-area="true"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => {
+                saveSelection();
+                setShowEmojiPicker(!showEmojiPicker);
+                setShowLinkModal(false);
+              }}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                showEmojiPicker
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                  : 'bg-white border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Sisipkan Emoticon"
+              aria-label="Emoticon"
+            >
+              <Smile className="w-4 h-4" />
+            </button>
+
+            {/* 19. Image Inserter */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => {
+                saveSelection();
+                setShowImageModal(true);
+                setShowEmojiPicker(false);
+                setShowLinkModal(false);
+              }}
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+              title="Sisipkan Gambar (Layout 1, 2, 3)"
+              aria-label="Sisipkan Gambar"
+            >
+              <ImageIcon className="w-4 h-4" />
+            </button>
+
+            {/* 20. Video Embed */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+              }}
+              onClick={() => {
+                saveSelection();
+                setShowEmbedModal(true);
+                setShowEmojiPicker(false);
+                setShowLinkModal(false);
+              }}
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+              title="Sisipkan Video (YouTube / Embed Link)"
+              aria-label="Sisipkan Video"
+            >
+              <Video className="w-4 h-4" />
+            </button>
 
           </div>
 

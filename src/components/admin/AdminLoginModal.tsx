@@ -94,7 +94,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           </div>
           <div>
             <h2 className="text-base font-bold text-white tracking-tight">
-              Login Admin
+              Login
             </h2>
           </div>
         </div>
@@ -153,7 +153,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               disabled={isSubmitting || !inputPassword}
               className="w-2/3 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span>{isSubmitting ? 'Memverifikasi...' : 'Masuk'}</span>
+              <span>{isSubmitting ? 'Memverifikasi...' : 'Login'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

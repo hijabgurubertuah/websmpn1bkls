@@ -95,6 +95,10 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   bannerOverlayColor: '#0f172a',
   bannerOverlayOpacity: 45,
   cardStrokeColor: '#b45309',
+  cardStrokeWidth: 2,
+  statCardUseGradient: false,
+  statCardGradientFrom: '#2563eb',
+  statCardGradientTo: '#7c3aed',
   customPresets: [],
 };
 

@@ -86,10 +86,6 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
         {/* Header with Switcher Tabs */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Sarana &amp; Potensi Siswa</span>
-            </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {facilitiesSectionTitle}
             </h2>
@@ -141,18 +137,11 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-slate-900/85 backdrop-blur-md text-white text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md">
-                    {fac.category}
-                  </span>
                 </div>
-                <div className="p-3 sm:p-5 flex flex-col flex-1 justify-between">
+                <div className="p-3 sm:p-5 flex flex-col flex-1">
                   <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {fac.title}
                   </h3>
-                  <div className="mt-2 text-[10px] sm:text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-1">
-                    <span>Lihat Detail</span>
-                    <span>&rarr;</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -183,18 +172,11 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
                       </div>
                     </div>
                   )}
-                  <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-slate-900/85 backdrop-blur-md text-white text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-md">
-                    {ekskul.category}
-                  </span>
                 </div>
-                <div className="p-3 sm:p-5 flex flex-col flex-1 justify-between">
+                <div className="p-3 sm:p-5 flex flex-col flex-1">
                   <h3 className="font-bold text-slate-900 text-xs sm:text-sm md:text-base leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {ekskul.name}
                   </h3>
-                  <div className="mt-2 text-[10px] sm:text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-1">
-                    <span>Lihat Detail</span>
-                    <span>&rarr;</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -221,9 +203,6 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
-              <span className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-md">
-                {selectedFacility.category}
-              </span>
               <button
                 type="button"
                 onClick={() => setSelectedFacility(null)}
@@ -285,9 +264,6 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
                   </div>
                 </div>
               )}
-              <span className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-md">
-                {selectedEkskul.category}
-              </span>
               <button
                 type="button"
                 onClick={() => setSelectedEkskul(null)}
@@ -304,24 +280,6 @@ export const FacilitiesAndEkskul: React.FC<FacilitiesAndEkskulProps> = ({
                 {selectedEkskul.name}
               </h3>
               
-              {/* Meta Info Box */}
-              <div className="grid grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs text-slate-600">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pembina</span>
-                  <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                    <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">{selectedEkskul.coach || '-'}</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jadwal</span>
-                  <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                    <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <span className="truncate">{selectedEkskul.schedule || '-'}</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="h-px bg-slate-100 w-full" />
               <div className="text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
                 {selectedEkskul.description}

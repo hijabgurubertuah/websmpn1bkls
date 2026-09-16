@@ -79,11 +79,6 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ config }) => {
               {footer.aboutText}
             </p>
 
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold bg-emerald-950/60 border border-emerald-900 px-3 py-1.5 rounded-lg w-fit">
-              <Shield className="w-4 h-4" />
-              <span>Terakreditasi: {identity.akreditasi}</span>
-            </div>
-
             {/* Social Media Links */}
             <div className="pt-2 flex items-center gap-3">
               {footer.socialLinks.instagram && (

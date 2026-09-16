@@ -19,6 +19,9 @@ export interface HighlightStat {
   icon: string;
   label: string;
   value: string;
+  useCustomGradient?: boolean;
+  bgGradientFrom?: string;
+  bgGradientTo?: string;
 }
 
 export interface ThemePreset {
@@ -50,6 +53,10 @@ export interface ThemeConfig {
   bannerOverlayColor?: string;
   bannerOverlayOpacity?: number;
   cardStrokeColor?: string;
+  cardStrokeWidth?: number;
+  statCardUseGradient?: boolean;
+  statCardGradientFrom?: string;
+  statCardGradientTo?: string;
   customPresets?: ThemePreset[];
 }
 
@@ -100,6 +107,13 @@ export interface HeaderConfig {
   secondaryCtaText: string;
   secondaryCtaLink: string;
   highlights: HighlightStat[];
+  carouselEnabled?: boolean;
+  carouselImages?: string[];
+  carouselInterval?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  verticalPosition?: 'top' | 'center' | 'bottom';
+  showPrimaryButton?: boolean;
+  showSecondaryButton?: boolean;
 }
 
 export interface MobileBottomNavConfig {

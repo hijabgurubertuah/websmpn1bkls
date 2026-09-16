@@ -31,7 +31,8 @@ import {
   Settings,
   MessageSquare,
 } from 'lucide-react';
-import { AdminHeaderTab } from './AdminHeaderTab';
+import { AdminIdentityTab } from './AdminIdentityTab';
+import { AdminBannerTab } from './AdminBannerTab';
 import { AdminThemeTab } from './AdminThemeTab';
 import { AdminTickerTab } from './AdminTickerTab';
 import { AdminMenusTab } from './AdminMenusTab';
@@ -67,7 +68,8 @@ interface AdminDashboardProps {
 }
 
 export type AdminTab =
-  | 'header'
+  | 'banner'
+  | 'identity'
   | 'theme'
   | 'ticker'
   | 'menus'
@@ -216,11 +218,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Kategori 2: Sistem (Sub-Sistem Website & Konfigurasi Modul)
   const systemTabs: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
+    { id: 'banner', label: 'Banner Utama', icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
+    { id: 'identity', label: 'Identitas Instansi', icon: <Building2 className="w-4 h-4" /> },
     { id: 'menus', label: 'Menu & Dropdown', icon: <Layers className="w-4 h-4" /> },
     { id: 'facilities', label: 'Fasilitas & Ekskul', icon: <Building2 className="w-4 h-4" /> },
     { id: 'embeds', label: 'Video Profil dan Peta', icon: <Video className="w-4 h-4" /> },
     { id: 'footer', label: 'Footer & Kontak', icon: <Share2 className="w-4 h-4" /> },
-    { id: 'header', label: 'Header & Identitas', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'theme', label: 'Warna & Tema Website', icon: <Palette className="w-4 h-4" /> },
     { id: 'ticker', label: 'Teks Berjalan (Ticker)', icon: <Volume2 className="w-4 h-4" /> },
     { id: 'layout', label: 'Tata Letak', icon: <Layout className="w-4 h-4" /> },
@@ -234,11 +237,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ];
 
   const systemTabIds = new Set<AdminTab>([
+    'banner',
+    'identity',
     'menus',
     'facilities',
     'embeds',
     'footer',
-    'header',
     'theme',
     'ticker',
     'layout',
@@ -253,6 +257,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (systemTabIds.has(activeTab)) {
       setIsSystemCategoryOpen(true);
     }
+  }, [activeTab]);
+
+  // Scroll to the absolute top of the viewport when entering the Admin Panel or switching tabs.
+  // This guarantees that the user is positioned at the very top of "Tambah Berita" / "Tulis Berita Baru" on entrance.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    
+    // Also handle possible scroll containers
+    const elementsToScroll = [
+      document.documentElement,
+      document.body,
+      document.getElementById('admin-main-container'),
+    ];
+    elementsToScroll.forEach((el) => {
+      if (el) el.scrollTop = 0;
+    });
   }, [activeTab]);
 
   const handleConfigUpdate = (newConfig: SchoolConfig) => {
@@ -308,9 +328,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={onCloseAdmin}
                 className="inline-flex items-center gap-1.5 sm:gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer border border-slate-700"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden xs:inline">Lihat</span>
-                <span>Website</span>
+                <Eye className="w-4 h-4" />
+                <span>Lihat Website</span>
               </button>
 
               <div className="hidden sm:flex items-center gap-2.5">
@@ -857,8 +876,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {/* Dynamic Tab Views */}
-          {activeTab === 'header' && (
-            <AdminHeaderTab config={config} onChange={handleConfigUpdate} />
+          {activeTab === 'banner' && (
+            <AdminBannerTab config={config} onChange={handleConfigUpdate} />
+          )}
+
+          {activeTab === 'identity' && (
+            <AdminIdentityTab config={config} onChange={handleConfigUpdate} />
           )}
 
           {activeTab === 'theme' && (

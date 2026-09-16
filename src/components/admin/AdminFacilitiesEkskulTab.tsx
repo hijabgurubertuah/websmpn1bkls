@@ -304,84 +304,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
         </div>
       </div>
 
-      {/* Configuration Box for Custom Tab and Section Titles */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
-        <button
-          type="button"
-          onClick={() => setShowTitleSettings(!showTitleSettings)}
-          className="flex items-center justify-between w-full font-bold text-slate-800 text-xs sm:text-sm focus:outline-none cursor-pointer"
-        >
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-            <span>⚙️ Atur Judul Halaman &amp; Nama Tab</span>
-          </div>
-          <span className="text-xs text-blue-600 hover:text-blue-700 font-bold">
-            {showTitleSettings ? 'Sembunyikan Pengaturan ▲' : 'Tampilkan Pengaturan ▼'}
-          </span>
-        </button>
 
-        {showTitleSettings && (
-          <div className="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Judul Utama Bagian
-              </label>
-              <input
-                type="text"
-                value={config.facilitiesSectionTitle || ''}
-                onChange={(e) => handleUpdateTitles('facilitiesSectionTitle', e.target.value)}
-                placeholder="Fasilitas Modern &amp; Ekstrakurikuler"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Sub-Judul Bagian
-              </label>
-              <input
-                type="text"
-                value={config.facilitiesSectionSubtitle || ''}
-                onChange={(e) => handleUpdateTitles('facilitiesSectionSubtitle', e.target.value)}
-                placeholder="Dukungan penuh sarana fisik berstandar tinggi serta wadah pengembangan..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Nama Tab Fasilitas
-              </label>
-              <input
-                type="text"
-                value={config.facilitiesTabTitle || ''}
-                onChange={(e) => handleUpdateTitles('facilitiesTabTitle', e.target.value)}
-                placeholder="Fasilitas Sekolah"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Default: Fasilitas Sekolah (misal: "Sarana Belajar", "Fasilitas")
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Nama Tab Ekstrakurikuler
-              </label>
-              <input
-                type="text"
-                value={config.ekskulTabTitle || ''}
-                onChange={(e) => handleUpdateTitles('ekskulTabTitle', e.target.value)}
-                placeholder="Ekstrakurikuler"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-              />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                Default: Ekstrakurikuler (misal: "Kegiatan Siswa", "Ekskul")
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* ================= FASILITAS TAB ================= */}
       {subTab === 'facilities' && (
@@ -405,16 +328,13 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                 className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-blue-200 transition-all flex flex-col justify-between gap-3"
               >
                 <div className="flex gap-3.5">
-                  <div className="w-24 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 relative">
+                  <div className="w-24 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                     <img
                       src={fac.imageUrl}
                       alt={fac.title}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
-                    <span className="absolute bottom-1 left-1 bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                      {fac.category}
-                    </span>
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-1">
@@ -516,35 +436,14 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                 key={ek.id}
                 className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-blue-200 transition-all flex flex-col justify-between gap-3"
               >
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                        {renderIconBadge(ek.icon)}
-                      </div>
-                      <div>
-                        <h5 className="font-bold text-slate-900 text-sm leading-tight">
-                          {ek.name}
-                        </h5>
-                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
-                          {ek.category}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                 <div className="space-y-2">
+                  <h5 className="font-bold text-slate-900 text-sm leading-tight">
+                    {ek.name}
+                  </h5>
 
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                     {ek.description}
                   </p>
-
-                  <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
-                    <div>
-                      <span className="font-semibold text-slate-800">Pembina:</span> {ek.coach || '-'}
-                    </div>
-                    <div className="bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-slate-700">
-                      {ek.schedule || '-'}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Actions */}
@@ -618,7 +517,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
       {/* ================= MODAL TAMBAH/EDIT FASILITAS ================= */}
       {isFacilityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150 my-8">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150 my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-blue-600" />
@@ -646,23 +545,6 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                   placeholder="Contoh: Laboratorium Komputer Modern"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Kategori Fasilitas
-                </label>
-                <select
-                  value={facilityFormData.category}
-                  onChange={(e) => setFacilityFormData({ ...facilityFormData, category: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                >
-                  {facilityCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* Photo Upload with Google Drive & Local Compression */}
@@ -711,7 +593,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
       {/* ================= MODAL TAMBAH/EDIT EKSKUL ================= */}
       {isEkskulModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150 my-8">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-150 my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-600" />
@@ -736,73 +618,9 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                   required
                   value={ekskulFormData.name}
                   onChange={(e) => setEkskulFormData({ ...ekskulFormData, name: e.target.value })}
-                  placeholder="Contoh: Pramuka Gugus Depan Bengkalis"
+                  placeholder="Contoh: Pramuka"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Kategori
-                  </label>
-                  <select
-                    value={ekskulFormData.category}
-                    onChange={(e) => setEkskulFormData({ ...ekskulFormData, category: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                  >
-                    {ekskulCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Pilihan Ikon
-                  </label>
-                  <select
-                    value={ekskulFormData.icon}
-                    onChange={(e) => setEkskulFormData({ ...ekskulFormData, icon: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
-                  >
-                    {availableIcons.map((ic) => (
-                      <option key={ic.id} value={ic.id}>
-                        {ic.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Pembina / Pelatih
-                  </label>
-                  <input
-                    type="text"
-                    value={ekskulFormData.coach}
-                    onChange={(e) => setEkskulFormData({ ...ekskulFormData, coach: e.target.value })}
-                    placeholder="Contoh: Kak Ahmad, S.Pd."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Jadwal Latihan
-                  </label>
-                  <input
-                    type="text"
-                    value={ekskulFormData.schedule}
-                    onChange={(e) => setEkskulFormData({ ...ekskulFormData, schedule: e.target.value })}
-                    placeholder="Contoh: Jumat, 15:00 WIB"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  />
-                </div>
               </div>
 
               <div>
@@ -825,7 +643,7 @@ export const AdminFacilitiesEkskulTab: React.FC<AdminFacilitiesEkskulTabProps> =
                   minRows={3}
                   value={ekskulFormData.description}
                   onChange={(e) => setEkskulFormData({ ...ekskulFormData, description: e.target.value })}
-                  placeholder="Jelaskan tujuan ekskul, kegiatan rutin, atau prestasi yang pernah diraih..."
+                  placeholder="Jelaskan tujuan ekskul, kegiatan rutin, atau prestasi..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white"
                 />
               </div>
